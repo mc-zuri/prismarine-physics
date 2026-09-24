@@ -77,4 +77,29 @@ describe('bedrock network/rewind', () => {
     rewind.rewindTo(1, live, s => { s.n += 100 })
     assert.deepStrictEqual([live.n, steps.length], [160, 1], 'no state kept: installed live, nothing replayed')
   })
+
+  it('replays a frame after the first with no turn at the rotation the one before it ran with', () => {
+    const ran: Array<Array<number | undefined>> = []
+    const rewind = new BedrockRewind<{ yaw: number, pitch: number }>({
+      step: (state, frame: Frame) => {
+        if (typeof frame.yaw === 'number') state.yaw = frame.yaw
+        if (typeof frame.pitch === 'number') state.pitch = frame.pitch
+        ran.push([frame.t, state.yaw, state.pitch, frame.bedrockYaw as number | undefined])
+      }
+    })
+    const frames: Frame[] = [
+      { t: 1, yaw: 1, pitch: 1 },
+      { t: 2, yaw: 2, pitch: 2, turned: false },
+      { t: 3, yaw: 3, pitch: 3, bedrockYaw: 3, bedrockPitch: 3, turned: false },
+      { t: 4, yaw: 4, pitch: 4, turned: true },
+      { t: 5, yaw: 5, pitch: 5 }
+    ]
+    for (const frame of frames) {
+      rewind.push(frame)
+      rewind.snapshot(frame.t, { yaw: frame.t, pitch: frame.t })
+    }
+    rewind.rewindTo(1, { yaw: 0, pitch: 0 }, () => {})
+    assert.deepStrictEqual(ran, [[2, 2, 2, undefined], [3, 2, 2, undefined], [4, 4, 4, undefined]], 'the first replayed frame and a turn take their own')
+    assert.strictEqual(frames[2]!.yaw, 3, 'the frame kept is left as it is')
+  })
 })

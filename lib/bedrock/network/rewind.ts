@@ -24,8 +24,18 @@ export function cloneValue<T> (value: T): T {
 // A deep copy of a player state.
 export function cloneState<T> (state: T): T { return cloneValue(state) }
 
-// One tick's inputs, by tick.
-export interface Frame { t: number, [input: string]: unknown }
+// One tick's inputs, by tick. `turned: false` says no turn input reached the tick's move.
+export interface Frame { t: number, turned?: boolean | undefined, [input: string]: unknown }
+
+// The rotation a frame carries.
+const ROTATION = ['yaw', 'pitch', 'bedrockYaw', 'bedrockPitch']
+
+// A frame without its rotation.
+function withoutRotation (frame: Frame): Frame {
+  const out: Frame = { ...frame }
+  for (const key of ROTATION) delete out[key]
+  return out
+}
 
 // Simulates one past tick again from its frame.
 export type Step<S> = (state: S, frame: Frame) => void
@@ -66,7 +76,9 @@ export class BedrockRewind<S extends object = Record<string, unknown>> {
 
   // Restores the state after `tick` (no earlier than the history kept), runs `install(state)` on it, and simulates
   // every frame after it up to the current tick again. Without a state kept for the tick, it is installed on the
-  // live state alone: the frames since were simulated into that state already.
+  // live state alone: the frames since were simulated into that state already. A state is kept with the rotation the
+  // view had at the end of its tick, which is the next tick's; nothing moves the view while the ticks are simulated
+  // again, so a frame after the first that had no turn keeps the rotation the one before it ran with.
   rewindTo (tick: number, state: S, install: (state: S) => void): void {
     tick = Math.max(tick, this.oldest, this.current - this.history)
     const saved = this.snapshots.get(tick)
@@ -76,9 +88,11 @@ export class BedrockRewind<S extends object = Record<string, unknown>> {
     }
     Object.assign(state, cloneState(saved))
     install(state)
+    let first = true
     for (const past of this.frames) {
       if (past.t <= tick || past.t >= this.current) continue
-      this.step!(state, past)
+      this.step!(state, !first && past.turned === false ? withoutRotation(past) : past)
+      first = false
       this.snapshot(past.t, state)
     }
   }
