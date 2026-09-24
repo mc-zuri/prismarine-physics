@@ -17,6 +17,15 @@ describe('bedrock network/corrections', () => {
     assert.deepStrictEqual([p.bedrock!.teleported, p.bedrock!.aabb, p.onGround], [true, undefined, true])
   })
 
+  it('zeroes the fall distance on a teleport, and turns only the head (the pitch) for a head rotation', () => {
+    const falling = player([0, 0, 0], { bedrock: { fallDistance: 12 } })
+    handleTeleport(falling, { x: 0, y: EYE, z: 0 }, EYE)
+    assert.strictEqual(falling.bedrock!.fallDistance, 0)
+    const head = player([1, 2, 3], { bedrockYaw: 10, bedrockPitch: 0, vel: player().vel.set(1, 0, 0) })
+    handleTeleport(head, { x: 50, y: 50, z: 50, yaw: 90, pitch: 30, mode: MoveMode.rotation }, EYE)
+    assert.deepStrictEqual([head.pos.x, head.pos.y, head.pos.z, head.vel.x, head.bedrockYaw, head.bedrockPitch, head.bedrock?.teleported], [1, 2, 3, 1, 10, 30, undefined])
+  })
+
   it('moves without the teleport marks in another mode, keeping the ground flag when not given', () => {
     const p = player([0, 0, 0], { onGround: false, vel: player().vel.set(1, 1, 1) })
     handleTeleport(p, { x: 1, y: 1, z: 1, mode: MoveMode.normal }, EYE)

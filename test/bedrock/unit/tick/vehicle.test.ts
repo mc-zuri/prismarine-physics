@@ -197,5 +197,12 @@ describe('bedrock tick/vehicle', () => {
     dismount(ctx(EMPTY), seated)
     const eye = f(1.6200100183486938)
     assert.deepStrictEqual([seated.pos.x, seated.pos.y, seated.pos.z], [f(2.25), f(f(f(f(3 + f(0.9)) + eye) + f(0.001)) - eye), f(-1.5)])
+    // left mid-frame: seated first where the vehicle is shown, between its last two positions
+    const shown = player([0.5, 1, 0.5], { vehicle: boat({ posPrev: { x: 0, y: f(0.375), z: 0 }, pos: new Vec3(2, f(0.375), 4) }) })
+    dismount(ctx(EMPTY), shown, true, 0.25)
+    assert.deepStrictEqual([shown.pos.x, shown.pos.z], [f(0.5), f(1)])
+    const unmoved = player([0.5, 1, 0.5], { vehicle: boat(), bedrock: { seatedAt: { x: 2.25, y: 3, z: -1.5 } } as any })
+    dismount(ctx(EMPTY), unmoved, true, 0.25)
+    assert.strictEqual(unmoved.pos.x, f(2.25), 'no previous position: where it sat')
   })
 })

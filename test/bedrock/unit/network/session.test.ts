@@ -66,6 +66,23 @@ describe('bedrock network/session', () => {
     assert.strictEqual(p.bedrock!.teleported, true)
   })
 
+  it('moves the player for a teleport stamped before the history but keeps it, so a correction behind it simulates through', () => {
+    const s = session()
+    s.rewind.history = 5
+    const p = player([0.5, 0, 0.5])
+    for (let t = 1; t <= 10; t++) s.tick(p, { t })
+    s.handlePacket('move_player', { runtime_id: 7n, position: { x: 50.5, y: 10 + EYE, z: 50.5 }, mode: 'teleport', tick: 4n })
+    s.handlePacket('correct_player_move_prediction', { prediction_type: 'player', position: { x: 50.5, y: 10 + EYE, z: 50.5 }, delta: { x: 0, y: 0, z: 0 }, on_ground: false, tick: 6n })
+    s.tick(p, { t: 11 })
+    assert.ok(s.rewind.oldest < 8, 'the history is kept')
+    assert.ok(p.bedrock!.actions!.has('handledTeleport'), 'the teleport is still reported')
+    assert.ok(p.pos.y < 10 && p.pos.x === 50.5, 'from the correction on, falling through the ticks since and this one')
+    // one stamped within the history starts it over
+    s.handlePacket('move_player', { runtime_id: 7n, position: { x: 0.5, y: EYE, z: 0.5 }, mode: 'teleport', tick: 9n })
+    s.tick(p, { t: 12 })
+    assert.strictEqual(s.rewind.oldest, 12)
+  })
+
   describe('whether a correction is filed', () => {
     const at = (t: number, pos: [number, number, number], vel: [number, number, number], onGround = true) => {
       const s = session()
@@ -141,6 +158,38 @@ describe('bedrock network/session', () => {
     s.rewind.snapshot(2, bare)
     s.actorFlags(bare, { tick: 2, swimming: true })
     assert.strictEqual(bare.bedrock!.swimming, true, 'a frame without engine state')
+  })
+
+  it('writes a stamped movement attribute into the history from its tick, an unstamped one on the player only', () => {
+    const s = session()
+    const p = player()
+    for (let t = 1; t <= 3; t++) s.tick(p, { t })
+    const key = s.physics.movementSpeedAttribute
+    s.movementAttribute(p, { tick: 0, walk: f(0.2), current: f(0.2) })
+    assert.strictEqual(p.attributes![key]!.base, f(0.2))
+    assert.notStrictEqual(s.rewind.snapshots.get(3)!.attributes?.[key]?.base, f(0.2), 'unstamped: the history keeps what it had')
+    s.movementAttribute(p, { tick: 2, walk: f(0.3), current: f(0.3) })
+    assert.deepStrictEqual([s.rewind.snapshots.get(1)!.attributes?.[key]?.base, s.rewind.snapshots.get(3)!.attributes![key]!.base].map(v => v === f(0.3)), [false, true])
+  })
+
+  it('replaces the effect held with the same level that lasts longer, or without end', () => {
+    const s = session()
+    const p = player()
+    s.effect(p, { tick: 0, field: 'levitation', level: 2, duration: 5 })
+    s.effect(p, { tick: 0, field: 'levitation', level: 2, duration: 50 })
+    assert.strictEqual(s.effects.get('levitation')!.at(-1)!.end, s.rewind.current - 1 + 50, 'longer')
+    s.effect(p, { tick: 0, field: 'levitation', level: 2, duration: -1 })
+    assert.strictEqual(s.effects.get('levitation')!.at(-1)!.end, undefined, 'without end')
+  })
+
+  it('takes the push toward free space as sent, whatever the frame had', () => {
+    const s = session()
+    const p = player(undefined, { bedrock: { pushTowardsClosestSpace: true } })
+    s.rewind.push({ t: 1 })
+    s.rewind.snapshot(1, p)
+    p.bedrock!.pushTowardsClosestSpace = false
+    s.actorFlags(p, { tick: 1, pushTowardsClosestSpace: true })
+    assert.strictEqual(p.bedrock!.pushTowardsClosestSpace, true)
   })
 
   it('with no frame to compare with, takes the glide only when the server changed it since it last restated it', () => {
@@ -272,7 +321,13 @@ describe('bedrock network/session', () => {
       assert.strictEqual(p.levitation, 2, 'no duration: until removed')
       s.handlePacket('mob_effect', packet({ duration: -1 }))
       s.tick(p, { t: 31 })
-      assert.deepStrictEqual(s.effects.get('levitation')!.map(event => event.frame), [10, 31], 'what came before the history is dropped but the last of it')
+      assert.strictEqual(s.effects.get('levitation')!.length, 4, 'the same level without end again merges into the one held')
+      s.handlePacket('mob_effect', packet({ amplifier: 3, duration: -1 }))
+      s.tick(p, { t: 32 })
+      assert.deepStrictEqual(s.effects.get('levitation')!.map(event => event.frame), [10, 32], 'what came before the history is dropped but the last of it')
+      s.handlePacket('mob_effect', packet({ amplifier: 0, duration: -1 }))
+      s.tick(p, { t: 33 })
+      assert.strictEqual(p.levitation, 4, 'a lower level leaves the higher one')
     })
 
     it('waits for the frame of one stamped ahead, and simulates again only for a change of the effect it has now', () => {

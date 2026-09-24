@@ -44,8 +44,14 @@ function installRotation (entity: Player, yaw: number | undefined, pitch: number
 export function handleTeleport (entity: Player, teleport: Teleport, eyeHeight: number): void {
   const st = stateOf(entity)
   const mode = teleport.mode === undefined ? MoveMode.teleport : teleport.mode
+  // head rotation only: the pitch, nothing else
+  if (mode === MoveMode.rotation) {
+    installRotation(entity, undefined, teleport.pitch)
+    return
+  }
   entity.pos.set(f(teleport.x), f(f(teleport.y) - f(eyeHeight)), f(teleport.z))
   if (mode === MoveMode.teleport) entity.vel.set(0, 0, 0)
+  if (mode === MoveMode.teleport) st.fallDistance = 0
   installRotation(entity, teleport.yaw, teleport.pitch)
   if (typeof teleport.onGround === 'boolean') entity.onGround = teleport.onGround
   dropBox(st)

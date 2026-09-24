@@ -177,8 +177,10 @@ export interface BedrockState {
   scaffoldDescend?: boolean | undefined
   wasInWater?: boolean | undefined
   wasInLava?: boolean | undefined
-  // a teleport was handled since the last tick
+  // a teleport was handled since the last tick; and one a rewind simulated through since (still reported handled, but
+  // the tick runs in full)
   teleported?: boolean | undefined
+  teleportSimulatedThrough?: boolean | undefined
   // the flying ability as the client holds it (its own toggle), and the server's flag it last saw
   flying?: boolean | undefined
   serverFlying?: boolean | undefined

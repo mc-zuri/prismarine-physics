@@ -197,6 +197,8 @@ export class BedrockSession {
   // since, nothing is.
   rewindTo (tick: number, state: Player, install: (state: Player) => void): void {
     const riding = state.vehicle
+    // a teleport not yet run is simulated through by the rewind: it is still reported
+    const teleported = !!state.bedrock?.teleported
     // off a vehicle since: the dismount placed the player where no simulation leads, so nothing is simulated again
     if (!riding) {
       for (let t = tick; t < this.rewind.current; t++) if (this.rewind.snapshots.get(t)?.vehicle) return
@@ -207,6 +209,7 @@ export class BedrockSession {
       else if (!s.vehicle || s.vehicle.id !== riding.id || !riding.predicted) s.vehicle = riding
       install(s)
     })
+    if (teleported) state.bedrock!.teleportSimulatedThrough = true
   }
 
   // A movement correction: installed on the frame after its tick, and every tick since simulated again.
@@ -223,6 +226,14 @@ export class BedrockSession {
     const timed = effect.level > 0 && typeof effect.duration === 'number' && effect.duration >= 0
     const events = this.effects.get(effect.field) || []
     const before = [...events]
+    // an add merges into the effect held then: a lower level, or the same level ending no later, leaves it as it is
+    if (effect.level > 0) {
+      const held = [...events].reverse().find(event => event.frame <= frame)
+      const now = effectLevel(events, frame) ?? 0
+      if (now > effect.level) return
+      const end = timed ? frame - 1 + effect.duration! : undefined
+      if (held && now === effect.level && (held.end === undefined || (end !== undefined && held.end >= end))) return
+    }
     const at = events.findIndex(event => event.frame > frame)
     events.splice(at < 0 ? events.length : at, 0, { frame, level: effect.level, end: timed ? frame - 1 + effect.duration! : undefined })
     // what came before the history can no longer be simulated again: only the last such event still counts
@@ -301,6 +312,8 @@ export class BedrockSession {
     this.physics.setMovementAttribute(state, { base: attribute.walk, current: attribute.current, sprintStartedSince })
     const key = this.physics.movementSpeedAttribute
     const walk = state.attributes![key]
+    // an unstamped one is the player's from now on only
+    if (!(attribute.tick > 0)) return
     for (const [tick, frame] of this.rewind.snapshots) {
       if (tick >= attribute.tick) frame.attributes = { ...(frame.attributes || {}), [key]: { ...walk } }
     }
@@ -321,6 +334,11 @@ export class BedrockSession {
       // with no frame to compare with, the glide (which the client starts itself) is taken only when the server changed
       // it since its last restatement
       if (name === 'gliding' && !frame && sent === value) continue
+      // the push toward free space is not among the flags the client weighs against its history: it is taken as sent
+      if (name === 'pushTowardsClosestSpace') {
+        (changed as Record<string, unknown>)[name] = value
+        continue
+      }
       const known = frame && frame.bedrock ? frame.bedrock[name === 'height' ? 'poseHeight' : name] : undefined
       if (frame && known === value) continue
       ;(changed as Record<string, unknown>)[name] = value
@@ -336,7 +354,7 @@ export class BedrockSession {
   // tick (the ground flag, and the position and velocity within 1e-5 squared) is dropped, and one with no frame is
   // filed.
   correctionFiles (correction: StampedCorrection): boolean {
-    const oldest = Math.max(this.rewind.oldest, this.rewind.current - this.rewind.history + 1)
+    const oldest = Math.max(this.rewind.oldest, this.rewind.current - this.rewind.history)
     if (correction.tick < oldest) return false
     const frame = this.rewind.snapshots.get(correction.tick)
     if (!frame) return true
@@ -371,7 +389,16 @@ export class BedrockSession {
         if (!sameId(params.runtime_id, this.localRuntimeId)) return false
         const mode = typeof params.mode === 'number' ? params.mode : MoveMode[params.mode as keyof typeof MoveMode]
         const teleport: Teleport = { x: params.position.x, y: params.position.y, z: params.position.z, pitch: params.pitch, yaw: params.yaw, headYaw: params.head_yaw, mode, onGround: !!params.on_ground }
-        this.schedule(state => this.teleport(state, this.rewind.current, teleport))
+        const stamp = Number(params.tick || 0)
+        this.schedule(state => {
+          // one stamped before the client's history moves the player but leaves the history as it is, so a correction
+          // behind it still simulates the ticks since again (through the teleport)
+          if (stamp > 0 && stamp < this.rewind.current - this.rewind.history) {
+            this.physics.handleTeleport(state, teleport)
+            return
+          }
+          this.teleport(state, this.rewind.current, teleport)
+        })
         return true
       }
       case 'correct_player_move_prediction': {

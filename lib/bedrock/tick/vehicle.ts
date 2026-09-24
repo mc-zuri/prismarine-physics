@@ -159,7 +159,9 @@ function insideReach (box: Box): Box {
 
 // The rider leaves the vehicle (the dismount button, or the server taking it off: `byRider` false): it stands at the
 // dismount spot, at rest, its ground flag as riding left it, with its box rebuilt; with no spot it stays where it sat.
-export function dismount (ctx: Ctx, entity: Player, byRider = true): void {
+// `alpha`: the frame's progress into the next tick when the rider left; given, the rider is first seated where the
+// vehicle is shown then (between its last two positions).
+export function dismount (ctx: Ctx, entity: Player, byRider = true, alpha?: number): void {
   const vehicle = entity.vehicle
   if (!vehicle) return
   const seat = seatPosition(vehicle)
@@ -172,7 +174,7 @@ export function dismount (ctx: Ctx, entity: Player, byRider = true): void {
   else {
     // no spot: the centre of the rider's own box (built where it was at the start of the last tick), its eye 0.001
     // above the centre plus the eye height
-    const from = entity.bedrock?.seatedAt ?? entity.pos
+    const from = alpha !== undefined && vehicle.posPrev ? shownSeat(vehicle, f(alpha), eye) : entity.bedrock?.seatedAt ?? entity.pos
     const box = { minX: f(from.x - w), minY: from.y, minZ: f(from.z - w), maxX: f(from.x + w), maxY: f(from.y + f(ctx.settings.playerHeight)), maxZ: f(from.z + w) }
     const centre = (min: number, max: number): number => f(f(f(max - min) * 0.5) + min)
     const eyeY = f(f(centre(box.minY, box.maxY) + eye) + f(0.001))
@@ -181,6 +183,16 @@ export function dismount (ctx: Ctx, entity: Player, byRider = true): void {
   entity.vel.set(0, 0, 0)
   entity.vehicle = undefined
   if (entity.bedrock) entity.bedrock.aabb = undefined
+}
+
+// The rider's feet on the seat of the vehicle as shown at `alpha` of the way from its previous position to its
+// position.
+function shownSeat (vehicle: Vehicle, alpha: number, eye: number): Vec3Like {
+  const prev = vehicle.posPrev!
+  const lerp = (a: number, b: number): number => f(f(f(b - a) * alpha) + a)
+  const pos = new Vec3(lerp(prev.x, vehicle.pos.x), lerp(prev.y, vehicle.pos.y), lerp(prev.z, vehicle.pos.z))
+  const seat = seatPosition({ ...vehicle, pos })
+  return { x: seat.x, y: f(seat.y - eye), z: seat.z }
 }
 
 // Where the rider sits: the vehicle's position plus the seat, turned by the vehicle's yaw.

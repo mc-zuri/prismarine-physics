@@ -21,6 +21,7 @@ export function takePose (ctx: Ctx, entity: Simulated, tick: TickState): void {
   entity.isInLava = !entity.isInWater && liquidInInnerBox(ctx.world, st.aabb!, isLavaName, 0.1, 0.4)
 
   tick.teleported = !!st.teleported
+  if (st.teleported || st.teleportSimulatedThrough) st.actions!.add('handledTeleport')
   st.teleported = false
-  if (tick.teleported) st.actions!.add('handledTeleport')
+  st.teleportSimulatedThrough = false
 }
