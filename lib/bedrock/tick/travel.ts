@@ -6,7 +6,7 @@ import { glide } from '../movement/glide.ts'
 import { climbSpeed, jumpReduced, jumpVelocity, liquidJump, sprintJumpBoost, swimPoseHold, waterSink } from '../movement/jump.ts'
 import { boostedWaterSpeed } from '../movement/dolphin.ts'
 import { fireworkBoost, GLIDE_BOOST_RATE } from '../movement/movement-effects.ts'
-import { depthStriderLevel, depthStriderSpeed, frictionInfluencedSpeed, moveRelative, movementSpeed, walkSpeed } from '../movement/travel.ts'
+import { depthStriderLevel, depthStriderSpeed, frictionInfluencedSpeed, movementSpeed, moveRelative, walkSpeed, walkSpeedParts } from '../movement/travel.ts'
 import type { Ctx, Simulated } from '../types.ts'
 import { blockAt, blockName, standingOnBlock } from '../world/blocks.ts'
 import type { TickState } from './state.ts'
@@ -109,8 +109,10 @@ export function jump (ctx: Ctx, entity: Simulated, tick: TickState): void {
 export function travelSpeed (ctx: Ctx, entity: Simulated, tick: TickState): number {
   if (tick.flying) return flyingSpeed(typeof entity.flySpeed === 'number' ? entity.flySpeed : ctx.settings.flySpeed, tick.sprinting)
   const walk = walkSpeed(entity, ctx.settings)
+  const parts = walkSpeedParts(entity, ctx.settings)
   const speed = frictionInfluencedSpeed({
-    walkSpeed: walk,
+    walkSpeed: parts.walk,
+    sprintBoost: parts.boost,
     speedLevel: entity.speed,
     slownessLevel: entity.slowness,
     sprinting: tick.sprinting,

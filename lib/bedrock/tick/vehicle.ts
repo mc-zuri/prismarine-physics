@@ -9,7 +9,11 @@ import { moveWithCollisions } from '../movement/auto-step.ts'
 import type { Ctx, Player, Vec3Like, XZ } from '../types.ts'
 import { dismountPosition } from '../vehicle/dismount.ts'
 import { applyBoatFriction, BOAT_HEIGHT, BOAT_HEIGHT_OFFSET, BOAT_WIDTH, boatControl, boatFriction, newPaddle, OUT_OF_CONTROL_LIMIT, paddleForces, paddleRowing, paddleWithForce, type Paddle } from '../vehicle/boat.ts'
-import { advanceTimer, boatBuoyancy, buoyancyFloat, buoyancyGravity, floatRequest, type Buoyancy } from '../vehicle/buoyancy.ts'
+import { advanceTimer, boatBuoyancy, buoyancyFloat, buoyancyFromData, buoyancyGravity, floatRequest, type Buoyancy } from '../vehicle/buoyancy.ts'
+import { honeyCellsIn, honeySlide } from '../world/honey.ts'
+import { applyLiquidFlow } from '../world/liquids.ts'
+import { blockAt, blockName } from '../world/blocks.ts'
+import { dragsDown } from '../world/bubble-columns.ts'
 import { capMoveSpeed, clampMoveLength } from './move.ts'
 
 // A vehicle the player rides: the server's entity, and when the player steers a boat, the boat's own state.
@@ -26,6 +30,10 @@ export interface Vehicle {
   box?: Box | undefined
   yaw: number
   pitch: number
+  // its buoyancy data (the entity's JSON metadata), where the caller has it
+  buoyancyData?: string | undefined
+  // the turn rate the mount set it off with (the link's angular velocity), taken when its simulation starts
+  angularVelocity?: number | undefined
   // whether the player's client simulates it (a boat the player controls)
   predicted: boolean
   // where the rider sits, relative to the vehicle's position before its yaw
@@ -45,6 +53,8 @@ export interface BoatState {
   paddles: [Paddle, Paddle]
   localTick: number
   buoyancy: Buoyancy
+  // the buoyancy data the settings were last read from
+  buoyancyData?: string | undefined
 }
 
 export function newBoatState (buoyancy: Buoyancy = boatBuoyancy()): BoatState {
@@ -97,8 +107,15 @@ export function moveVehicle (ctx: Ctx, vehicle: Vehicle): void {
 
 // One tick of a boat the player steers. `roll` draws the big-wave chance (uniform in [0, 1)).
 export function simulateBoat (ctx: Ctx, vehicle: Vehicle, input: PaddleInput, roll: () => number = Math.random): void {
-  const boat = vehicle.boat ?? (vehicle.boat = newBoatState())
+  const boat = vehicle.boat ?? (vehicle.boat = { ...newBoatState(), yRotD: f(vehicle.angularVelocity ?? 0) })
+  // the settings follow the entity's buoyancy data as it changes; the wave timer runs on
+  if (vehicle.buoyancyData !== undefined && vehicle.buoyancyData !== boat.buoyancyData) {
+    boat.buoyancy = buoyancyFromData(vehicle.buoyancyData, boat.buoyancy)
+    boat.buoyancyData = vehicle.buoyancyData
+  }
   vehicle.posPrev = { x: vehicle.pos.x, y: vehicle.pos.y, z: vehicle.pos.z }
+  // flowing water pushes the boat, as any entity in it, before the tick's movement
+  applyLiquidFlow(ctx.world, vehicle.box ?? vehicleBox(vehicle), vehicle.vel)
   paddle(boat, input)
   const friction = boatFriction(ctx.world, vehicle.pos, !!vehicle.onGround)
   const motion = { vel: vehicle.vel, yaw: vehicle.yaw, yRotD: boat.yRotD }
@@ -109,14 +126,41 @@ export function simulateBoat (ctx: Ctx, vehicle: Vehicle, input: PaddleInput, ro
   vehicle.yaw = motion.yaw
   boat.yRotD = motion.yRotD
   moveVehicle(ctx, vehicle)
+  // the blocks the moved boat is in, found over its box grown by half a block on every side
+  const reach = insideReach(vehicle.box!)
+  boatBubbleColumns(ctx, vehicle, reach)
+  // the honey blocks it is in slow it, as any entity
+  honeySlide(vehicle.vel, vehicle.pos, f(vehicle.width ?? BOAT_WIDTH), honeyCellsIn(ctx.world, reach))
   advanceTimer(boat.buoyancy, vehicle.vel, roll())
   const request = floatRequest(ctx.world, boat.buoyancy, vehicle.pos)
   if (boat.buoyancy.applyGravity) vehicle.vel.y = buoyancyGravity(vehicle.vel.y)
   vehicle.vel.y = buoyancyFloat(boat.buoyancy, request, vehicle.pos, vehicle.vel.y)
 }
 
-// The rider leaves the vehicle (the dismount button): it stands at the dismount spot, at rest, with its box rebuilt.
-export function dismount (ctx: Ctx, entity: Player): void {
+// Bubble columns the moved boat is in (the cells of `box`), each with water (not air) above it: a downward one pulls
+// it down 0.03 (to -0.3 at most), an upward one lifts it 0.06 (to 0.7 at most).
+export function boatBubbleColumns (ctx: Ctx, vehicle: Vehicle, box: Box): void {
+  for (let x = Math.floor(f(box.minX + 0.001)); x <= Math.floor(f(box.maxX - 0.001)); x++) {
+    for (let y = Math.floor(f(box.minY + 0.001)); y <= Math.floor(f(box.maxY - 0.001)); y++) {
+      for (let z = Math.floor(f(box.minZ + 0.001)); z <= Math.floor(f(box.maxZ - 0.001)); z++) {
+        const block = blockAt(ctx.world, x, y, z)
+        if (blockName(block) !== 'bubble_column' || blockName(blockAt(ctx.world, x, y + 1, z)) === 'air') continue
+        const vy = vehicle.vel.y
+        vehicle.vel.y = dragsDown(block) ? Math.max(f(-0.30000001), f(vy + f(-0.029999999))) : Math.min(f(0.69999999), f(vy + f(0.059999999)))
+      }
+    }
+  }
+}
+
+// The box a boat finds the blocks it is in over: its own grown by half a block on every side.
+function insideReach (box: Box): Box {
+  return new Box(f(box.minX - 0.5), f(box.minY - 0.5), f(box.minZ - 0.5), f(box.maxX + 0.5), f(box.maxY + 0.5), f(box.maxZ + 0.5))
+}
+
+// The rider leaves the vehicle (the dismount button, or the server taking it off: `byRider` false): it stands at the
+// dismount spot, at rest and on the ground there (so a jump held to leave jumps on the same tick), with its box
+// rebuilt; with no spot it stays where it sat.
+export function dismount (ctx: Ctx, entity: Player, byRider = true): void {
   const vehicle = entity.vehicle
   if (!vehicle) return
   const seat = seatPosition(vehicle)
@@ -124,9 +168,19 @@ export function dismount (ctx: Ctx, entity: Player): void {
   const w = f(ctx.settings.playerHalfWidth)
   const feetY = f(seat.y - eye)
   const riderBox = { minX: -w, minY: feetY, minZ: -w, maxX: w, maxY: f(feetY + f(ctx.settings.playerHeight)), maxZ: w }
-  const at = dismountPosition(ctx.world, vehicle, seat, riderBox)
-  entity.pos.set(at.x, at.y, at.z)
+  const at = dismountPosition(ctx.world, vehicle, seat, riderBox, byRider)
+  if (at.standing) entity.pos.set(at.x, at.y, at.z)
+  else {
+    // no spot: the centre of the rider's own box (built where it was at the start of the last tick), its eye 0.001
+    // above the centre plus the eye height
+    const from = entity.bedrock?.seatedAt ?? entity.pos
+    const box = { minX: f(from.x - w), minY: from.y, minZ: f(from.z - w), maxX: f(from.x + w), maxY: f(from.y + f(ctx.settings.playerHeight)), maxZ: f(from.z + w) }
+    const centre = (min: number, max: number): number => f(f(f(max - min) * 0.5) + min)
+    const eyeY = f(f(centre(box.minY, box.maxY) + eye) + f(0.001))
+    entity.pos.set(centre(box.minX, box.maxX), f(eyeY - eye), centre(box.minZ, box.maxZ))
+  }
   entity.vel.set(0, 0, 0)
+  if (at.standing) entity.onGround = true
   entity.vehicle = undefined
   if (entity.bedrock) entity.bedrock.aabb = undefined
 }

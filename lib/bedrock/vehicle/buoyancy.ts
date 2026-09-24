@@ -3,7 +3,7 @@
 import { f } from '../math/float.ts'
 import type { Block, Vec3Like, World } from '../types.ts'
 import { blockAt, blockName } from '../world/blocks.ts'
-import { liquidDepthOf, liquidSurfaceHeight } from '../world/liquids.ts'
+import { cellLiquid, liquidDepthOf, liquidSurfaceHeight } from '../world/liquids.ts'
 
 // The wave: none, waves (a boat) or bobbing (a horse in water).
 export const MovementType = { None: 0, Waves: 1, Bobbing: 2 } as const
@@ -25,11 +25,12 @@ export function boatBuoyancy (): Buoyancy {
   return { baseBuoyancy: 1, applyGravity: true, movementType: MovementType.Waves, bigWaveProbability: f(0.03), bigWaveSpeed: 10, liquidBlocks: ['water', 'flowing_water'], timer: 0 }
 }
 
-// Reads an entity's buoyancy data (its JSON metadata) over the defaults; a malformed one leaves them.
+// Reads an entity's buoyancy data (its JSON metadata) over the current settings, keeping the timer. The liquids are
+// cleared first: a malformed one leaves the rest and floats in nothing.
 export function buoyancyFromData (json: string, into: Buoyancy = boatBuoyancy()): Buoyancy {
   let data: unknown
-  try { data = JSON.parse(json) } catch { return into }
-  if (!data || typeof data !== 'object' || Array.isArray(data)) return into
+  try { data = JSON.parse(json) } catch { return { ...into, liquidBlocks: [] } }
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return { ...into, liquidBlocks: [] }
   const d = data as Record<string, unknown>
   const num = (key: string, current: number): number => typeof d[key] === 'number' ? f(d[key] as number) : current
   return {
@@ -38,7 +39,7 @@ export function buoyancyFromData (json: string, into: Buoyancy = boatBuoyancy())
     movementType: d.movement_type === 'none' ? MovementType.None : d.movement_type === 'bobbing' ? MovementType.Bobbing : MovementType.Waves,
     bigWaveProbability: num('big_wave_probability', into.bigWaveProbability),
     bigWaveSpeed: num('big_wave_speed', into.bigWaveSpeed),
-    liquidBlocks: Array.isArray(d.liquid_blocks) ? d.liquid_blocks.filter((b): b is string => typeof b === 'string').map(b => b.replace(/^minecraft:/, '')) : into.liquidBlocks,
+    liquidBlocks: Array.isArray(d.liquid_blocks) ? d.liquid_blocks.filter((b): b is string => typeof b === 'string').map(b => b.replace(/^minecraft:/, '')) : [],
     timer: into.timer
   }
 }
@@ -47,13 +48,14 @@ export function buoyancyFromData (json: string, into: Buoyancy = boatBuoyancy())
 // (`roll` is a uniform draw in [0, 1); a draw at or under the probability is a big wave).
 export function advanceTimer (buoyancy: Buoyancy, vel: Vec3Like, roll: number): void {
   if (buoyancy.movementType === MovementType.Bobbing) {
-    buoyancy.timer = f(buoyancy.timer + 1)
+    buoyancy.timer = buoyancy.timer + 1
     return
   }
   const speed = f(Math.sqrt(f(f(vel.z * vel.z) + f(vel.x * vel.x))))
-  let step = f(f(speed * 30) + 1)
-  if (!(buoyancy.bigWaveProbability < roll)) step = f(step * buoyancy.bigWaveSpeed)
-  buoyancy.timer = f(buoyancy.timer + f(step * f(0.05)))
+  // the timer is a double: the step is worked in double and only its twentieth is narrowed to float
+  let step = speed * 30 + 1
+  if (!(buoyancy.bigWaveProbability < roll)) step = step * buoyancy.bigWaveSpeed
+  buoyancy.timer = buoyancy.timer + f(step * 0.05000000074505806)
 }
 
 // Whether the entity at `pos` floats (in a liquid it floats in, below its surface, with no such liquid above) or has to
@@ -64,10 +66,15 @@ export function floatRequest (world: World, buoyancy: Buoyancy, pos: Vec3Like): 
   const x = Math.floor(pos.x)
   const y = Math.floor(pos.y)
   const z = Math.floor(pos.z)
-  const here = blockAt(world, x, y, z)
-  const floatsIn = (block: Block | null | undefined): boolean => buoyancy.liquidBlocks.includes(blockName(block))
+  // the cell's liquid (its own block, or a waterlogged block's water); a bubble column is water
+  const liquidOf = (block: Block | null | undefined): Block | null => cellLiquid(block)
+  const floatsIn = (liquid: Block | null): boolean => {
+    const name = blockName(liquid)
+    return buoyancy.liquidBlocks.includes(name === 'bubble_column' ? 'water' : name)
+  }
+  const here = liquidOf(blockAt(world, x, y, z))
   const inside = floatsIn(here)
-  const overhead = floatsIn(blockAt(world, x, y + 1, z))
+  const overhead = floatsIn(liquidOf(blockAt(world, x, y + 1, z)))
   const surface = liquidSurfaceHeight(liquidDepthOf(here), y)
   return { canFloat: surface > f(pos.y) && inside && !overhead, needToResurface: inside && overhead }
 }

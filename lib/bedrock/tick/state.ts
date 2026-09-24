@@ -28,8 +28,9 @@ export interface TickState {
   requested: Vec3Like
   applied: Vec3Like
   preMoveY: number
-  // the collision boxes the move was made against
+  // the collision boxes the move was made against, and whether it ended inside a block
   moveShapes: Box[]
+  penetrated: boolean
   // pushing into a climbable this tick climbs
   autoClimb: boolean
   // the swim speed multiplier (2 with a dolphin's boost)
@@ -56,6 +57,7 @@ export function newTick (control: Control): TickState {
     applied: { x: 0, y: 0, z: 0 },
     preMoveY: 0,
     moveShapes: [],
+    penetrated: false,
     autoClimb: false,
     swimSpeedMultiplier: 1
   }

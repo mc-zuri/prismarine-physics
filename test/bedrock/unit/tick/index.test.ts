@@ -24,6 +24,16 @@ describe('bedrock tick/index (the tick sequence)', () => {
     assert.strictEqual(p.onGround, false)
   })
 
+  it('pushes a player the server asks to push out of the blocks its move ended in, and no other', () => {
+    const inStone = worldOf({ '0,0,0': 'stone' })
+    const asked = player([0.7, 0, 0.5], { bedrock: { depenetrationBits: 16, pushTowardsClosestSpace: true } })
+    simulatePlayer(ctx(inStone), asked)
+    assert.deepStrictEqual([asked.vel.x, asked.vel.z], [f(0.1), 0])
+    const unasked = player([0.7, 0, 0.5], { bedrock: { depenetrationBits: 16 } })
+    simulatePlayer(ctx(inStone), unasked)
+    assert.deepStrictEqual([unasked.vel.x, unasked.vel.z], [0, 0])
+  })
+
   it('holds an immobile player still, dropping its jump', () => {
     const p = player(undefined, { immobile: true, vel: new Vec3(0.3, 0.3, 0.3), jumpQueued: true, control: { jump: true } })
     simulatePlayer(ctx(FLAT), p)

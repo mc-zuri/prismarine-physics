@@ -20,11 +20,17 @@ describe('bedrock vehicle/buoyancy', () => {
       assert.strictEqual(buoyancyFromData('{}').movementType, MovementType.Waves)
     })
 
-    it('leaves the defaults for data that is not an object', () => {
-      const defaults = boatBuoyancy()
-      assert.deepStrictEqual(buoyancyFromData('not json'), defaults)
-      assert.deepStrictEqual(buoyancyFromData('[1]'), defaults)
-      assert.deepStrictEqual(buoyancyFromData('null'), defaults)
+    it('reads over the current settings, keeping the timer, with the liquids cleared first', () => {
+      const current = { ...boatBuoyancy(), baseBuoyancy: f(0.25), timer: 12.5 }
+      const read = buoyancyFromData('{"movement_type":"none"}', current)
+      assert.deepStrictEqual([read.baseBuoyancy, read.timer, read.movementType, read.liquidBlocks], [f(0.25), 12.5, MovementType.None, []])
+    })
+
+    it('floats in nothing for data that is not an object, the rest left', () => {
+      const floatsInNothing = { ...boatBuoyancy(), liquidBlocks: [] }
+      assert.deepStrictEqual(buoyancyFromData('not json'), floatsInNothing)
+      assert.deepStrictEqual(buoyancyFromData('[1]'), floatsInNothing)
+      assert.deepStrictEqual(buoyancyFromData('null'), floatsInNothing)
     })
   })
 
@@ -54,6 +60,11 @@ describe('bedrock vehicle/buoyancy', () => {
       assert.deepStrictEqual(floatRequest(pool, boatBuoyancy(), { x: 0.5, y: 0.5, z: 0.5 }), { canFloat: true, needToResurface: false })
       assert.deepStrictEqual(floatRequest(pool, boatBuoyancy(), { x: 5.5, y: 0.5, z: 0.5 }), { canFloat: false, needToResurface: true })
       assert.deepStrictEqual(floatRequest(pool, boatBuoyancy(), { x: 9.5, y: 0.5, z: 0.5 }), { canFloat: false, needToResurface: false })
+    })
+
+    it('takes a bubble column for water', () => {
+      const column = worldOf({ '0,0,0': 'bubble_column' })
+      assert.deepStrictEqual(floatRequest(column, boatBuoyancy(), { x: 0.5, y: 0.5, z: 0.5 }), { canFloat: true, needToResurface: false })
     })
   })
 

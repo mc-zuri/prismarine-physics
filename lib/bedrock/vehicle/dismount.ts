@@ -1,5 +1,6 @@
-// Where a rider lands when it leaves a vehicle (the dismount button): the first free spot around the vehicle's block,
-// to the sides of the way it is moving first, with a floor to stand on and room for the rider's box.
+// Where a rider lands when it leaves a vehicle: the first free spot with a floor to stand on and room for the rider's
+// box. A rider that leaves by itself looks around the vehicle's block, to the sides of the way it is moving first; one
+// the server takes off looks only up the vehicle's own column.
 import { Box, type BoxLike } from '../math/box.ts'
 import { f } from '../math/float.ts'
 import type { Block, Vec3Like, World } from '../types.ts'
@@ -78,15 +79,28 @@ export function searchDismount (world: World, anchor: Vec3Like, size: Vec3Like, 
   return null
 }
 
+// The offset up the vehicle's own column to the first spot with a floor and room (the block itself, then one and two
+// up), the floor's rise with it; null when there is none.
+export function searchDismountColumn (world: World, anchor: Vec3Like, size: Vec3Like): { offset: Vec3Like, rise: number } | null {
+  for (const level of [0, 1, 2]) {
+    const at = { x: anchor.x, y: f(anchor.y + level), z: anchor.z }
+    const rise = floorClearance(world, Math.floor(at.x), Math.floor(at.y), Math.floor(at.z))
+    if (rise === null) continue
+    if (fitsAt(world, { x: at.x, y: f(at.y + rise), z: at.z }, size)) return { offset: { x: 0, y: level, z: 0 }, rise }
+  }
+  return null
+}
+
 // The rider's position (feet) after it leaves the vehicle: the seat moved to the free spot, standing on its floor
-// (0.001 above); where there is none, where it sits (the rider box's feet).
-export function dismountPosition (world: World, vehicle: { pos: Vec3Like, posPrev?: Vec3Like | undefined }, seat: Vec3Like, riderBox: BoxLike): Vec3Like {
+// (0.001 above); where there is none, where it sits (the rider box's feet). `standing`: whether it stands on a floor.
+// `byRider`: the rider leaves by itself (else the server takes it off).
+export function dismountPosition (world: World, vehicle: { pos: Vec3Like, posPrev?: Vec3Like | undefined }, seat: Vec3Like, riderBox: BoxLike, byRider = true): Vec3Like & { standing: boolean } {
   const base = vehicle.pos
   const floored = { x: Math.floor(base.x), y: Math.floor(base.y), z: Math.floor(base.z) }
   const anchor = { x: floored.x + 0.5, y: floored.y, z: floored.z + 0.5 }
   const size = { x: f(riderBox.maxX - riderBox.minX), y: f(riderBox.maxY - riderBox.minY), z: f(riderBox.maxZ - riderBox.minZ) }
   const { forward, side } = directionPose(base, vehicle.posPrev ?? base)
-  const found = searchDismount(world, anchor, size, forward, side)
-  if (!found) return { x: seat.x, y: riderBox.minY, z: seat.z }
-  return { x: f(seat.x + found.offset.x), y: f(f(f(floored.y + found.rise) + found.offset.y) + f(0.001)), z: f(seat.z + found.offset.z) }
+  const found = byRider ? searchDismount(world, anchor, size, forward, side) : searchDismountColumn(world, anchor, size)
+  if (!found) return { x: seat.x, y: riderBox.minY, z: seat.z, standing: false }
+  return { x: f(seat.x + found.offset.x), y: f(f(f(floored.y + found.rise) + found.offset.y) + f(0.001)), z: f(seat.z + found.offset.z), standing: true }
 }

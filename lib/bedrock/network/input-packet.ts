@@ -88,9 +88,9 @@ export function buildPlayerAuthInput (entity: Player, eyeHeight = 1.620010018348
   const view = directionFromRotation(pitch, yaw)
   const vehicle = entity.vehicle
   if (vehicle && vehicle.predicted) {
-    // in a vehicle it simulates, the client reports the vehicle: its position and velocity, its rotation and its id
-    // the collision flags are the vehicle's move's
-    const packet = buildPlayerAuthInput({ ...entity, vehicle: undefined, isCollidedHorizontally: !!vehicle.isCollidedHorizontally, isCollidedVertically: !!vehicle.isCollidedVertically }, eyeHeight)
+    // in a vehicle it simulates, the client reports the vehicle: its position and velocity, its rotation and its id;
+    // the collision flags stay the rider's own, as it last moved itself
+    const packet = buildPlayerAuthInput({ ...entity, vehicle: undefined }, eyeHeight)
     ;(packet.input_data as string[]).push('client_predicted_vehicle')
     // the driver's left and right keys are the paddle buttons (forward paddles nothing)
     const keys = entity.bedrock?.keys

@@ -1,10 +1,13 @@
 // One tick of a Bedrock player, as a sequence of steps. Each step lives in its own module with its own tests; this
 // file only fixes their order.
+import { mt19937NextFloat } from '../math/mt19937.ts'
 import { f } from '../math/float.ts'
+import { closestSpaceReach, pushTowardsClosestSpace } from '../movement/closest-space.ts'
 import { nextFallDistance } from '../movement/fall-distance.ts'
 import { storePreviousInput } from '../movement/sprint.ts'
 import type { Ctx, Player, Simulated } from '../types.ts'
 import { senseLiquids } from '../world/liquids.ts'
+import { collisionBoxes } from '../world/blocks.ts'
 import { slowdownBlocksIn } from '../world/slowdown-blocks.ts'
 import { bubbleColumns, honeyBlocks, standOnSticky, velocityAfterMove } from './after-move.ts'
 import { beginTick } from './begin.ts'
@@ -51,6 +54,14 @@ function insideBlocks (ctx: Ctx, entity: Simulated): void {
   honeyBlocks(ctx, entity)
 }
 
+// A move that ended inside blocks, while the server asks for the push toward free space, pushes the player out of
+// them (the blocks' boxes only).
+function moveTowardsClosestSpace (ctx: Ctx, entity: Simulated, tick: TickState): void {
+  if (!tick.penetrated || !entity.bedrock.pushTowardsClosestSpace) return
+  const box = entity.bedrock.aabb!
+  pushTowardsClosestSpace(box, collisionBoxes({ getBlock: ctx.world.getBlock.bind(ctx.world) }, closestSpaceReach(box)), entity.vel)
+}
+
 // A teleport tick ends after the jump: the travel, the move and what follows are skipped (the blocks the player is
 // in still act).
 function endTeleportTick (ctx: Ctx, entity: Simulated): void {
@@ -83,13 +94,18 @@ function travelPhase (ctx: Ctx, entity: Simulated, tick: TickState): boolean {
 // its seat; it neither walks nor collides itself.
 function rideTick (ctx: Ctx, entity: Simulated): void {
   const vehicle = entity.vehicle!
-  if (vehicle.predicted) simulateBoat(ctx, vehicle, { move: entity.bedrock.input!.move, up: !!entity.bedrock.keys!.up }, entity.bigWaveRoll)
+  // where the rider was at the start of the tick: its box stands there until the next
+  entity.bedrock.seatedAt = { x: entity.pos.x, y: entity.pos.y, z: entity.pos.z }
+  // on the first tick ridden the rider's input has not reached the boat yet: its paddles row with nothing pressed (each
+  // still pulling half its last force)
+  const input = entity.bedrock.riding ? { move: entity.bedrock.input!.move, up: !!entity.bedrock.keys!.up } : { move: entity.bedrock.input!.move, up: false, rowing: [false, false] as [boolean, boolean] }
+  if (vehicle.predicted) simulateBoat(ctx, vehicle, input, bigWaveRoll(entity))
   const seat = seatPosition(vehicle)
   entity.pos.set(seat.x, f(seat.y - f(ctx.settings.eyeHeight)), seat.z)
-  entity.vel.set(0, 0, 0)
-  entity.onGround = false
-  entity.isCollidedHorizontally = false
-  entity.isCollidedVertically = false
+  // the first tick ridden still reports the velocity the rider had; it stops from the next
+  if (entity.bedrock.riding) entity.vel.set(0, 0, 0)
+  entity.bedrock.riding = true
+  // the rider's own ground and collision flags stay as its last move left them: no move of its own changes them
   entity.jumpQueued = false
   // the one-tick inputs are spent riding (they would otherwise act on the first tick after the dismount)
   entity.riptideLaunch = 0
@@ -97,6 +113,14 @@ function rideTick (ctx: Ctx, entity: Simulated): void {
   entity.fireworkUsed = false
   entity.itemUseStarted = false
   endInput(entity)
+}
+
+// The big-wave roll a boat the player steers draws: the caller's, else one from the client's random state, else none
+// given (the vehicle tick's own).
+function bigWaveRoll (entity: Simulated): (() => number) | undefined {
+  if (entity.bigWaveRoll) return entity.bigWaveRoll
+  const state = entity.randomState
+  return state ? () => mt19937NextFloat(state) : undefined
 }
 
 // Simulates one tick of the player in place and returns it.
@@ -108,6 +132,7 @@ export function simulatePlayer (ctx: Ctx, player: Player): Player {
     rideTick(ctx, entity)
     return entity
   }
+  entity.bedrock.riding = false
   const sprint = decideSprint(ctx, entity, tick)
   spinAttack(entity, tick)
   decidePose(ctx, entity, tick, sprint)
@@ -134,6 +159,7 @@ export function simulatePlayer (ctx: Ctx, player: Player): Player {
   velocityAfterMove(ctx, entity, tick)
   climbOutOfLiquid(ctx, entity, tick.preMoveY)
   insideBlocks(ctx, entity)
+  moveTowardsClosestSpace(ctx, entity, tick)
 
   entity.bedrock.pendingSlowdowns = entity.gameMode === 'spectator' ? new Set() : slowdownBlocksIn(ctx.world, entity.bedrock.aabb!)
   endInput(entity)

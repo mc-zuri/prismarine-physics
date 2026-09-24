@@ -2,7 +2,7 @@ import assert from 'node:assert'
 import { scalar } from '../../../../lib/bedrock/math/crt.ts'
 import {
   depthStriderLevel, depthStriderSpeed, frictionInfluencedSpeed, GROUND_FRICTION, moveRelative, movementAttributeOf,
-  movementSpeed, setMovementAttribute, setSprintBoost, walkSpeed, walkSpeedBase
+  movementSpeed, setMovementAttribute, setSprintBoost, walkSpeed, walkSpeedBase, walkSpeedParts
 } from '../../../../lib/bedrock/movement/travel.ts'
 import type { Player } from '../../../../lib/bedrock/types.ts'
 import { player, settings } from '../helpers.ts'
@@ -94,6 +94,22 @@ describe('bedrock movement/travel', () => {
     it('is the walking speed on normal ground', () => {
       assert.strictEqual(frictionInfluencedSpeed(base), f(f(f(f(f(GROUND_FRICTION / f(f(0.6) * f(0.91))) ** 2)) * f(GROUND_FRICTION / f(f(0.6) * f(0.91)))) * f(0.1)))
     })
+    it('boosts the sprint after the effects, as the boost modifier comes last', () => {
+      const ratio = f(GROUND_FRICTION / f(f(0.6) * f(0.91)))
+      const cube = f(f(ratio * ratio) * ratio)
+      const affected = movementSpeed(0.1, 1, 2)
+      assert.strictEqual(frictionInfluencedSpeed({ ...base, speedLevel: 1, slownessLevel: 2, sprintBoost: true }), f(cube * f(affected * f(1.3))))
+    })
+
+    it('takes the boost apart from an attribute holding exactly the boosted base', () => {
+      const S = settings()
+      const key = S.movementSpeedAttribute
+      const boosted = player(undefined, { attributes: { [key]: { base: f(0.1), current: f(f(0.1) * f(1.3)) } } })
+      assert.deepStrictEqual(walkSpeedParts(boosted, S), { walk: f(0.1), boost: true })
+      const server = player(undefined, { attributes: { [key]: { base: f(0.1), current: f(0.12) } } })
+      assert.deepStrictEqual(walkSpeedParts(server, S), { walk: f(0.12), boost: false })
+    })
+
     it('is faster on slippery ground relative to its friction, slower on soul sand', () => {
       assert.ok(frictionInfluencedSpeed({ ...base, slipperiness: 0.98 }) < frictionInfluencedSpeed(base))
       assert.ok(frictionInfluencedSpeed({ ...base, soulSand: true }) < frictionInfluencedSpeed(base))

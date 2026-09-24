@@ -1,5 +1,5 @@
 import assert from 'node:assert'
-import { directionPose, dismountPosition, fitsAt, floorClearance, searchDismount } from '../../../../lib/bedrock/vehicle/dismount.ts'
+import { directionPose, dismountPosition, fitsAt, floorClearance, searchDismount, searchDismountColumn } from '../../../../lib/bedrock/vehicle/dismount.ts'
 import { EMPTY, FLAT, worldOf } from '../helpers.ts'
 
 const f = Math.fround
@@ -47,16 +47,27 @@ describe('bedrock vehicle/dismount', () => {
     assert.strictEqual(searchDismount(EMPTY, anchor, RIDER, forward, side), null)
   })
 
+  it('searches only up the column when the server takes the rider off: the block, then one and two up', () => {
+    const anchor = { x: 0.5, y: 0, z: 0.5 }
+    assert.deepStrictEqual(searchDismountColumn(FLAT, anchor, RIDER), { offset: { x: 0, y: 0, z: 0 }, rise: 0 })
+    assert.deepStrictEqual(searchDismountColumn(worldOf({ '0,0,0': 'stone' }), anchor, RIDER), { offset: { x: 0, y: 1, z: 0 }, rise: 0 })
+    assert.deepStrictEqual(searchDismountColumn(worldOf({ '0,0,0': 'stone', '0,1,0': 'stone' }), anchor, RIDER), { offset: { x: 0, y: 2, z: 0 }, rise: 0 })
+    assert.strictEqual(searchDismountColumn(worldOf({ '0,0,0': 'stone', '0,1,0': 'stone', '0,2,0': 'stone' }), anchor, RIDER), null)
+    assert.strictEqual(searchDismountColumn(EMPTY, anchor, RIDER), null, 'no floor anywhere up the column')
+  })
+
   it('stands the rider beside the seat on the floor found, 0.001 above it; with none, with its feet under the seat', () => {
     const seat = { x: f(0.4), y: f(1.395), z: f(0.6) }
     const boat = { pos: { x: 0.5, y: f(0.375), z: 0.5 } }
-    assert.deepStrictEqual(dismountPosition(FLAT, boat, seat, riderBox), { x: f(0.4), y: f(0.001), z: f(f(0.6) - 1) })
+    assert.deepStrictEqual(dismountPosition(FLAT, boat, seat, riderBox), { x: f(0.4), y: f(0.001), z: f(f(0.6) - 1), standing: true })
     const slab = worldOf({ '0,0,-1': 'bottom_slab' })
     assert.strictEqual(dismountPosition(slab, boat, seat, riderBox).y, f(f(0.5) + f(0.001)))
     const moving = { pos: { x: 1.5, y: f(0.375), z: 0.5 }, posPrev: { x: 0.5, y: f(0.375), z: 0.5 } }
-    assert.deepStrictEqual(dismountPosition(FLAT, moving, seat, riderBox), { x: f(0.4), y: f(0.001), z: f(f(0.6) + 1) }, 'left of east is south')
+    assert.deepStrictEqual(dismountPosition(FLAT, moving, seat, riderBox), { x: f(0.4), y: f(0.001), z: f(f(0.6) + 1), standing: true }, 'left of east is south')
     // the seat is at the eye: with no spot free the feet stay where they are, not at the eye
     const seated = { ...riderBox, minY: f(seat.y - f(1.62)), maxY: f(f(seat.y - f(1.62)) + f(1.8)) }
-    assert.deepStrictEqual(dismountPosition(EMPTY, boat, seat, seated), { x: seat.x, y: seated.minY, z: seat.z })
+    assert.deepStrictEqual(dismountPosition(EMPTY, boat, seat, seated), { x: seat.x, y: seated.minY, z: seat.z, standing: false })
+    // taken off by the server: the rider stays over the boat's own block
+    assert.deepStrictEqual(dismountPosition(FLAT, boat, seat, riderBox, false), { x: f(0.4), y: f(0.001), z: f(0.6), standing: true })
   })
 })

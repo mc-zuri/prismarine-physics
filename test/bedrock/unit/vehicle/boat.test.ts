@@ -92,6 +92,9 @@ describe('bedrock vehicle/boat', () => {
     it('takes the friction of the block it is on', () => {
       assert.strictEqual(boatFriction(pool, { x: 9.5, y: 1, z: 0.5 }, true).invFriction, f(0.98))
       assert.strictEqual(boatFriction(pool, { x: 20.5, y: 1, z: 0.5 }, false).inAir, true)
+      // on the ground over air (held up by a neighbour's edge): air's own friction
+      assert.strictEqual(boatFriction(worldOf({}, null), { x: 0.5, y: 1, z: 0.5 }, true).invFriction, f(0.9))
+      assert.strictEqual(boatFriction(worldOf({ '0,1,0': 'bottom_slab' }, null), { x: 0.5, y: 1.2, z: 0.5 }, true).invFriction, f(0.6))
     })
 
     it('takes the block in its cell when that has a shape, and is in the air off the ground', () => {

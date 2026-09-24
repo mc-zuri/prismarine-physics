@@ -59,8 +59,26 @@ export type StampedFlags = ActorFlags & { tick: number }
 export const EFFECT_FIELDS: Readonly<Record<number, 'speed' | 'slowness' | 'jumpBoost' | 'blindness' | 'levitation' | 'slowFalling' | 'weaving'>> = {
   1: 'speed', 2: 'slowness', 8: 'jumpBoost', 15: 'blindness', 24: 'levitation', 27: 'slowFalling', 33: 'weaving'
 }
-// A mob effect's level (0: removed) on the player field it sets, with the tick it is stamped for (0: not stamped).
-export interface StampedEffect { tick: number, field: typeof EFFECT_FIELDS[number], level: number }
+// A mob effect's level (0: removed) on the player field it sets, with the tick it is stamped for (0: not stamped) and
+// its ticks (none, or a negative count: it lasts until removed).
+export interface StampedEffect { tick: number, field: EffectField, level: number, duration?: number | undefined }
+// A level field a mob effect sets.
+export type EffectField = typeof EFFECT_FIELDS[number]
+
+// A mob effect as the client runs it: from the frame it takes effect on, its level (0: removed) and its last tick
+// (none: until the next change).
+export interface EffectEvent { frame: number, level: number, end?: number | undefined }
+
+// The level an effect's events give tick `t`: the latest event taking effect by then, 0 once its duration ran out;
+// undefined before the first.
+export function effectLevel (events: readonly EffectEvent[], t: number): number | undefined {
+  let level: number | undefined
+  for (const event of events) {
+    if (event.frame > t) break
+    level = event.end !== undefined && t > event.end ? 0 : event.level
+  }
+  return level
+}
 
 // A glide boost the server grants (a firework used while gliding): its ticks (-1 without end) and the tick it is
 // stamped for.
@@ -100,6 +118,8 @@ export class BedrockSession {
   // the packets not yet applied, by the tick they apply on
   scheduled: Array<{ at: number, run: (state: Player) => void }> = []
   localRuntimeId: Id = null
+  // the mob effects the server sent, by the level field they set
+  effects = new Map<EffectField, EffectEvent[]>()
   pendingAttribute: { attribute: StampedAttribute } | null = null
 
   constructor ({ physics, world, history = 16, step }: { physics: SessionPhysics, world: World, history?: number, step?: (state: Player, frame: TickFrame) => void }) {
@@ -123,6 +143,10 @@ export class BedrockSession {
     if (typeof frame.usingItem === 'boolean') state.usingItem = frame.usingItem
     if (typeof frame.itemUseStarted === 'boolean') state.itemUseStarted = frame.itemUseStarted
     state.lastOnGround = state.onGround
+    for (const [field, events] of this.effects) {
+      const level = effectLevel(events, frame.t)
+      if (level !== undefined) state[field] = level
+    }
     this.physics.simulatePlayer(state, this.world)
   }
 
@@ -161,30 +185,54 @@ export class BedrockSession {
     this.rewind.reset(t)
   }
 
-  // A movement correction: installed on the frame after its tick, and every tick since simulated again.
-  correct (state: Player, correction: StampedCorrection): void {
-    this.rewind.rewindTo(correction.tick, state, () => this.physics.applyCorrection(state, correction))
+  // Restores the state after `tick`, runs `install` on it and simulates the ticks since again, in the vehicle the player
+  // rides now: getting on or off is not simulated again, so a state kept before the mount (or in another vehicle) is
+  // taken with the vehicle the player is in, and one kept in a vehicle it steers with its simulated state.
+  rewindTo (tick: number, state: Player, install: (state: Player) => void): void {
+    const riding = state.vehicle
+    this.rewind.rewindTo(tick, state, s => {
+      if (!riding) delete s.vehicle
+      // a vehicle the server moves is not simulated again: the rider sits on it where it is now
+      else if (!s.vehicle || s.vehicle.id !== riding.id || !riding.predicted) s.vehicle = riding
+      install(s)
+    })
   }
 
-  // A mob effect on the player (its level; 0 when removed): on the history frames from its tick, and every tick since
-  // simulated again with it; unstamped, live only.
+  // A movement correction: installed on the frame after its tick, and every tick since simulated again.
+  correct (state: Player, correction: StampedCorrection): void {
+    this.rewindTo(correction.tick, state, () => this.physics.applyCorrection(state, correction))
+  }
+
+  // A mob effect on the player (its level; 0 when removed). It takes effect on the frame after its stamp (unstamped,
+  // on the tick it lands on): a frame already simulated is simulated again with it, and every tick since, when it
+  // changes the effect the player has now; a frame to come picks it up when it is simulated. The client counts its
+  // duration down itself: it lasts through the tick before that frame plus its duration.
   effect (state: Player, effect: StampedEffect): void {
-    const install = (s: Player): void => { s[effect.field] = effect.level }
-    if (effect.tick <= 0) {
-      install(state)
+    const frame = effect.tick > 0 ? effect.tick + 1 : this.rewind.current
+    const timed = effect.level > 0 && typeof effect.duration === 'number' && effect.duration >= 0
+    const events = this.effects.get(effect.field) || []
+    const before = [...events]
+    const at = events.findIndex(event => event.frame > frame)
+    events.splice(at < 0 ? events.length : at, 0, { frame, level: effect.level, end: timed ? frame - 1 + effect.duration! : undefined })
+    // what came before the history can no longer be simulated again: only the last such event still counts
+    while (events.length > 1 && events[1]!.frame <= this.rewind.current - this.rewind.history) events.shift()
+    this.effects.set(effect.field, events)
+    // it asks for the ticks since its frame to be simulated again only when it changes the effect as it stands now (an
+    // effect it adds is absent or at another level, one it removes is still there); a refresh, or the removal of one
+    // that ran out, just joins the history, for a later rewind to pick up
+    if (effectLevel(before, this.rewind.current) === effect.level) return
+    // then the ticks since its frame are simulated again only where it changes the level they had
+    for (let t = frame; t < this.rewind.current; t++) {
+      if (effectLevel(events, t) === effectLevel(before, t)) continue
+      this.rewindTo(frame - 1, state, () => {})
       return
     }
-    for (const [tick, frame] of this.rewind.snapshots) if (tick >= effect.tick) install(frame)
-    this.rewind.rewindTo(effect.tick, state, install)
   }
 
   // A correction of the vehicle the player steers: its position, velocity and ground flag, installed on the frame after
   // its tick, and every tick since simulated again.
   correctVehicle (state: Player, correction: StampedCorrection): void {
-    const riding = state.vehicle
-    this.rewind.rewindTo(correction.tick, state, () => {
-      // a frame from before the player mounted has no vehicle: the correction is of the one it rides now
-      if (!state.vehicle) state.vehicle = riding
+    this.rewindTo(correction.tick, state, () => {
       const vehicle = state.vehicle
       if (!vehicle) return
       vehicle.pos.set(f(correction.x), f(correction.y), f(correction.z))
@@ -215,7 +263,7 @@ export class BedrockSession {
     const active = boost.duration === -1 || boost.duration > 0
     const held = (state.fireworkRocketDuration || 0) !== 0
     if (boost.tick > 0 && active !== held) {
-      this.rewind.rewindTo(boost.tick, state, s => { s.fireworkRocketDuration = boost.duration })
+      this.rewindTo(boost.tick, state, s => { s.fireworkRocketDuration = boost.duration })
       return
     }
     if (boost.tick <= 0) {
@@ -231,7 +279,7 @@ export class BedrockSession {
   // A motion the server sets (a knockback): the velocity, installed live; a stamped one is also installed on the frame
   // after its tick (no earlier than the history) and every tick since simulated again.
   motion (state: Player, motion: StampedMotion): void {
-    if (motion.tick > 0) this.rewind.rewindTo(motion.tick, state, () => this.physics.applyMotion(state, motion))
+    if (motion.tick > 0) this.rewindTo(motion.tick, state, () => this.physics.applyMotion(state, motion))
     else this.physics.applyMotion(state, motion)
   }
 
@@ -333,7 +381,7 @@ export class BedrockSession {
         if (!sameId(params.runtime_entity_id, this.localRuntimeId)) return false
         const field = EFFECT_FIELDS[params.effect_id]
         if (!field) return false
-        const effect: StampedEffect = { tick: Number(params.tick || 0), field, level: params.event_id === 'remove' || params.event_id === 3 ? 0 : params.amplifier + 1 }
+        const effect: StampedEffect = { tick: Number(params.tick || 0), field, level: params.event_id === 'remove' || params.event_id === 3 ? 0 : params.amplifier + 1, duration: params.duration }
         this.schedule(state => this.effect(state, effect))
         return true
       }
@@ -375,6 +423,16 @@ const FLAGS_WORD = ['sneaking', 'sprinting', 'gliding', 'swimming', 'spinning'] 
 const EXTENDED_FLAGS_WORD = ['crawling', 'pushTowardsClosestSpace'] as const
 // The flags' names in a decoded flags word.
 const WIRE_NAMES: Readonly<Record<string, string>> = { pushTowardsClosestSpace: 'push_towards_closest_space', spinning: 'spin_attack' }
+// The extended word's bits: where a decoded word carries its raw value, the flags are read from it (a decoder's names
+// for this word can be a bit off).
+const EXTENDED_BITS: Readonly<Record<string, number>> = { crawling: 50, pushTowardsClosestSpace: 45 }
+
+// The raw 64-bit word of a decoded flags word, where it carries one.
+function rawWord (value: unknown): bigint | undefined {
+  if (typeof value === 'bigint') return BigInt.asUintN(64, value)
+  const raw = value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>)._value : undefined
+  return typeof raw === 'string' || typeof raw === 'bigint' || typeof raw === 'number' ? BigInt.asUintN(64, BigInt(raw)) : undefined
+}
 
 // A named flag of a decoded flags word: an object of booleans or a list of set names.
 export function flagValue (value: unknown, name: string): boolean | undefined {
@@ -389,8 +447,9 @@ export function restatedFlags (params: Record<string, any>): StampedFlags | null
   let found = false
   for (const item of params.metadata || []) {
     if (item.key === 'flags' || item.key === 'flags_extended') {
+      const raw = item.key === 'flags_extended' ? rawWord(item.value) : undefined
       for (const name of item.key === 'flags' ? FLAGS_WORD : EXTENDED_FLAGS_WORD) {
-        const on = flagValue(item.value, WIRE_NAMES[name] || name)
+        const on = raw !== undefined ? ((raw >> BigInt(EXTENDED_BITS[name]!)) & 1n) === 1n : flagValue(item.value, WIRE_NAMES[name] || name)
         if (on !== undefined) {
           out[name] = on
           found = true

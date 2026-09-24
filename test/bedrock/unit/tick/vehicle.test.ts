@@ -1,8 +1,12 @@
+import { mt19937FromSeed } from '../../../../lib/bedrock/math/mt19937.ts'
 import assert from 'node:assert'
 import { Vec3 } from 'vec3'
 import { buildPlayerAuthInput } from '../../../../lib/bedrock/network/input-packet.ts'
 import { simulatePlayer } from '../../../../lib/bedrock/tick/index.ts'
-import { dismount, moveVehicle, newBoatState, paddle, seatPosition, simulateBoat, vehicleBox, type Vehicle } from '../../../../lib/bedrock/tick/vehicle.ts'
+import { MovementType } from '../../../../lib/bedrock/vehicle/buoyancy.ts'
+import { boatBubbleColumns, dismount, moveVehicle, newBoatState, paddle, seatPosition, simulateBoat, vehicleBox, type Vehicle } from '../../../../lib/bedrock/tick/vehicle.ts'
+import { Box } from '../../../../lib/bedrock/math/box.ts'
+import type { Block, World } from '../../../../lib/bedrock/types.ts'
 import { ctx, EMPTY, FLAT, player, worldOf } from '../helpers.ts'
 
 const f = Math.fround
@@ -74,6 +78,39 @@ describe('bedrock tick/vehicle', () => {
     assert.ok(fresh.boat, 'a boat state is made on the first tick')
   })
 
+  it('reads its buoyancy settings from the entity data as it changes, the wave timer running on', () => {
+    const v = boat({ buoyancyData: '{"movement_type":"none"}' })
+    simulateBoat(ctx(FLAT), v, { move: { x: 0, z: 0 }, up: false }, () => 0.5)
+    assert.strictEqual(v.boat!.buoyancy.movementType, MovementType.None)
+    const timer = v.boat!.buoyancy.timer
+    simulateBoat(ctx(FLAT), v, { move: { x: 0, z: 0 }, up: false }, () => 0.5)
+    assert.ok(v.boat!.buoyancy.timer > timer, 'the same data is not read again')
+    v.buoyancyData = '{"movement_type":"bobbing"}'
+    const before = v.boat!.buoyancy.timer
+    simulateBoat(ctx(FLAT), v, { move: { x: 0, z: 0 }, up: false }, () => 0.5)
+    assert.deepStrictEqual([v.boat!.buoyancy.movementType, v.boat!.buoyancy.timer], [MovementType.Bobbing, before + 1])
+  })
+
+  it('is pulled down or lifted by a bubble column with water above it', () => {
+    const column = (dragDown: boolean): Block => ({ name: 'bubble_column', boundingBox: 'empty', _properties: { drag_down: dragDown } })
+    const water: Block = { name: 'water', boundingBox: 'empty' }
+    const air: Block = { name: 'air', boundingBox: 'empty' }
+    const worldWith = (at0: Block, at1: Block): World => ({ getBlock: (pos) => pos.x === 0 && pos.z === 0 ? (pos.y === 0 ? at0 : pos.y === 1 ? at1 : air) : air })
+    const cell = new Box(0.2, 0.2, 0.2, 0.8, 0.8, 0.8)
+    const down = boat({ vel: new Vec3(0, f(-0.29), 0) })
+    boatBubbleColumns(ctx(worldWith(column(true), water)), down, cell)
+    assert.strictEqual(down.vel.y, f(-0.30000001), 'down 0.03, to -0.3 at most')
+    const up = boat({ vel: new Vec3(0, 0, 0) })
+    boatBubbleColumns(ctx(worldWith(column(false), column(false))), up, cell)
+    assert.strictEqual(up.vel.y, f(0.059999999))
+    const top = boat({ vel: new Vec3(0, f(0.68), 0) })
+    boatBubbleColumns(ctx(worldWith(column(false), water)), top, cell)
+    assert.strictEqual(top.vel.y, f(0.69999999), 'up 0.06, to 0.7 at most')
+    const surface = boat({ vel: new Vec3(0, 0, 0) })
+    boatBubbleColumns(ctx(worldWith(column(false), air)), surface, cell)
+    assert.strictEqual(surface.vel.y, 0, 'no push with air above')
+  })
+
   it('seats the rider at the seat turned by the yaw', () => {
     const seat = seatPosition(boat({ seat: { x: 1, y: 1, z: 0 }, yaw: 90 }))
     assert.ok(Math.abs(seat.x - 0.5) < 1e-6 && Math.abs(seat.z - 1.5) < 1e-6)
@@ -82,10 +119,12 @@ describe('bedrock tick/vehicle', () => {
 
   describe('riding', () => {
     it('steers a predicted boat and sits in it, neither walking nor colliding', () => {
-      const p = player([0.5, 0, 0.5], { vehicle: boat(), control: { forward: true }, bigWaveRoll: () => 0.5, vel: new Vec3(1, 1, 1) })
-      for (let i = 0; i < 12; i++) simulatePlayer(ctx(FLAT), p)
+      const p = player([0.5, 0, 0.5], { vehicle: boat(), control: { forward: true }, bigWaveRoll: () => 0.5, vel: new Vec3(1, 1, 1), isCollidedVertically: true })
+      simulatePlayer(ctx(FLAT), p)
+      assert.strictEqual(p.vel.x, 1, 'the first tick ridden keeps the velocity the rider had')
+      for (let i = 0; i < 11; i++) simulatePlayer(ctx(FLAT), p)
       assert.ok(p.vehicle!.pos.x > 0.5)
-      assert.deepStrictEqual([p.vel.x, p.onGround, p.isCollidedVertically], [0, false, false])
+      assert.deepStrictEqual([p.vel.x, p.onGround, p.isCollidedVertically], [0, true, true], 'its own ground and collision flags stay')
       assert.strictEqual(p.pos.y, f(f(f(0.375) + f(1.02001)) - f(1.6200100183486938)))
     })
 
@@ -93,6 +132,27 @@ describe('bedrock tick/vehicle', () => {
       const p = player([0.5, 0, 0.5], { vehicle: boat(), bigWaveRoll: () => 0.5, riptideLaunch: 3, spinHits: 1, fireworkUsed: true, itemUseStarted: true })
       simulatePlayer(ctx(FLAT), p)
       assert.deepStrictEqual([p.riptideLaunch, p.spinHits, p.fireworkUsed, p.itemUseStarted], [0, 0, false, false])
+    })
+
+    it('draws the big-wave roll from the client random state when no roll is given', () => {
+      const state = mt19937FromSeed(5489)
+      const p = player([0.5, 0, 0.5], { vehicle: boat(), randomState: state })
+      simulatePlayer(ctx(FLAT), p)
+      assert.strictEqual(new DataView(state.buffer).getInt32(4 + 624 * 4, true), 1, 'one word drawn')
+      const q = player([0.5, 0, 0.5], { vehicle: boat() })
+      simulatePlayer(ctx(FLAT), q)
+      assert.ok(q.vehicle!.boat!.buoyancy.timer > 0, 'without a state the vehicle tick draws its own')
+    })
+
+    it('is slowed by a honey block its box reaches after the move, as any entity', () => {
+      const run = (world: typeof FLAT) => {
+        // the box ends 0.03 into the honey cell, short of the block's inset shape
+        const p = player([0.5, 0, 0.5], { vehicle: boat({ pos: new Vec3(f(0.34), f(0.375), 0.5), vel: new Vec3(0.01, 0, 0) }), bigWaveRoll: () => 0.5 })
+        simulatePlayer(ctx(world), p)
+        return p.vehicle!.vel.x
+      }
+      const plain = run(FLAT)
+      assert.strictEqual(run(worldOf({ '1,0,0': 'honey_block' })), f(plain * f(0.40000001)))
     })
 
     it('only sits in a vehicle the server moves', () => {
@@ -107,9 +167,9 @@ describe('bedrock tick/vehicle', () => {
       const packet = buildPlayerAuthInput(player([0.5, 0, 0.5], { vehicle: v })) as Record<string, any>
       assert.deepStrictEqual([packet.position, packet.delta, packet.vehicle_rotation, packet.predicted_vehicle], [{ x: 0.5, y: f(0.375), z: 0.5 }, { x: f(0.1), y: f(-0.04), z: 0 }, { x: 0, z: 30 }, 5n])
       assert.ok(packet.input_data.includes('client_predicted_vehicle'))
-      assert.ok(!packet.input_data.includes('vertical_collision'), 'the rider’s own collision is not reported')
-      const landed = buildPlayerAuthInput(player([0.5, 0, 0.5], { vehicle: boat({ isCollidedVertically: true }), isCollidedHorizontally: true })) as Record<string, any>
-      assert.deepStrictEqual([landed.input_data.includes('vertical_collision'), landed.input_data.includes('horizontal_collision')], [true, false], 'the vehicle’s')
+      assert.ok(!packet.input_data.includes('vertical_collision'))
+      const walkedIn = buildPlayerAuthInput(player([0.5, 0, 0.5], { vehicle: boat({ isCollidedHorizontally: true }), isCollidedVertically: true })) as Record<string, any>
+      assert.deepStrictEqual([walkedIn.input_data.includes('vertical_collision'), walkedIn.input_data.includes('horizontal_collision')], [true, false], 'the rider’s own, not the vehicle’s')
       const turning = buildPlayerAuthInput(player([0.5, 0, 0.5], { vehicle: boat(), bedrock: { keys: { up: true, left: true } } as any })) as Record<string, any>
       assert.deepStrictEqual([turning.input_data.includes('paddling_left'), turning.input_data.includes('paddling_right')], [true, false], 'the left key paddles left')
       const right = buildPlayerAuthInput(player([0.5, 0, 0.5], { vehicle: boat(), bedrock: { keys: { right: true } } as any })) as Record<string, any>
@@ -122,12 +182,20 @@ describe('bedrock tick/vehicle', () => {
     const rider = player([0.5, 1, 0.5], { vehicle: boat(), vel: new Vec3(0.1, 0, 0), bedrock: { aabb: {} } as any })
     dismount(ctx(FLAT), rider)
     assert.deepStrictEqual([rider.pos.x, rider.pos.y, rider.pos.z], [0.5, f(0.001), -0.5])
-    assert.deepStrictEqual([rider.vel.x, rider.vehicle, rider.bedrock!.aabb], [0, undefined, undefined])
+    assert.deepStrictEqual([rider.vel.x, rider.vehicle, rider.bedrock!.aabb, rider.onGround], [0, undefined, undefined, true], 'standing on the floor found')
     const walker = player([0.5, 0, 0.5])
     dismount(ctx(FLAT), walker)
     assert.strictEqual(walker.pos.z, 0.5)
     const bare = player([0.5, 1, 0.5], { vehicle: boat() })
     dismount(ctx(FLAT), bare)
     assert.strictEqual(bare.pos.y, f(0.001))
+    const floating = player([0.5, 1, 0.5], { vehicle: boat(), onGround: false })
+    dismount(ctx(EMPTY), floating)
+    assert.strictEqual(floating.onGround, false, 'no floor to stand on: the ground flag it had')
+    // no spot after riding: the centre of the box it had at the start of its last tick, the eye 0.001 above
+    const seated = player([0.5, 1, 0.5], { vehicle: boat(), bedrock: { seatedAt: { x: 2.25, y: 3, z: -1.5 } } as any })
+    dismount(ctx(EMPTY), seated)
+    const eye = f(1.6200100183486938)
+    assert.deepStrictEqual([seated.pos.x, seated.pos.y, seated.pos.z], [f(2.25), f(f(f(f(3 + f(0.9)) + eye) + f(0.001)) - eye), f(-1.5)])
   })
 })

@@ -50,6 +50,15 @@ export function walkSpeedBase (entity: Player, settings: Settings): number {
   return numberOr(attr.base, attr.default, attr.current, attr.value) as number
 }
 
+// The walking speed as the travel takes it: the value without the sprint boost and whether the boost is on, when the
+// attribute holds exactly the boosted base; else the attribute's value as it is.
+export function walkSpeedParts (entity: Player, settings: Settings): { walk: number, boost: boolean } {
+  const walk = walkSpeed(entity, settings)
+  const base = walkSpeedBase(entity, settings)
+  const boost = walk !== base && walk === f(base * SPRINT_BOOST)
+  return { walk: boost ? base : walk, boost }
+}
+
 // Adds or removes the sprint boost on the movement attribute.
 export function setSprintBoost (entity: Player & { bedrock: { sprintBoost?: boolean | undefined } }, settings: Settings, boost: boolean): void {
   entity.bedrock.sprintBoost = boost
@@ -90,6 +99,9 @@ export function movementSpeed (value: number, speedLevel: number, slownessLevel:
 // The facts the travel speed on foot reads.
 export interface SpeedFacts {
   walkSpeed: number
+  // the sprint boost on top of the effects (walkSpeed is then the value without it): the boost's modifier comes after
+  // the effects' in the attribute's list, so it multiplies last
+  sprintBoost?: boolean | undefined
   speedLevel?: number | undefined
   slownessLevel?: number | undefined
   sprinting?: boolean | undefined
@@ -103,7 +115,8 @@ export interface SpeedFacts {
 // The travel speed on foot: 0.02 in a liquid; 0.02 in the air (0.026 sprinting); on the ground the walking speed
 // scaled by (0.546 / friction)^3, where the friction is the block's slipperiness x 0.91 (soul sand's x1.225).
 export function frictionInfluencedSpeed (facts: SpeedFacts): number {
-  const base = movementSpeed(facts.walkSpeed, facts.speedLevel! | 0, facts.slownessLevel! | 0)
+  const affected = movementSpeed(facts.walkSpeed, facts.speedLevel! | 0, facts.slownessLevel! | 0)
+  const base = facts.sprintBoost ? f(affected * SPRINT_BOOST) : affected
   if (facts.inWater || facts.inLava) return AIR_ACCEL_WALK
   if (!facts.onGround) return facts.sprinting ? AIR_ACCEL_SPRINT : AIR_ACCEL_WALK
   let slip = f(facts.slipperiness)

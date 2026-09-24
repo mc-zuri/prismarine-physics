@@ -86,6 +86,12 @@ function floatsIn (block: Block | null | undefined): boolean {
   return isWaterName(blockName(block)) && blockName(block) !== 'bubble_column'
 }
 
+// The friction of the block a boat on the ground is on; air has its own (0.9), as the block data gives it.
+function groundFriction (block: Block | null | undefined): number {
+  return f(blockName(block) === 'air' ? AIR_FRICTION : blockFriction(block, 0.6))
+}
+const AIR_FRICTION = f(0.9)
+
 // What the boat is in or on: `invFriction` scales its horizontal velocity and turn this tick, `inAir` stops the paddles
 // turning or pushing it, `resurfacing` counts a tick under water.
 export interface BoatFriction { invFriction: number, inAir: boolean, floating: boolean, resurfacing: boolean }
@@ -108,10 +114,10 @@ export function boatFriction (world: World, pos: Vec3Like, onGround: boolean): B
   if (!isWaterName(name) && name !== 'air' && name !== 'snow_layer') {
     if (!onGround) return { invFriction: 1, inAir: true, floating: false, resurfacing: false }
     const solid = blockShapes(here).some(s => s[0] < s[3] && s[1] < s[4] && s[2] < s[5])
-    return { invFriction: f(blockFriction(solid ? here : below, 0.6)), inAir: false, floating: false, resurfacing: false }
+    return { invFriction: groundFriction(solid ? here : below), inAir: false, floating: false, resurfacing: false }
   }
   if (!isWaterName(name)) {
-    if (onGround) return { invFriction: f(blockFriction(below, 0.6)), inAir: false, floating: false, resurfacing: false }
+    if (onGround) return { invFriction: groundFriction(below), inAir: false, floating: false, resurfacing: false }
     if (!isWaterName(blockName(below))) return { invFriction: 1, inAir: true, floating: false, resurfacing: false }
   }
   return { invFriction: WATER_FRICTION, inAir: false, floating: false, resurfacing: false }

@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 import { Box } from '../../../../lib/bedrock/math/box.ts'
 import {
-  applyLiquidFlow, cellFlow, containsLiquid, depthAt, isLavaName, isWaterName, liquidDepthOf, liquidInInnerBox, liquidSurfaceHeight,
+  applyLiquidFlow, cellFlow, cellLiquid, containsLiquid, depthAt, isLavaName, isWaterName, liquidDepthOf, liquidInInnerBox, liquidSurfaceHeight,
   pointInWater, senseLiquids, shrinkAxis, unitOrZero
 } from '../../../../lib/bedrock/world/liquids.ts'
 import { Vec3 } from 'vec3'
@@ -22,6 +22,20 @@ describe('bedrock world/liquids', () => {
     // names that only contain the word are no liquid
     for (const name of ['waterlily', 'underwater_torch', 'underwater_tnt']) assert.ok(!isWaterName(name), name)
     assert.ok(!isLavaName('lava_cauldron'))
+  })
+
+  it('finds the water a waterlogged block holds in its second layer', () => {
+    const water = block('flowing_water')
+    const seagrass: Block = { name: 'seagrass', boundingBox: 'empty', liquid: water }
+    assert.strictEqual(cellLiquid(seagrass), water)
+    assert.strictEqual(cellLiquid(water), water)
+    assert.strictEqual(cellLiquid({ name: 'seagrass', boundingBox: 'empty', liquid: null }), null)
+    assert.strictEqual(cellLiquid(null), null)
+    const bed: World = { getBlock: (pos: Vec3) => (pos.y === 0 ? seagrass : block('air')) }
+    assert.deepStrictEqual(senseLiquids(bed, PLAYER), { isInWater: true, isInLava: false })
+    assert.ok(containsLiquid(bed, PLAYER))
+    assert.ok(pointInWater(bed, 0.5, 0.1, 0.5))
+    assert.strictEqual(depthAt(bed, 0, 0, 0, 'water'), 3)
   })
 
   it('shrinks an axis, collapsing one too short to its midpoint', () => {

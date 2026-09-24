@@ -97,7 +97,8 @@ export function decidePose (ctx: Ctx, entity: Simulated, tick: TickState, sprint
   const actions = st.actions!
   const swimming = !!st.swimming
   const eyeY = swimming ? pos.y + 0.4 : pos.y + 1.62
-  const eyeInWater = pointInWater(ctx.world, pos.x, eyeY, pos.z)
+  // the eye in water as breathing reads it: the block at the eye itself (a waterlogged plant's water does not count)
+  const eyeInWater = pointInWater(ctx.world, pos.x, eyeY, pos.z, false)
 
   st.poseAmount = st.poseAmount === undefined ? (st.swimming ? 1 : 0) : stepSwimAmount(st.poseAmount, !!(st.swimming || st.crawling))
 

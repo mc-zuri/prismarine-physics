@@ -22,6 +22,8 @@ export interface Block {
   type?: number | undefined
   boundingBox?: string | undefined
   shapes?: Shape[] | undefined
+  // the liquid in the cell's second layer (a waterlogged block's water), where the world carries it
+  liquid?: Block | null | undefined
   getProperties?: () => Record<string, unknown>
   _properties?: Record<string, unknown> | undefined
 }
@@ -124,6 +126,9 @@ export interface BedrockState {
   sprinting?: boolean | undefined
   sneaking?: boolean | undefined
   swimming?: boolean | undefined
+  // whether the last tick was spent in a vehicle, and where the rider was at its start
+  riding?: boolean | undefined
+  seatedAt?: Vec3Like | undefined
   crawling?: boolean | undefined
   gliding?: boolean | undefined
   // the glide flag as the engine last wrote it to entity.elytraFlying, to notice a caller's change
@@ -247,6 +252,8 @@ export interface Player {
   // the vehicle the player rides (tick/vehicle.ts), and the draw a predicted boat's big wave takes (uniform in [0, 1))
   vehicle?: Vehicle | undefined
   bigWaveRoll?: () => number
+  // the client's core random state (math/mt19937.ts), where the caller has it: a boat's big-wave roll is drawn from it
+  randomState?: Uint8Array | undefined
   // a riptide launch this tick (the trident's Riptide level; consumed by the tick), and the mobs the spin hit this tick
   riptideLaunch?: number | undefined
   spinHits?: number | undefined

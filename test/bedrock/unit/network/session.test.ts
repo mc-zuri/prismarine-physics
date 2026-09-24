@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 import { Vec3 } from 'vec3'
 import { Physics } from '../../../../lib/bedrock/index.ts'
-import { agedDuration, BedrockSession, flagValue, movementAttribute, restatedFlags } from '../../../../lib/bedrock/network/session.ts'
+import { agedDuration, BedrockSession, effectLevel, flagValue, movementAttribute, restatedFlags } from '../../../../lib/bedrock/network/session.ts'
 import { FLAT, player } from '../helpers.ts'
 
 const f = Math.fround
@@ -98,6 +98,11 @@ describe('bedrock network/session', () => {
     assert.strictEqual(flagValue(12n, 'sneaking'), undefined)
     assert.deepStrictEqual(restatedFlags({ tick: 1n, metadata: [{ key: 'flags', value: 5n }] }), null)
     assert.deepStrictEqual(restatedFlags({ tick: 2n, metadata: [{ key: 'flags_extended', value: ['push_towards_closest_space'] }] }), { tick: 2, crawling: false, pushTowardsClosestSpace: true })
+    // a word with its raw value is read by bit (push 45, crawling 50), whatever its names say
+    const pushWord = { _value: String(BigInt.asIntN(64, (1n << 63n) | (1n << 45n))), push_towards_closest_space: false, scenting: true }
+    assert.deepStrictEqual(restatedFlags({ tick: 3n, metadata: [{ key: 'flags_extended', value: pushWord }] }), { tick: 3, crawling: false, pushTowardsClosestSpace: true })
+    assert.deepStrictEqual(restatedFlags({ tick: 4n, metadata: [{ key: 'flags_extended', value: 1n << 50n }] }), { tick: 4, crawling: true, pushTowardsClosestSpace: false })
+    assert.deepStrictEqual(restatedFlags({ tick: 5n, metadata: [{ key: 'flags_extended', value: { _value: 0 } }] }), { tick: 5, crawling: false, pushTowardsClosestSpace: false })
     assert.deepStrictEqual(restatedFlags({ tick: 1n }), null)
   })
 
@@ -193,10 +198,10 @@ describe('bedrock network/session', () => {
       assert.strictEqual(s.handlePacket('mob_effect', packet({ runtime_entity_id: 8n })), false)
       assert.strictEqual(s.handlePacket('mob_effect', packet({ effect_id: 99 })), false)
       assert.strictEqual(s.handlePacket('mob_effect', packet()), true)
-      s.runDue(p, 0)
+      s.tick(p, { t: 1 })
       assert.strictEqual(p.levitation, 2)
       s.handlePacket('mob_effect', packet({ event_id: 'remove' }))
-      s.runDue(p, 0)
+      s.tick(p, { t: 2 })
       assert.strictEqual(p.levitation, 0)
     })
 
@@ -211,14 +216,111 @@ describe('bedrock network/session', () => {
       assert.ok(p.pos.y > fell, 'levitating from tick 2 on')
     })
 
+    it('ends a timed one on its own count: through the tick before the frame it takes effect on, plus its duration', () => {
+      const s = session()
+      s.rewind.history = 8
+      const p = player([0.5, 5, 0.5], { onGround: false })
+      for (let t = 1; t <= 4; t++) s.tick(p, { t })
+      s.handlePacket('mob_effect', packet({ tick: 3n, duration: 3 }))
+      s.tick(p, { t: 5 })
+      s.tick(p, { t: 6 })
+      assert.strictEqual(p.levitation, 2, 'from frame 4 through tick 6')
+      s.handlePacket('mob_effect', packet({ effect_id: 27, duration: 1 }))
+      s.tick(p, { t: 7 })
+      assert.deepStrictEqual([p.levitation, p.slowFalling], [0, 2], 'unstamped: from the tick it lands on')
+      s.tick(p, { t: 8 })
+      assert.strictEqual(p.slowFalling, 0)
+      s.handlePacket('mob_effect', packet({ duration: 100 }))
+      s.handlePacket('mob_effect', packet({ event_id: 'remove' }))
+      s.tick(p, { t: 9 })
+      assert.strictEqual(p.levitation, 0, 'a removal ends it')
+      s.handlePacket('mob_effect', packet({ duration: -1 }))
+      for (let t = 10; t <= 30; t++) s.tick(p, { t })
+      assert.strictEqual(p.levitation, 2, 'no duration: until removed')
+      s.handlePacket('mob_effect', packet({ duration: -1 }))
+      s.tick(p, { t: 31 })
+      assert.deepStrictEqual(s.effects.get('levitation')!.map(event => event.frame), [10, 31], 'what came before the history is dropped but the last of it')
+    })
+
+    it('waits for the frame of one stamped ahead, and simulates again only for a change of the effect it has now', () => {
+      const s = session()
+      const p = player([0.5, 5, 0.5], { onGround: false })
+      for (let t = 1; t <= 4; t++) s.tick(p, { t })
+      s.handlePacket('mob_effect', packet({ tick: 5n }))
+      s.tick(p, { t: 5 })
+      assert.strictEqual(p.levitation ?? 0, 0, 'takes effect on frame 6')
+      s.tick(p, { t: 6 })
+      assert.strictEqual(p.levitation, 2)
+      let rewound = 0
+      const rewindTo = s.rewind.rewindTo.bind(s.rewind)
+      s.rewind.rewindTo = (...args) => { rewound++; rewindTo(...args) }
+      s.handlePacket('mob_effect', packet({ tick: 4n }))
+      s.tick(p, { t: 7 })
+      assert.strictEqual(rewound, 0, 'the level it has now: only the history takes it')
+      s.handlePacket('mob_effect', packet({ tick: 4n, amplifier: 3 }))
+      s.tick(p, { t: 8 })
+      assert.strictEqual(rewound, 1, 'another level from frame 5 changes the ticks since')
+      // the frame 6 event still sets level 2 from tick 6 on
+      s.handlePacket('mob_effect', packet({ tick: 7n }))
+      s.tick(p, { t: 9 })
+      assert.strictEqual(rewound, 1, 'the same level again changes nothing')
+    })
+
+    it('simulates nothing again for one that leaves the effect as it stands now, but keeps it for a later rewind', () => {
+      const s = session()
+      s.rewind.history = 12
+      const p = player([0.5, 5, 0.5], { onGround: false })
+      let rewound = 0
+      const rewindTo = s.rewind.rewindTo.bind(s.rewind)
+      s.rewind.rewindTo = (...args) => { rewound++; rewindTo(...args) }
+      for (let t = 1; t <= 2; t++) s.tick(p, { t })
+      s.handlePacket('mob_effect', packet({ duration: 2 }))
+      for (let t = 3; t <= 6; t++) s.tick(p, { t })
+      assert.strictEqual(p.levitation, 0, 'it ran out on its own count')
+      s.handlePacket('mob_effect', packet({ event_id: 'remove', tick: 3n, duration: 1 }))
+      s.tick(p, { t: 7 })
+      assert.strictEqual(rewound, 0, 'removing one that already ran out')
+      s.handlePacket('mob_effect', packet({ duration: -1 }))
+      s.tick(p, { t: 8 })
+      s.handlePacket('mob_effect', packet({ tick: 1n, duration: -1 }))
+      s.tick(p, { t: 9 })
+      assert.strictEqual(rewound, 0, 'adding one already there at that level')
+      assert.strictEqual(effectLevel(s.effects.get('levitation')!, 2), 2, 'but the history has it')
+    })
+
+    it('rewinds to its frame only where a tick since changes, and not at all when a later event still sets them', () => {
+      const s = session()
+      s.rewind.history = 12
+      const p = player([0.5, 5, 0.5], { onGround: false })
+      for (let t = 1; t <= 7; t++) s.tick(p, { t })
+      let rewound = 0
+      const rewindTo = s.rewind.rewindTo.bind(s.rewind)
+      s.rewind.rewindTo = (...args) => { rewound++; rewindTo(...args) }
+      s.effect(p, { tick: 2, field: 'levitation', level: 2, duration: 2 })
+      assert.strictEqual(rewound, 1, 'levitating on ticks 3 and 4')
+      // lasting from frame 4: tick 4 had it already, tick 5 did not
+      s.effect(p, { tick: 3, field: 'levitation', level: 2, duration: -1 })
+      assert.strictEqual(rewound, 2)
+      s.effect(p, { tick: 5, field: 'levitation', level: 3, duration: -1 })
+      assert.strictEqual(rewound, 3)
+      // level 2 from frame 4 again: frame 6's level 3 still holds from tick 6, and ticks 4 and 5 are already level 2
+      s.effect(p, { tick: 3, field: 'levitation', level: 2, duration: -1 })
+      assert.strictEqual(rewound, 3)
+    })
+
     it('leaves the history alone when unstamped, so a later rewind does not apply it to earlier ticks', () => {
       const s = session()
       const p = player([0.5, 5, 0.5], { onGround: false })
       for (let t = 1; t <= 4; t++) s.tick(p, { t })
       s.handlePacket('mob_effect', packet({ amplifier: 4 }))
-      s.runDue(p, 5)
+      s.tick(p, { t: 5 })
       assert.strictEqual(p.levitation, 5)
-      assert.deepStrictEqual([...s.rewind.snapshots.values()].map(frame => frame.levitation ?? 0), [0, 0, 0, 0])
+      assert.deepStrictEqual([1, 2, 3, 4].map(t => s.rewind.snapshots.get(t)!.levitation ?? 0), [0, 0, 0, 0])
+    })
+
+    it('reads no level before the first event', () => {
+      assert.strictEqual(effectLevel([{ frame: 5, level: 1 }], 4), undefined)
+      assert.strictEqual(effectLevel([{ frame: 5, level: 1, end: 6 }, { frame: 9, level: 3 }], 7), 0)
     })
   })
 
@@ -319,6 +421,33 @@ describe('bedrock network/session', () => {
       s.correctVehicle(walker, { tick: 1, x: 2, y: 0, z: 0, dx: 0, dy: 0, dz: 0, onGround: true })
       assert.strictEqual(walker.vehicle, undefined)
     })
+  })
+
+  it('simulates the ticks since a rewind in the vehicle the player rides now, getting on and off not simulated again', () => {
+    const s = session()
+    const boat = (id: bigint) => ({ id, kind: 'boat', pos: new Vec3(0.5, f(0.375), 0.5), vel: new Vec3(0, 0, 0), yaw: 0, pitch: 0, predicted: true, seat: { x: 0, y: 1, z: 0 }, onGround: true })
+    const p = player([0.5, 0, 0.5], { vehicle: boat(6n) })
+    s.tick(p, { t: 1 })
+    p.vehicle = boat(5n)
+    s.tick(p, { t: 2 })
+    s.rewindTo(1, p, () => {})
+    assert.strictEqual(p.vehicle!.id, 5n, 'the frame was kept in another vehicle')
+    s.tick(p, { t: 3 })
+    delete p.vehicle
+    s.tick(p, { t: 4 })
+    s.rewindTo(2, p, () => {})
+    assert.strictEqual(p.vehicle, undefined, 'got off since')
+  })
+
+  it('seats the rider on a vehicle the server moves where it is now, not where its frame had it', () => {
+    const s = session()
+    const cart = { id: 9n, kind: 'minecart', pos: new Vec3(0.5, 0, 0.5), vel: new Vec3(0, 0, 0), yaw: 0, pitch: 0, predicted: false, seat: { x: 0, y: 1, z: 0 } }
+    const p = player([0.5, 0, 0.5], { vehicle: cart })
+    for (let t = 1; t <= 3; t++) s.tick(p, { t })
+    cart.pos.set(4.5, 0, 0.5)
+    s.rewindTo(1, p, () => {})
+    assert.strictEqual(p.vehicle, cart)
+    assert.strictEqual(p.pos.x, 4.5)
   })
 
   it('sets a knockback live, and re-simulates the ticks since a stamped one', () => {

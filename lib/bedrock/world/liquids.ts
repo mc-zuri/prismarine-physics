@@ -13,6 +13,16 @@ export function isWaterName (name: string): boolean { return WATER_NAMES.has(nam
 // Whether a block name is lava.
 export function isLavaName (name: string): boolean { return LAVA_NAMES.has(name) }
 
+// The liquid a cell holds: its block when that is water or lava, else the liquid in its second layer (a waterlogged
+// block's water, such as seagrass'); null when it holds none.
+export function cellLiquid (block: Block | null | undefined): Block | null {
+  for (const candidate of [block, block?.liquid]) {
+    const name = blockName(candidate)
+    if (isWaterName(name) || isLavaName(name)) return candidate!
+  }
+  return null
+}
+
 // One axis of a box shrunk by `by` on both faces; an axis too short to shrink collapses to its midpoint (so the
 // 0.6-high swim pose samples the plane through its centre).
 export function shrinkAxis (min: number, max: number, by: number): [number, number] {
@@ -34,7 +44,7 @@ export function liquidInInnerBox (world: World, aabb: BoxLike, test: (name: stri
   for (let x = Math.floor(xa); x <= Math.floor(xb); x++) {
     for (let y = Math.floor(ya); y <= Math.floor(yb); y++) {
       for (let z = Math.floor(za); z <= Math.floor(zb); z++) {
-        if (test(blockName(blockAt(world, x, y, z)))) return true
+        if (test(blockName(cellLiquid(blockAt(world, x, y, z))))) return true
       }
     }
   }
@@ -60,12 +70,14 @@ export function liquidSurfaceHeight (depth: number, cellY: number): number {
 }
 
 // Whether a point is under water: its cell must be water AND the point below that cell's surface, so an eye in the
-// top of a flowing cell is not under water. The cell is taken after a float32 cast of each coordinate.
-export function pointInWater (world: World, x: number, y: number, z: number): boolean {
+// top of a flowing cell is not under water. The cell is taken after a float32 cast of each coordinate. `waterlogged`:
+// whether the water a waterlogged block holds counts (breathing reads the block itself only).
+export function pointInWater (world: World, x: number, y: number, z: number, waterlogged = true): boolean {
   const py = f(y)
   const cellY = Math.floor(py)
   const block = blockAt(world, f(x), cellY, f(z))
-  return isWaterName(blockName(block)) && liquidSurfaceHeight(liquidDepthOf(block), cellY) > py
+  const liquid = waterlogged ? cellLiquid(block) : block
+  return isWaterName(blockName(liquid)) && liquidSurfaceHeight(liquidDepthOf(liquid), cellY) > py
 }
 
 // In water, in lava.
@@ -75,8 +87,7 @@ export function containsLiquid (world: World, box: BoxLike): boolean {
   for (let x = Math.floor(box.minX); x < Math.ceil(box.maxX); x++) {
     for (let z = Math.floor(box.minZ); z < Math.ceil(box.maxZ); z++) {
       for (let y = Math.floor(box.minY); y < Math.ceil(box.maxY); y++) {
-        const name = blockName(blockAt(world, x, y, z))
-        if (isWaterName(name) || isLavaName(name)) return true
+        if (cellLiquid(blockAt(world, x, y, z))) return true
       }
     }
   }
@@ -111,8 +122,8 @@ function isLiquid (name: string, liquid: Liquid): boolean {
 
 // The liquid depth of a cell of that liquid (0 source, 1..7 flowing, 8+ falling), or -1 when the cell holds another.
 export function depthAt (world: World, x: number, y: number, z: number, liquid: Liquid): number {
-  const block = blockAt(world, x, y, z)
-  return isLiquid(blockName(block), liquid) ? liquidDepthOf(block) : -1
+  const held = cellLiquid(blockAt(world, x, y, z))
+  return isLiquid(blockName(held), liquid) ? liquidDepthOf(held) : -1
 }
 
 function blocksMotion (world: World, x: number, y: number, z: number): boolean {

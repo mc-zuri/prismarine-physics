@@ -876,6 +876,10 @@ class PlayerState {
     this.itemUseStarted = !!bot.itemUseStarted
     // The vehicle the bot rides (the Bedrock engine's, kept by mineflayer's vehicles plugin as bot.bedrockVehicle).
     this.vehicle = bot.bedrockVehicle || undefined
+    // The big-wave roll of a boat the bot steers (a uniform draw in [0, 1)), where the caller supplies the client's.
+    this.bigWaveRoll = typeof bot.bedrockBigWaveRoll === 'function' ? bot.bedrockBigWaveRoll : undefined
+    // The client's core random state (a recording's), from which the boat draws the roll itself.
+    this.randomState = bot.bedrockRandomState
 
     // Input only (not modified)
     this.attributes = bot.entity.attributes

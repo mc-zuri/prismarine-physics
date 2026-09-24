@@ -168,7 +168,8 @@ One tick of a vehicle the player rides. A boat the player steers is simulated as
 - `function paddle (boat: BoatState, input: PaddleInput): void` -- The paddles take the rider's input: a force from the move vector, or the rowing buttons.
 - `function moveVehicle (ctx: Ctx, vehicle: Vehicle): void` -- The move through the blocks: capped, clamped to 16, swept without stepping up; a blocked axis stops.
 - `function simulateBoat (ctx: Ctx, vehicle: Vehicle, input: PaddleInput, roll: () => number = Math.random): void` -- One tick of a boat the player steers. `roll` draws the big-wave chance (uniform in [0, 1)).
-- `function dismount (ctx: Ctx, entity: Player): void` -- The rider leaves the vehicle (the dismount button): it stands at the dismount spot, at rest, with its box rebuilt.
+- `function boatBubbleColumns (ctx: Ctx, vehicle: Vehicle, box: Box): void` -- Bubble columns the moved boat is in (the cells of `box`), each with water (not air) above it: a downward one pulls it down 0.03 (to -0.3 at most), an upward one lifts it 0.06 (to 0.7 at most).
+- `function dismount (ctx: Ctx, entity: Player, byRider = true): void` -- The rider leaves the vehicle (the dismount button, or the server taking it off: `byRider` false): it stands at the dismount spot, at rest and on the ground there (so a jump held to leave jumps on the same tick), with its box rebuilt; with no spot it stays where it sat.
 - `function seatPosition (vehicle: Vehicle): Vec3` -- Where the rider sits: the vehicle's position plus the seat, turned by the vehicle's yaw.
 
 ## movement/: The movement rules
@@ -180,6 +181,13 @@ The move with collisions, and the step up onto a block the horizontal move ran i
 - `function tryStep (world: World, box: Box, requested: Vec3Like, plain: Vec3, stepHeight: number, mover: Mover, limit: Vec3Like = FULL_DEPENETRATION): Vec3` -- The step candidate: up by the step height then across, and, when the stretched box cannot rise that high, up only as far as it can then across; the longer horizontal path wins, and settles back down. Returns `plain` when stepping gets no further.
 - `function mayStep (onGround: boolean, requested: Vec3Like, applied: Vec3Like): boolean` -- Whether a step is tried: the horizontal move was clipped, and the player is on the ground or its fall was stopped.
 - `function moveWithCollisions (world: World, box: Box, requested: Vec3Like, onGround: boolean, stepHeight: number, descending: boolean, limit: Vec3Like = FULL_DEPENETRATION, report?: SweepReport, moverFacts: Partial<Mover> = {}): Vec3` -- The movement the box can make of `requested`, stepping up where that gets further. `limit` is the depenetration limit; `report` receives the plain move's summed clip depths.
+
+### `movement/closest-space.ts`
+
+The push toward free space: a player the server asks to push out of blocks, whose move ended inside some, gets a small velocity away from them (0.1 along the way out), unless it already moves faster that way.
+
+- `function closestSpaceReach (box: BoxLike): Box` -- The box the search for blocks around the player covers: a block out on each horizontal side.
+- `function pushTowardsClosestSpace (box: BoxLike, shapes: readonly BoxLike[], vel: Vec3Like): void` -- Pushes `vel` (x and z only) away from the block boxes `shapes` (those near the player's `box`) that it is inside: from their mean centre toward the player's, turned back on an axis a block blocks (and dropped when both ways are).
 
 ### `movement/collision.ts`
 
@@ -376,6 +384,7 @@ The travel: the speed the input moves the player at for its travel type, and the
 - `function movementAttributeOf (entity: Player, settings: Settings): AttributeValue | null` -- The movement attribute, when it carries a number.
 - `function walkSpeed (entity: Player, settings: Settings): number` -- The walking speed the travel reads (the sprint boost included).
 - `function walkSpeedBase (entity: Player, settings: Settings): number` -- The walking speed without the sprint boost.
+- `function walkSpeedParts (entity: Player, settings: Settings): { walk: number, boost: boolean }` -- The walking speed as the travel takes it: the value without the sprint boost and whether the boost is on, when the attribute holds exactly the boosted base; else the attribute's value as it is.
 - `function setSprintBoost (entity: Player & { bedrock: { sprintBoost?: boolean | undefined } }, settings: Settings, boost: boolean): void` -- Adds or removes the sprint boost on the movement attribute.
 - `function setMovementAttribute (entity: Player, settings: Settings, attribute: { base: number, current?: number, sprintStartedSince?: boolean }): void` -- Installs a server movement attribute: `base` the value without the boost, `current` the server's value (with the Speed and Slowness effects, and with the boost when the server thinks the player sprints). The travel applies the effects itself, so the attribute keeps the base, boosted or not: the server's value carries the boost when it is clearly above the base with the player's effects. With `sprintStartedSince` (the player started sprinting after the tick the packet is stamped for) a player still sprinting keeps its boost: the start re-applies it over the packet.
 - `function movementSpeed (value: number, speedLevel: number, slownessLevel: number): number` -- The walking speed with the speed and slowness effects: each multiplies the running value (x1.4 then x0.7 is not x1.1), speed first.
@@ -439,11 +448,12 @@ Water and lava: which cells hold them, whether a box or a point is in them, and 
 
 - `function isWaterName (name: string): boolean` -- Whether a block name is water.
 - `function isLavaName (name: string): boolean` -- Whether a block name is lava.
+- `function cellLiquid (block: Block | null | undefined): Block | null` -- The liquid a cell holds: its block when that is water or lava, else the liquid in its second layer (a waterlogged block's water, such as seagrass'); null when it holds none.
 - `function shrinkAxis (min: number, max: number, by: number): [number, number]` -- One axis of a box shrunk by `by` on both faces; an axis too short to shrink collapses to its midpoint (so the 0.6-high swim pose samples the plane through its centre).
 - `function liquidInInnerBox (world: World, aabb: BoxLike, test: (name: string) => boolean, horizontalShrink = 0.001, verticalShrink = 0.401): boolean` -- Whether any cell of the box, shrunk by (horizontal, vertical, horizontal), holds a block whose name passes `test`. The default shrink is the one the in-water test uses.
 - `function liquidDepthOf (block: Block | null | undefined): number` -- The block state's liquid depth (0 = source, 1..7 flowing, 8+ falling) where the world carries it; a world that does not reads every liquid cell as a source.
 - `function liquidSurfaceHeight (depth: number, cellY: number): number` -- The height of a liquid cell's surface: the top of the cell less the share the liquid does not fill. A source fills it to within float32 rounding of the top, a flowing cell of depth d < 8 stops (d + 1) / 9 short, and a falling one counts as a source.
-- `function pointInWater (world: World, x: number, y: number, z: number): boolean` -- Whether a point is under water: its cell must be water AND the point below that cell's surface, so an eye in the top of a flowing cell is not under water. The cell is taken after a float32 cast of each coordinate.
+- `function pointInWater (world: World, x: number, y: number, z: number, waterlogged = true): boolean` -- Whether a point is under water: its cell must be water AND the point below that cell's surface, so an eye in the top of a flowing cell is not under water. The cell is taken after a float32 cast of each coordinate. `waterlogged`: whether the water a waterlogged block holds counts (breathing reads the block itself only).
 - `function containsLiquid (world: World, box: BoxLike): boolean` -- In water, in lava. Whether any cell the box covers holds water or lava. A cell counts when the box reaches into it: the range is [floor(min), ceil(max)) on each axis, so a face lying on a cell boundary does not take in the cell beyond it.
 - `interface LiquidSense`
 - `function senseLiquids (world: World, aabb: BoxLike): LiquidSense` -- In water, else in lava, on the box (water wins).
@@ -504,6 +514,15 @@ Single-precision arithmetic. The Bedrock player state is float32 throughout, so 
 - `const VELOCITY_EPSILON` -- 2^-23: velocity components this small are flushed to zero by the friction step.
 - `const FLT_MAX` -- The largest finite float32.
 - `const FLOAT32_MIN_SUBNORMAL` -- The smallest positive float32 (a subnormal).
+
+### `math/mt19937.ts`
+
+The client's core random: a Mersenne Twister working on its own state block (the seed, the 624 words, the draw index and how many words are seeded so far), twisting one word just before it is used and seeding the words lazily. A recording carries this block, so a replay can make the client's own draws.
+
+- `const MT19937_STATE_BYTES` -- The bytes a draw reads: the seed, the words and the two cursors.
+- `function mt19937FromSeed (seed: number): Uint8Array` -- A state block seeded as the client seeds its level random: the first 398 words, the rest seeded as they are drawn.
+- `function mt19937NextWord (state: Uint8Array): number` -- The next 32-bit word, advancing the state in place.
+- `function mt19937NextFloat (state: Uint8Array): number` -- The next float in [0, 1): a word times 2^-32, narrowed to float32.
 
 ### `math/rotation.ts`
 
@@ -618,7 +637,10 @@ The actions (teleport, correct, movementAttribute, actorFlags) are callable dire
 - `interface StampedAttribute` -- A movement attribute with its tick: the value without the sprint boost, and the current one.
 - `type StampedFlags` -- Restated actor flags with their tick.
 - `const EFFECT_FIELDS` -- The effect levels the engine reads, by the effect's id on the wire.
-- `interface StampedEffect` -- A mob effect's level (0: removed) on the player field it sets, with the tick it is stamped for (0: not stamped).
+- `interface StampedEffect` -- A mob effect's level (0: removed) on the player field it sets, with the tick it is stamped for (0: not stamped) and its ticks (none, or a negative count: it lasts until removed).
+- `type EffectField` -- A level field a mob effect sets.
+- `interface EffectEvent` -- A mob effect as the client runs it: from the frame it takes effect on, its level (0: removed) and its last tick (none: until the next change).
+- `function effectLevel (events: readonly EffectEvent[], t: number): number | undefined` -- The level an effect's events give tick `t`: the latest event taking effect by then, 0 once its duration ran out; undefined before the first.
 - `interface StampedGlideBoost` -- A glide boost the server grants (a firework used while gliding): its ticks (-1 without end) and the tick it is stamped for.
 - `function agedDuration (duration: number, ticks: number, rate = 1): number` -- What is left of a movement effect `ticks` after its stamp (-1 lasts), counting down `rate` a tick.
 - `interface StampedMotion` -- A motion with the tick it is stamped for (0: not stamped).
