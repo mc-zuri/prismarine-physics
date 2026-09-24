@@ -58,4 +58,14 @@ describe('bedrock tick/take-pose', () => {
     takePose(plain.c, plain.entity, plain.tick)
     assert.strictEqual(plain.tick.teleported, false)
   })
+
+  it('reports the paddles its keys pull once, on the tick after a boat it steered was left', () => {
+    const s = start(FLAT, player(undefined, { bedrock: { leftSteeredVehicle: true, keys: { left: true, right: true } } as any }))
+    takePose(s.c, s.entity, s.tick)
+    assert.deepStrictEqual([...s.entity.bedrock.actions!].sort(), ['paddlingLeft', 'paddlingRight'])
+    assert.strictEqual(s.entity.bedrock.leftSteeredVehicle, false)
+    const none = start(FLAT, player(undefined, { bedrock: { leftSteeredVehicle: true } as any }))
+    takePose(none.c, none.entity, none.tick)
+    assert.strictEqual(none.entity.bedrock.actions!.size, 0)
+  })
 })

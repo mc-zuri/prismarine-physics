@@ -89,9 +89,9 @@ export interface BedrockPhysics extends Settings {
   setActorFlags (entity: Player, flags: ActorFlags): void
   senseLiquids (entity: Player, world: World): LiquidSense
   adjustPositionHeight (pos: Vec3Like): void
-  // the rider leaves its vehicle (the dismount button, or the server taking it off: `byRider` false): placed at the
-  // dismount spot
-  dismount (entity: Player, world?: World, byRider?: boolean, alpha?: number): void
+  // the rider leaves its vehicle (the dismount button, or the server taking it off: `byRider` false; `unlinked`: by
+  // the server's link removal): placed at the dismount spot
+  dismount (entity: Player, world?: World, byRider?: boolean, alpha?: number, unlinked?: boolean): void
 }
 
 // The box the coming tick senses liquids with: the kept box when current (resized to the pose height), else one built
@@ -120,7 +120,7 @@ export function Physics (registry: Registry, world: World): BedrockPhysics {
   const ctxFor = (w: World): Ctx => ({ settings: physics, trig, bounceCorrection: modernRules, world: w })
 
   physics.simulatePlayer = (entity, w) => simulatePlayer(ctxFor(w), entity)
-  physics.dismount = (entity, w = world, byRider = true, alpha) => dismount(ctxFor(w), entity, byRider, alpha)
+  physics.dismount = (entity, w = world, byRider = true, alpha, unlinked = false) => dismount(ctxFor(w), entity, byRider, alpha, unlinked)
   physics.playerAuthInput = (entity) => buildPlayerAuthInput(entity, physics.eyeHeight)
   physics.setMovementAttribute = (entity, attribute) => setMovementAttribute(entity, physics, attribute)
   physics.handleTeleport = (entity, teleport) => handleTeleport(entity, teleport, physics.eyeHeight)

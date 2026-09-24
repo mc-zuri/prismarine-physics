@@ -24,4 +24,10 @@ export function takePose (ctx: Ctx, entity: Simulated, tick: TickState): void {
   if (st.teleported || st.teleportSimulatedThrough) st.actions!.add('handledTeleport')
   st.teleported = false
   st.teleportSimulatedThrough = false
+  // a tick begun in the seat of a boat it steered reports the paddles its keys pull
+  if (st.leftSteeredVehicle) {
+    if (st.keys?.left) st.actions!.add('paddlingLeft')
+    if (st.keys?.right) st.actions!.add('paddlingRight')
+    st.leftSteeredVehicle = false
+  }
 }

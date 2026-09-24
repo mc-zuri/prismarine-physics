@@ -128,6 +128,17 @@ describe('bedrock tick/vehicle', () => {
       assert.strictEqual(p.pos.y, f(f(f(0.375) + f(1.02001)) - f(1.6200100183486938)))
     })
 
+    it('pushes a rider in flowing water from its second tick ridden, stopped first', () => {
+      const water = (depth: number): Block => ({ name: 'water', boundingBox: 'empty', _properties: { liquid_depth: depth } } as Block)
+      const cells: Record<string, Block> = { '0,0,0': water(0), '1,0,0': water(1), '2,0,0': water(2), '3,0,0': water(3) }
+      const stream: World = { getBlock: (pos: Vec3) => cells[`${pos.x},${pos.y},${pos.z}`] || { name: pos.y < 0 ? 'stone' : 'air', boundingBox: pos.y < 0 ? 'block' : 'empty' } as Block }
+      const seat = { x: 0, y: f(1.6200100183486938), z: 0 }
+      const p = player([1.5, 0, 0.5], { vehicle: boat({ predicted: false, pos: new Vec3(1.5, 0, 0.5), seat }), vel: new Vec3(1, 0, 0) })
+      simulatePlayer(ctx(stream), p)
+      simulatePlayer(ctx(stream), p)
+      assert.deepStrictEqual([p.vel.x, p.vel.y, p.vel.z], [f(0.014), 0, 0])
+    })
+
     it('spends the one-tick inputs while riding, so none acts after the dismount', () => {
       const p = player([0.5, 0, 0.5], { vehicle: boat(), bigWaveRoll: () => 0.5, riptideLaunch: 3, spinHits: 1, fireworkUsed: true, itemUseStarted: true })
       simulatePlayer(ctx(FLAT), p)
@@ -178,11 +189,18 @@ describe('bedrock tick/vehicle', () => {
       assert.strictEqual(seated.predicted_vehicle, undefined)
     })
   })
-  it('dismounts beside the seat, at rest, the box rebuilt; not riding, nothing', () => {
+  it('dismounts beside the seat, keeping its velocity, the box rebuilt; not riding, nothing', () => {
     const rider = player([0.5, 1, 0.5], { vehicle: boat(), vel: new Vec3(0.1, 0, 0), bedrock: { aabb: {} } as any })
     dismount(ctx(FLAT), rider)
     assert.deepStrictEqual([rider.pos.x, rider.pos.y, rider.pos.z], [0.5, f(0.001), -0.5])
-    assert.deepStrictEqual([rider.vel.x, rider.vehicle, rider.bedrock!.aabb, rider.onGround], [0, undefined, undefined, true], 'standing on the floor found')
+    assert.deepStrictEqual([rider.vel.x, rider.vehicle, rider.bedrock!.aabb, rider.onGround], [0.1, undefined, undefined, true], 'standing on the floor found')
+    assert.strictEqual(rider.bedrock!.leftSteeredVehicle, undefined, 'left by the rider: no seated input to report')
+    const unlinked = player([0.5, 1, 0.5], { vehicle: boat(), bedrock: {} as any })
+    dismount(ctx(FLAT), unlinked, true, undefined, true)
+    assert.strictEqual(unlinked.bedrock!.leftSteeredVehicle, true, 'the server unlinked it after the input was read in the seat')
+    const carried = player([0.5, 1, 0.5], { vehicle: boat({ predicted: false }), bedrock: {} as any })
+    dismount(ctx(FLAT), carried, true, undefined, true)
+    assert.strictEqual(carried.bedrock!.leftSteeredVehicle, undefined, 'a vehicle it did not steer')
     const walker = player([0.5, 0, 0.5])
     dismount(ctx(FLAT), walker)
     assert.strictEqual(walker.pos.z, 0.5)

@@ -158,10 +158,12 @@ function insideReach (box: Box): Box {
 }
 
 // The rider leaves the vehicle (the dismount button, or the server taking it off: `byRider` false): it stands at the
-// dismount spot, at rest, its ground flag as riding left it, with its box rebuilt; with no spot it stays where it sat.
+// dismount spot, keeping the velocity it had riding, its ground flag as riding left it, with its box rebuilt; with no
+// spot it stays where it sat.
 // `alpha`: the frame's progress into the next tick when the rider left; given, the rider is first seated where the
-// vehicle is shown then (between its last two positions).
-export function dismount (ctx: Ctx, entity: Player, byRider = true, alpha?: number): void {
+// vehicle is shown then (between its last two positions). `unlinked`: the server's link removal took it off, after the
+// tick's input was read in the seat.
+export function dismount (ctx: Ctx, entity: Player, byRider = true, alpha?: number, unlinked = false): void {
   const vehicle = entity.vehicle
   if (!vehicle) return
   const seat = seatPosition(vehicle)
@@ -180,9 +182,12 @@ export function dismount (ctx: Ctx, entity: Player, byRider = true, alpha?: numb
     const eyeY = f(f(centre(box.minY, box.maxY) + eye) + f(0.001))
     entity.pos.set(centre(box.minX, box.maxX), f(eyeY - eye), centre(box.minZ, box.maxZ))
   }
-  entity.vel.set(0, 0, 0)
   entity.vehicle = undefined
-  if (entity.bedrock) entity.bedrock.aabb = undefined
+  if (entity.bedrock) {
+    entity.bedrock.aabb = undefined
+    // the tick's input was read in the seat: it still reports the paddles
+    if (unlinked && vehicle.predicted) entity.bedrock.leftSteeredVehicle = true
+  }
 }
 
 // The rider's feet on the seat of the vehicle as shown at `alpha` of the way from its previous position to its

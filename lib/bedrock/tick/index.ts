@@ -6,7 +6,7 @@ import { closestSpaceReach, pushTowardsClosestSpace } from '../movement/closest-
 import { nextFallDistance } from '../movement/fall-distance.ts'
 import { storePreviousInput } from '../movement/sprint.ts'
 import type { Ctx, Player, Simulated } from '../types.ts'
-import { senseLiquids } from '../world/liquids.ts'
+import { applyLiquidFlow, senseLiquids } from '../world/liquids.ts'
 import { collisionBoxes } from '../world/blocks.ts'
 import { slowdownBlocksIn } from '../world/slowdown-blocks.ts'
 import { bubbleColumns, honeyBlocks, standOnSticky, velocityAfterMove } from './after-move.ts'
@@ -102,8 +102,12 @@ function rideTick (ctx: Ctx, entity: Simulated): void {
   if (vehicle.predicted) simulateBoat(ctx, vehicle, input, bigWaveRoll(entity))
   const seat = seatPosition(vehicle)
   entity.pos.set(seat.x, f(seat.y - f(ctx.settings.eyeHeight)), seat.z)
-  // the first tick ridden still reports the velocity the rider had; it stops from the next
-  if (entity.bedrock.riding) entity.vel.set(0, 0, 0)
+  // the first tick ridden still reports the velocity the rider had; from the next it stops, and flowing water around
+  // it pushes it again (which it keeps when it gets off)
+  if (entity.bedrock.riding) {
+    entity.vel.set(0, 0, 0)
+    applyLiquidFlow(ctx.world, entity.bedrock.aabb!, entity.vel)
+  }
   entity.bedrock.riding = true
   // the rider's own ground and collision flags stay as its last move left them: no move of its own changes them
   entity.jumpQueued = false

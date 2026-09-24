@@ -181,6 +181,8 @@ export interface BedrockState {
   // the tick runs in full)
   teleported?: boolean | undefined
   teleportSimulatedThrough?: boolean | undefined
+  // left a vehicle it steered since the last tick (the tick's input was read in the seat)
+  leftSteeredVehicle?: boolean | undefined
   // the flying ability as the client holds it (its own toggle), and the server's flag it last saw
   flying?: boolean | undefined
   serverFlying?: boolean | undefined
