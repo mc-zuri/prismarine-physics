@@ -134,7 +134,8 @@ export function swimSteering (entity: Simulated): void {
   if (!st.swimming || !entity.isInWater || st.input!.jumping || entity.jumpQueued) return
   const view = st.view!
   const rate = view.y < SWIM_STEER_STEEP ? SWIM_STEER_FAST : SWIM_STEER
-  entity.vel.y = view.y <= 0 || st.headInWater ? f(entity.vel.y + f(f(view.y - entity.vel.y) * rate)) : 0
+  // looking up it rises only with a liquid block at the eye (at any level of it); else it holds its height
+  entity.vel.y = view.y <= 0 || st.breathingInLiquid ? f(entity.vel.y + f(f(view.y - entity.vel.y) * rate)) : 0
 }
 
 // The input pushed along the yaw at the travel speed, then the swim steering.

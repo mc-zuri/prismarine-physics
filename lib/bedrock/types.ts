@@ -157,6 +157,12 @@ export interface BedrockState {
   // the swim pose amount (0..1), the eye under water, the look direction of the tick
   poseAmount?: number | undefined
   headInWater?: boolean | undefined
+  // the block at the eye is a liquid, whatever its level (what the swim steering reads)
+  breathingInLiquid?: boolean | undefined
+  // how far the eye sits below the standing eye height: eased half-way each tick toward the pose's, and read by the
+  // eye checks as it was before the last easing
+  eyeOffset?: number | undefined
+  eyeOffsetPrev?: number | undefined
   // how far the player has fallen since it last stood, swam, climbed or flew
   fallDistance?: number | undefined
   // the ticks until the next look for dolphins, and the boost one gave (ticks left; -1 without end)

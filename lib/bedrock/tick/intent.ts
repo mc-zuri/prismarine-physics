@@ -11,7 +11,7 @@ import { setSprintBoost } from '../movement/travel.ts'
 import type { Ctx, Simulated } from '../types.ts'
 import { blockAt, blockName, collisionBoxes } from '../world/blocks.ts'
 import { climbableAt } from '../world/climbables.ts'
-import { pointInWater } from '../world/liquids.ts'
+import { isLavaName, isWaterName, pointInWater } from '../world/liquids.ts'
 import type { TickState } from './state.ts'
 
 // Cooks the control state into the tick's input.
@@ -89,6 +89,14 @@ export function decideFlight (ctx: Ctx, entity: Simulated, tick: TickState): { f
   return { flyIntent: tick.flyIntent, glideIntent }
 }
 
+// The standing eye height, and the eye's drop from it the pose asks for: to 0.4 lying down (swimming, crawling,
+// gliding or spinning), by 0.35 sneaking.
+const STAND_EYE = f(1.62001)
+function eyeOffsetTarget (st: Simulated['bedrock']): number {
+  if (st.swimming || st.crawling || st.gliding || st.spinning) return f(STAND_EYE - f(0.40000001))
+  return st.sneaking ? f(0.35) : 0
+}
+
 // The pose of the tick, in order: the swim pose amount steps from the previous tick's flags; the swim starts or stops;
 // the fly and glide triggers run; the sneak / crawl / swim intent is decided and applied to the flags.
 export function decidePose (ctx: Ctx, entity: Simulated, tick: TickState, sprint: SprintRequest): void {
@@ -96,7 +104,9 @@ export function decidePose (ctx: Ctx, entity: Simulated, tick: TickState, sprint
   const pos = entity.pos
   const actions = st.actions!
   const swimming = !!st.swimming
-  const eyeY = swimming ? pos.y + 0.4 : pos.y + 1.62
+  if (st.eyeOffset === undefined) st.eyeOffset = st.eyeOffsetPrev = eyeOffsetTarget(st)
+  // the eye the checks read: the standing eye less its drop as it stood before the last easing
+  const eyeY = f(f(pos.y + STAND_EYE) - st.eyeOffsetPrev!)
   // the eye in water as breathing reads it: the block at the eye itself (a waterlogged plant's water does not count)
   const eyeInWater = pointInWater(ctx.world, pos.x, eyeY, pos.z, false)
 
@@ -138,6 +148,11 @@ export function decidePose (ctx: Ctx, entity: Simulated, tick: TickState, sprint
   applyPoseActions(st, actions)
 
   st.headInWater = eyeInWater
+  // the eye eases toward the pose now decided
+  st.eyeOffsetPrev = st.eyeOffset
+  st.eyeOffset = f(f(f(eyeOffsetTarget(st) - st.eyeOffset) * 0.5) + st.eyeOffset)
+  const breathing = blockName(blockAt(ctx.world, pos.x, eyeY, pos.z))
+  st.breathingInLiquid = isWaterName(breathing) || isLavaName(breathing)
   st.view = view
   entity.isSwimming = !!st.swimming
   tick.sneaking = !!st.sneaking

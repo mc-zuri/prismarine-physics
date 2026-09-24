@@ -194,10 +194,12 @@ describe('bedrock tick/travel', () => {
     swimSteering(s.entity)
     assert.strictEqual(s.entity.vel.y, f(f(-0.1 * f(0.06))))
     s.entity.bedrock.view = { x: 0, y: 0.5, z: 0.86 }
+    // looking up it rises only with a liquid block at the eye, even one whose surface is below the eye
     s.entity.bedrock.headInWater = false
+    s.entity.bedrock.breathingInLiquid = false
     swimSteering(s.entity)
     assert.strictEqual(s.entity.vel.y, 0)
-    s.entity.bedrock.headInWater = true
+    s.entity.bedrock.breathingInLiquid = true
     swimSteering(s.entity)
     assert.strictEqual(s.entity.vel.y, f(f(0.5 * f(0.06))))
   })

@@ -16,6 +16,26 @@ function session () {
 }
 
 describe('bedrock network/session', () => {
+  it('takes the local game mode for the simulation, refusing one stamped before the history', () => {
+    const s = session()
+    s.handlePacket('start_game', { runtime_entity_id: 7n, entity_id: -5n, rewind_history_size: 5 })
+    const p = player(undefined, { gameMode: 'survival' })
+    assert.strictEqual(s.handlePacket('update_player_game_type', { gamemode: 'creative', player_unique_id: -6n, tick: 0n }), false, 'another player')
+    for (let t = 1; t <= 10; t++) s.tick(p, { t })
+    s.handlePacket('update_player_game_type', { gamemode: 'creative', player_unique_id: -5n, tick: 4n })
+    s.tick(p, { t: 11 })
+    assert.strictEqual(p.gameMode, 'survival', 'older than the history: refused')
+    s.handlePacket('update_player_game_type', { gamemode: 'creative', player_unique_id: -5n, tick: 9n })
+    s.tick(p, { t: 12 })
+    assert.strictEqual(p.gameMode, 'creative')
+    s.handlePacket('update_player_game_type', { gamemode: 'default', player_unique_id: -5n, tick: 0n })
+    p.gameMode = 'adventure'
+    s.tick(p, { t: 13 })
+    assert.strictEqual(p.gameMode, 'adventure', 'the world default is left to the caller')
+    const unknown = session()
+    assert.strictEqual(unknown.handlePacket('update_player_game_type', { gamemode: 'creative', player_unique_id: -5n, tick: 0n }), false, 'before start_game')
+  })
+
   it('takes the history size from start_game', () => {
     assert.strictEqual(session().rewind.history, 40)
     const s = new BedrockSession({ physics: Physics({}, FLAT), world: FLAT })
@@ -114,12 +134,25 @@ describe('bedrock network/session', () => {
     p.bedrock!.sneaking = false
     s.actorFlags(p, { tick: 1, sneaking: true, height: 1.49 })
     assert.strictEqual(p.bedrock!.sneaking, false, 'the frame had it: a stale restatement')
-    s.actorFlags(p, { tick: 9, sneaking: true })
+    const fresh = session()
+    fresh.actorFlags(p, { tick: 9, sneaking: true })
     assert.strictEqual(p.bedrock!.sneaking, true, 'no frame for its tick')
     const bare = player()
     s.rewind.snapshot(2, bare)
     s.actorFlags(bare, { tick: 2, swimming: true })
     assert.strictEqual(bare.bedrock!.swimming, true, 'a frame without engine state')
+  })
+
+  it('with no frame to compare with, takes the glide only when the server changed it since it last restated it', () => {
+    const s = session()
+    const p = player(undefined, { bedrock: { gliding: false } })
+    s.actorFlags(p, { tick: 50, gliding: false })
+    p.bedrock!.gliding = true
+    s.actorFlags(p, { tick: 51, gliding: false })
+    assert.strictEqual(p.bedrock!.gliding, true, 'the server said the same before: the glide the player started stands')
+    s.actorFlags(p, { tick: 52, gliding: true })
+    s.actorFlags(p, { tick: 53, gliding: false })
+    assert.strictEqual(p.bedrock!.gliding, false, 'a change the server made')
   })
 
   it('writes what it takes into the frame the next restatement compares with', () => {
@@ -435,8 +468,10 @@ describe('bedrock network/session', () => {
     s.tick(p, { t: 3 })
     delete p.vehicle
     s.tick(p, { t: 4 })
-    s.rewindTo(2, p, () => {})
-    assert.strictEqual(p.vehicle, undefined, 'got off since')
+    const off = p.pos.clone()
+    let installed = false
+    s.rewindTo(2, p, () => { installed = true })
+    assert.deepStrictEqual([p.vehicle, installed, p.pos.equals(off)], [undefined, false, true], 'got off since: nothing simulated again')
   })
 
   it('seats the rider on a vehicle the server moves where it is now, not where its frame had it', () => {

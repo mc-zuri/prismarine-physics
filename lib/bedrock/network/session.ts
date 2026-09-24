@@ -118,6 +118,11 @@ export class BedrockSession {
   // the packets not yet applied, by the tick they apply on
   scheduled: Array<{ at: number, run: (state: Player) => void }> = []
   localRuntimeId: Id = null
+  localUniqueId: Id = null
+  // the flags the server last restated, by name
+  serverFlags: Record<string, unknown> = {}
+  // the game mode the client holds (unset: the caller's)
+  gameMode: string | undefined
   // the mob effects the server sent, by the level field they set
   effects = new Map<EffectField, EffectEvent[]>()
   pendingAttribute: { attribute: StampedAttribute } | null = null
@@ -143,6 +148,7 @@ export class BedrockSession {
     if (typeof frame.usingItem === 'boolean') state.usingItem = frame.usingItem
     if (typeof frame.itemUseStarted === 'boolean') state.itemUseStarted = frame.itemUseStarted
     state.lastOnGround = state.onGround
+    if (this.gameMode !== undefined) state.gameMode = this.gameMode
     for (const [field, events] of this.effects) {
       const level = effectLevel(events, frame.t)
       if (level !== undefined) state[field] = level
@@ -186,10 +192,15 @@ export class BedrockSession {
   }
 
   // Restores the state after `tick`, runs `install` on it and simulates the ticks since again, in the vehicle the player
-  // rides now: getting on or off is not simulated again, so a state kept before the mount (or in another vehicle) is
-  // taken with the vehicle the player is in, and one kept in a vehicle it steers with its simulated state.
+  // rides now: getting on is not simulated again, so a state kept before the mount (or in another vehicle) is taken
+  // with the vehicle the player is in, and one kept in a vehicle it steers with its simulated state. Off a vehicle
+  // since, nothing is.
   rewindTo (tick: number, state: Player, install: (state: Player) => void): void {
     const riding = state.vehicle
+    // off a vehicle since: the dismount placed the player where no simulation leads, so nothing is simulated again
+    if (!riding) {
+      for (let t = tick; t < this.rewind.current; t++) if (this.rewind.snapshots.get(t)?.vehicle) return
+    }
     this.rewind.rewindTo(tick, state, s => {
       if (!riding) delete s.vehicle
       // a vehicle the server moves is not simulated again: the rider sits on it where it is now
@@ -305,6 +316,11 @@ export class BedrockSession {
     for (const name of [...ACTOR_FLAG_NAMES, 'height'] as const) {
       const value = flags[name]
       if (value === undefined) continue
+      const sent = this.serverFlags[name]
+      this.serverFlags[name] = value
+      // with no frame to compare with, the glide (which the client starts itself) is taken only when the server changed
+      // it since its last restatement
+      if (name === 'gliding' && !frame && sent === value) continue
       const known = frame && frame.bedrock ? frame.bedrock[name === 'height' ? 'poseHeight' : name] : undefined
       if (frame && known === value) continue
       ;(changed as Record<string, unknown>)[name] = value
@@ -340,8 +356,17 @@ export class BedrockSession {
     switch (name) {
       case 'start_game':
         this.localRuntimeId = params.runtime_entity_id
+        this.localUniqueId = params.entity_id ?? null
         if (Number.isSafeInteger(params.rewind_history_size)) this.rewind.history = sanitizeHistorySize(params.rewind_history_size)
         return true
+      case 'update_player_game_type': {
+        if (this.localUniqueId === null || !sameId(params.player_unique_id, this.localUniqueId)) return false
+        // one stamped before the history is refused: the client keeps the game mode it has
+        const tick = Number(params.tick || 0)
+        if (tick > 0 && tick < Math.max(this.rewind.oldest, this.rewind.current - this.rewind.history + 1)) return true
+        this.gameMode = GAME_MODES.has(params.gamemode) ? params.gamemode as string : undefined
+        return true
+      }
       case 'move_player': {
         if (!sameId(params.runtime_id, this.localRuntimeId)) return false
         const mode = typeof params.mode === 'number' ? params.mode : MoveMode[params.mode as keyof typeof MoveMode]
@@ -418,6 +443,9 @@ export function movementAttribute (params: Record<string, any>): StampedAttribut
   }
   return { tick: Number(params.tick), walk: f(f(entry.default) + additive), current: f(entry.current) }
 }
+
+// The game modes the engine tells apart; any other (the world's default) is left to the caller.
+const GAME_MODES = new Set(['survival', 'creative', 'adventure', 'spectator'])
 
 const FLAGS_WORD = ['sneaking', 'sprinting', 'gliding', 'swimming', 'spinning'] as const
 const EXTENDED_FLAGS_WORD = ['crawling', 'pushTowardsClosestSpace'] as const

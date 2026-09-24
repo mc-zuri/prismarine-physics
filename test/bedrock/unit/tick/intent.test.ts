@@ -120,6 +120,22 @@ describe('bedrock tick/intent', () => {
     assert.ok(s.entity.bedrock.view)
   })
 
+  it('eases the eye half-way toward the pose each tick, the checks reading it from before the last easing', () => {
+    const lying = f(f(1.62001) - f(0.40000001))
+    const swim = start(FLAT, player(undefined, { bedrock: { swimming: true } }))
+    decidePose(swim.c, swim.entity, swim.tick, decideSprint(swim.c, swim.entity, swim.tick))
+    assert.strictEqual(swim.entity.bedrock.eyeOffsetPrev, lying, 'a first tick starts at its pose (then eases: out of water the swim stops)')
+    // surfaced after swimming: the eye still sits low for the checks, and eases up
+    const surfaced = player([0.5, 0, 0.5], { bedrock: { eyeOffset: lying, eyeOffsetPrev: lying } })
+    const s = start(worldOf({ '0,0,0': 'water' }), surfaced)
+    decidePose(s.c, s.entity, s.tick, decideSprint(s.c, s.entity, s.tick))
+    assert.strictEqual(s.entity.bedrock.headInWater, true, 'the eye read 0.4 up, in the water')
+    assert.deepStrictEqual([s.entity.bedrock.eyeOffsetPrev, s.entity.bedrock.eyeOffset], [lying, f(f(f(0 - lying) * 0.5) + lying)])
+    const sneak = start(FLAT, player(undefined, { control: { sneak: true } }))
+    decidePose(sneak.c, sneak.entity, sneak.tick, decideSprint(sneak.c, sneak.entity, sneak.tick))
+    assert.strictEqual(sneak.entity.bedrock.eyeOffset, f(f(f(f(0.35) - 0) * 0.5) + 0), 'sneaking drops it 0.35')
+  })
+
   it('steps a kept pose amount from the swimming and crawling flags', () => {
     const swim = start(FLAT, player(undefined, { bedrock: { poseAmount: 0.5, crawling: true } }))
     decidePose(swim.c, swim.entity, swim.tick, decideSprint(swim.c, swim.entity, swim.tick))

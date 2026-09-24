@@ -158,8 +158,7 @@ function insideReach (box: Box): Box {
 }
 
 // The rider leaves the vehicle (the dismount button, or the server taking it off: `byRider` false): it stands at the
-// dismount spot, at rest and on the ground there (so a jump held to leave jumps on the same tick), with its box
-// rebuilt; with no spot it stays where it sat.
+// dismount spot, at rest, its ground flag as riding left it, with its box rebuilt; with no spot it stays where it sat.
 export function dismount (ctx: Ctx, entity: Player, byRider = true): void {
   const vehicle = entity.vehicle
   if (!vehicle) return
@@ -180,7 +179,6 @@ export function dismount (ctx: Ctx, entity: Player, byRider = true): void {
     entity.pos.set(centre(box.minX, box.maxX), f(eyeY - eye), centre(box.minZ, box.maxZ))
   }
   entity.vel.set(0, 0, 0)
-  if (at.standing) entity.onGround = true
   entity.vehicle = undefined
   if (entity.bedrock) entity.bedrock.aabb = undefined
 }
