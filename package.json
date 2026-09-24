@@ -7,10 +7,14 @@
     "test": "test"
   },
   "scripts": {
-    "test": "mocha --reporter spec --exit",
-    "pretest": "npm run lint",
-    "lint": "standard",
-    "fix": "standard --fix"
+    "test": "mocha",
+    "pretest": "npm run lint && npm run typecheck",
+    "lint": "standard && eslint \"**/*.ts\"",
+    "fix": "standard --fix && eslint --fix \"**/*.ts\"",
+    "typecheck": "tsc -p .",
+    "test:unit": "mocha --no-config --require ./lib/ts-hooks.js --extension ts --exit \"test/bedrock/unit/**/*.test.ts\" test/bedrock/session.test.js",
+    "coverage": "c8 npm run test:unit",
+    "docs": "node scripts/bedrock-reference.js"
   },
   "repository": {
     "type": "git",
@@ -28,11 +32,18 @@
   },
   "homepage": "https://github.com/PrismarineJS/prismarine-physics#readme",
   "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^26.6.2",
+    "c8": "^12.0.0",
+    "eslint": "^9.39.5",
     "expect": "^27.3.1",
     "mocha": "^11.0.1",
+    "neostandard": "^0.13.0",
     "prismarine-block": "^1.7.3",
     "prismarine-physics": "file:./",
-    "standard": "^17.0.0"
+    "prismarine-registry": "^1.12.0",
+    "standard": "^17.0.0",
+    "typescript": "^6.0.3"
   },
   "dependencies": {
     "minecraft-data": "^3.0.0",

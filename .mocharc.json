@@ -1,0 +1,7 @@
+{
+  "require": ["./lib/ts-hooks.js"],
+  "extension": ["js", "ts"],
+  "spec": ["test/**/*.test.js", "test/**/*.test.ts"],
+  "reporter": "spec",
+  "exit": true
+}

@@ -1,0 +1,54 @@
+// Climbing: ladders, vines and scaffolding before the move, pushing into a climbable after it, and climbing out of a
+// liquid onto a block.
+import { Box } from '../math/box.ts'
+import { f } from '../math/float.ts'
+import { climbSpeed, SCAFFOLDING_CLIMB_SPEED } from '../movement/jump.ts'
+import type { Ctx, Simulated } from '../types.ts'
+import { collisionBoxes } from '../world/blocks.ts'
+import { climbableAt, exitingScaffolding } from '../world/climbables.ts'
+import { containsLiquid } from '../world/liquids.ts'
+import type { TickState } from './state.ts'
+
+// Before the move. On a ladder or vine the fall is clamped to the climb speed (and held when sneaking); on scaffolding
+// sneaking descends at 0.15. A held jump climbs at the climb speed (0.2, scaffolding 0.15), unless it is leaving the
+// scaffolding sideways.
+export function climbBeforeMove (ctx: Ctx, entity: Simulated, tick: TickState): void {
+  const st = entity.bedrock
+  const vel = entity.vel
+  const kind = climbableAt(ctx.world, entity.pos, st.aabb!, !!entity.leatherBoots)
+  st.scaffoldDescend = false
+  st.climbable = kind
+  if (!kind) return
+  if (kind === 'scaffolding' && st.input!.sneaking) {
+    vel.y = f(-SCAFFOLDING_CLIMB_SPEED)
+    st.scaffoldDescend = true
+  }
+  const speed = climbSpeed(kind)
+  if (kind !== 'scaffolding') {
+    if (tick.sneaking && vel.y < 0) vel.y = 0
+    if (vel.y < -speed) vel.y = f(-speed)
+  }
+  const exiting = kind === 'scaffolding' && exitingScaffolding(ctx.world, entity.pos, vel, !!entity.isCollidedVertically)
+  if (!exiting && (st.input!.jumping || entity.jumpQueued)) vel.y = speed
+}
+
+// After the move: a ladder or vine at the feet while pushing against a block climbs at the climb speed, and the tick
+// then skips gravity and the vertical drag. Returns whether it climbed.
+export function climbOnPush (ctx: Ctx, entity: Simulated): boolean {
+  const kind = climbableAt(ctx.world, entity.pos, entity.bedrock.aabb!, !!entity.leatherBoots)
+  if (!kind || kind === 'scaffolding' || !entity.isCollidedHorizontally) return false
+  entity.vel.y = climbSpeed(kind)
+  return true
+}
+
+// Pushing against a block while in a liquid, with room for the box raised by 0.6 (plus the fall) and moved on by the
+// velocity -- no liquid in it and no collision -- boosts the player up and out.
+export function climbOutOfLiquid (ctx: Ctx, entity: Simulated, preMoveY: number): void {
+  if (!(entity.isInWater || entity.isInLava) || !entity.isCollidedHorizontally) return
+  const vel = entity.vel
+  const aabb = entity.bedrock.aabb!
+  const dy = f(f(f(preMoveY - entity.pos.y) + f(0.60000002)) + vel.y)
+  const probe = new Box(f(aabb.minX + vel.x), f(aabb.minY + dy), f(aabb.minZ + vel.z), f(aabb.maxX + vel.x), f(aabb.maxY + dy), f(aabb.maxZ + vel.z))
+  if (containsLiquid(ctx.world, probe) || collisionBoxes(ctx.world, probe).length > 0) return
+  vel.y = f(ctx.settings.outOfLiquidImpulse)
+}

@@ -1,0 +1,405 @@
+// A local player's session: its ticks, the history they leave, and the server's movement packets applied on the
+// tick they take effect. The same session serves a live client and a recording's replay.
+//
+//   const session = new BedrockSession({ physics, world })
+//   session.handlePacket(name, params)   // a packet as bedrock-protocol decodes it; takes effect next tick
+//   session.tick(state, frame)           // one tick: the packets due, then the simulation
+//
+// `state` is the player (a PlayerState or the same shape) and `frame` the tick's inputs: { t, control, yaw?, pitch?,
+// bedrockYaw?, bedrockPitch?, riptideLaunch?, spinHits?, fireworkUsed?, usingItem?, itemUseStarted? }. The session keeps each tick's frame and the state after it, so a correction stamped for
+// an earlier tick is installed there and the ticks since are simulated again with their inputs.
+//
+// The actions (teleport, correct, movementAttribute, actorFlags) are callable directly, for a caller that decides
+// itself which tick a packet takes effect on.
+import { f } from '../math/float.ts'
+import { GLIDE_BOOST_RATE } from '../movement/movement-effects.ts'
+import type { Control, Player, World } from '../types.ts'
+import { ACTOR_FLAG_NAMES, MoveMode, type ActorFlags, type MoveCorrection, type Teleport } from './corrections.ts'
+import { sanitizeHistorySize } from './history.ts'
+import { BedrockRewind, type Frame } from './rewind.ts'
+
+// A teleport at least this far starts the history over; a nearer one is filed on it.
+const FAR_TELEPORT = 16
+// A correction that agrees with the history within this squared distance (position and velocity) changes nothing.
+const DIVERGENCE = f(0.0000099999997)
+
+// What the session needs of the physics object.
+export interface SessionPhysics {
+  eyeHeight: number
+  movementSpeedAttribute: string
+  simulatePlayer (state: Player, world: World): unknown
+  handleTeleport (state: Player, teleport: Teleport): void
+  applyCorrection (state: Player, correction: MoveCorrection): void
+  applyMotion (state: Player, motion: { x: number, y: number, z: number }): void
+  setMovementAttribute (state: Player, attribute: { base: number, current?: number, sprintStartedSince?: boolean }): void
+  setActorFlags (state: Player, flags: ActorFlags): void
+}
+
+// One tick's inputs: the tick number, the control state, the rotation, and a riptide launch and the mobs the spin hit.
+export interface TickFrame extends Frame {
+  control?: Control | undefined
+  yaw?: number | undefined
+  pitch?: number | undefined
+  bedrockYaw?: number | undefined
+  bedrockPitch?: number | undefined
+  riptideLaunch?: number | undefined
+  spinHits?: number | undefined
+  fireworkUsed?: boolean | undefined
+  usingItem?: boolean | undefined
+  itemUseStarted?: boolean | undefined
+}
+
+// A movement correction with the tick it is stamped for.
+export interface StampedCorrection extends MoveCorrection { tick: number, dx: number, dy: number, dz: number }
+// A movement attribute with its tick: the value without the sprint boost, and the current one.
+export interface StampedAttribute { tick: number, walk: number, current: number }
+// Restated actor flags with their tick.
+export type StampedFlags = ActorFlags & { tick: number }
+// The effect levels the engine reads, by the effect's id on the wire.
+export const EFFECT_FIELDS: Readonly<Record<number, 'speed' | 'slowness' | 'jumpBoost' | 'blindness' | 'levitation' | 'slowFalling' | 'weaving'>> = {
+  1: 'speed', 2: 'slowness', 8: 'jumpBoost', 15: 'blindness', 24: 'levitation', 27: 'slowFalling', 33: 'weaving'
+}
+// A mob effect's level (0: removed) on the player field it sets, with the tick it is stamped for (0: not stamped).
+export interface StampedEffect { tick: number, field: typeof EFFECT_FIELDS[number], level: number }
+
+// A glide boost the server grants (a firework used while gliding): its ticks (-1 without end) and the tick it is
+// stamped for.
+export interface StampedGlideBoost { tick: number, duration: number }
+
+// What is left of a movement effect `ticks` after its stamp (-1 lasts), counting down `rate` a tick.
+export function agedDuration (duration: number, ticks: number, rate = 1): number {
+  if (duration === -1 || ticks <= 0) return duration
+  return Math.max(duration - ticks * rate, 0)
+}
+// A motion with the tick it is stamped for (0: not stamped).
+export interface StampedMotion { tick: number, x: number, y: number, z: number }
+
+type Id = bigint | number | string | null | undefined
+
+function distanceSquared (a: { x: number, y: number, z: number }, b: { x: number, y: number, z: number }): number {
+  const dx = f(a.x - b.x)
+  const dy = f(a.y - b.y)
+  const dz = f(a.z - b.z)
+  return f(f(f(dz * dz) + f(f(dy * dy) + f(dx * dx))))
+}
+
+function sameId (a: Id, b: Id): boolean {
+  return a !== undefined && a !== null && b !== undefined && b !== null && BigInt(a) === BigInt(b)
+}
+
+// A local player's session: its ticks, their history, and the server's movement packets applied on the tick they take
+// effect.
+export class BedrockSession {
+  physics: SessionPhysics
+  world: World
+  eyeHeight: number
+  step: (state: Player, frame: TickFrame) => void
+  rewind: BedrockRewind<Player>
+  // the oldest tick of the client's own history: only a far teleport clears it
+  ringOldest = -Infinity
+  // the packets not yet applied, by the tick they apply on
+  scheduled: Array<{ at: number, run: (state: Player) => void }> = []
+  localRuntimeId: Id = null
+  pendingAttribute: { attribute: StampedAttribute } | null = null
+
+  constructor ({ physics, world, history = 16, step }: { physics: SessionPhysics, world: World, history?: number, step?: (state: Player, frame: TickFrame) => void }) {
+    this.physics = physics
+    this.world = world
+    this.eyeHeight = physics.eyeHeight
+    this.step = step || ((state, frame) => this.simulate(state, frame))
+    this.rewind = new BedrockRewind<Player>({ step: this.step as (state: Player, frame: Frame) => void, history })
+  }
+
+  // One tick with the frame's inputs.
+  simulate (state: Player, frame: TickFrame): void {
+    if (typeof frame.bedrockYaw === 'number') state.bedrockYaw = frame.bedrockYaw
+    if (typeof frame.bedrockPitch === 'number') state.bedrockPitch = frame.bedrockPitch
+    if (typeof frame.yaw === 'number') state.yaw = frame.yaw
+    if (typeof frame.pitch === 'number') state.pitch = frame.pitch
+    if (frame.control) state.control = frame.control
+    if (typeof frame.riptideLaunch === 'number') state.riptideLaunch = frame.riptideLaunch
+    if (typeof frame.spinHits === 'number') state.spinHits = frame.spinHits
+    if (typeof frame.fireworkUsed === 'boolean') state.fireworkUsed = frame.fireworkUsed
+    if (typeof frame.usingItem === 'boolean') state.usingItem = frame.usingItem
+    if (typeof frame.itemUseStarted === 'boolean') state.itemUseStarted = frame.itemUseStarted
+    state.lastOnGround = state.onGround
+    this.physics.simulatePlayer(state, this.world)
+  }
+
+  // Files the tick's frame, runs `before(state)`, then the packets due on this tick, then the simulation, and keeps
+  // the state after it.
+  tick (state: Player, frame: TickFrame, before?: (state: Player) => void): Player {
+    this.rewind.push(frame)
+    if (before) before(state)
+    this.runDue(state, frame.t)
+    this.simulate(state, frame)
+    this.rewind.snapshot(frame.t, state)
+    return state
+  }
+
+  // Runs `run(state)` at the start of tick `at` (by default the next tick simulated).
+  schedule (run: (state: Player) => void, at = -Infinity): void {
+    this.scheduled.push({ at, run })
+    this.scheduled.sort((x, y) => x.at - y.at)
+  }
+
+  runDue (state: Player, t: number): void {
+    for (let next = this.scheduled[0]; next && next.at <= t; next = this.scheduled[0]) {
+      this.scheduled.shift()
+      next.run(state)
+    }
+  }
+
+  // ---- the actions -----------------------------------------------------------------------------------------------
+
+  // A teleport of the local player on tick `t`. A far one clears the client's history; the replay history starts over
+  // either way, since a re-simulation cannot re-apply a teleport.
+  teleport (state: Player, t: number, teleport: Teleport): void {
+    const far = Math.hypot(teleport.x - state.pos.x, teleport.y - this.eyeHeight - state.pos.y, teleport.z - state.pos.z) >= FAR_TELEPORT
+    if (far) this.ringOldest = t
+    this.physics.handleTeleport(state, teleport)
+    this.rewind.reset(t)
+  }
+
+  // A movement correction: installed on the frame after its tick, and every tick since simulated again.
+  correct (state: Player, correction: StampedCorrection): void {
+    this.rewind.rewindTo(correction.tick, state, () => this.physics.applyCorrection(state, correction))
+  }
+
+  // A mob effect on the player (its level; 0 when removed): on the history frames from its tick, and every tick since
+  // simulated again with it; unstamped, live only.
+  effect (state: Player, effect: StampedEffect): void {
+    const install = (s: Player): void => { s[effect.field] = effect.level }
+    if (effect.tick <= 0) {
+      install(state)
+      return
+    }
+    for (const [tick, frame] of this.rewind.snapshots) if (tick >= effect.tick) install(frame)
+    this.rewind.rewindTo(effect.tick, state, install)
+  }
+
+  // A correction of the vehicle the player steers: its position, velocity and ground flag, installed on the frame after
+  // its tick, and every tick since simulated again.
+  correctVehicle (state: Player, correction: StampedCorrection): void {
+    const riding = state.vehicle
+    this.rewind.rewindTo(correction.tick, state, () => {
+      // a frame from before the player mounted has no vehicle: the correction is of the one it rides now
+      if (!state.vehicle) state.vehicle = riding
+      const vehicle = state.vehicle
+      if (!vehicle) return
+      vehicle.pos.set(f(correction.x), f(correction.y), f(correction.z))
+      vehicle.box = undefined
+      vehicle.vel.set(f(correction.dx), f(correction.dy), f(correction.dz))
+      vehicle.onGround = correction.onGround
+    })
+  }
+
+  // Whether a vehicle correction is filed: as a player's, against the vehicle of the frame of its tick.
+  vehicleCorrectionFiles (state: Player, correction: StampedCorrection): boolean {
+    if (!state.vehicle || !state.vehicle.predicted) return false
+    const oldest = Math.max(this.rewind.oldest, this.rewind.current - this.rewind.history + 1)
+    if (correction.tick < oldest) return false
+    const vehicle = this.rewind.snapshots.get(correction.tick)?.vehicle
+    if (!vehicle) return true
+    const position = { x: f(correction.x), y: f(correction.y), z: f(correction.z) }
+    const velocity = { x: f(correction.dx), y: f(correction.dy), z: f(correction.dz) }
+    return !!vehicle.onGround !== !!correction.onGround ||
+      distanceSquared(position, vehicle.pos) > DIVERGENCE ||
+      distanceSquared(velocity, vehicle.vel) > DIVERGENCE
+  }
+
+  // A glide boost: when it turns the boost on or off, installed on the frame after its tick and every tick since
+  // simulated again; otherwise what is left, aged from its tick, on the history frames since and on the player about
+  // to simulate the current tick.
+  glideBoost (state: Player, boost: StampedGlideBoost): void {
+    const active = boost.duration === -1 || boost.duration > 0
+    const held = (state.fireworkRocketDuration || 0) !== 0
+    if (boost.tick > 0 && active !== held) {
+      this.rewind.rewindTo(boost.tick, state, s => { s.fireworkRocketDuration = boost.duration })
+      return
+    }
+    if (boost.tick <= 0) {
+      state.fireworkRocketDuration = boost.duration
+      return
+    }
+    for (const [tick, frame] of this.rewind.snapshots) {
+      if (tick >= boost.tick) frame.fireworkRocketDuration = agedDuration(boost.duration, tick - boost.tick, GLIDE_BOOST_RATE)
+    }
+    state.fireworkRocketDuration = agedDuration(boost.duration, this.rewind.current - 1 - boost.tick, GLIDE_BOOST_RATE)
+  }
+
+  // A motion the server sets (a knockback): the velocity, installed live; a stamped one is also installed on the frame
+  // after its tick (no earlier than the history) and every tick since simulated again.
+  motion (state: Player, motion: StampedMotion): void {
+    if (motion.tick > 0) this.rewind.rewindTo(motion.tick, state, () => this.physics.applyMotion(state, motion))
+    else this.physics.applyMotion(state, motion)
+  }
+
+  // A movement attribute: installed on the player and on the history frames from its tick, so a later correction
+  // re-simulates with it. It does not re-simulate itself; a sprint the player started after its tick keeps the boost.
+  movementAttribute (state: Player, attribute: StampedAttribute): void {
+    const sprintStartedSince = [...this.rewind.snapshots].some(([tick, frame]) => tick > attribute.tick && !!frame.bedrock?.actions?.has('startSprinting'))
+    this.physics.setMovementAttribute(state, { base: attribute.walk, current: attribute.current, sprintStartedSince })
+    const key = this.physics.movementSpeedAttribute
+    const walk = state.attributes![key]
+    for (const [tick, frame] of this.rewind.snapshots) {
+      if (tick >= attribute.tick) frame.attributes = { ...(frame.attributes || {}), [key]: { ...walk } }
+    }
+  }
+
+  // Restated actor flags: compared with the history frame of their tick (no earlier than the client's history) and
+  // written to the player only where they differ, so the player's own later changes stand. What is written also goes
+  // into the frame of the tick before the current one: that frame stands for the start of the current tick, after the
+  // packets that landed between the ticks, which is what a later restatement is compared with.
+  actorFlags (state: Player, flags: StampedFlags): void {
+    const frame = this.rewind.snapshots.get(Math.max(flags.tick, this.ringOldest))
+    const changed: ActorFlags = {}
+    for (const name of [...ACTOR_FLAG_NAMES, 'height'] as const) {
+      const value = flags[name]
+      if (value === undefined) continue
+      const known = frame && frame.bedrock ? frame.bedrock[name === 'height' ? 'poseHeight' : name] : undefined
+      if (frame && known === value) continue
+      ;(changed as Record<string, unknown>)[name] = value
+    }
+    if (!Object.keys(changed).length) return
+    this.physics.setActorFlags(state, changed)
+    // the tick's frame is taken after the packets that land between ticks: a later restatement compares with this
+    const view = this.rewind.snapshots.get(this.rewind.current - 1)
+    if (view) this.physics.setActorFlags(view, changed)
+  }
+
+  // Whether a correction is filed: one stamped before the history is refused, one that agrees with the frame of its
+  // tick (the ground flag, and the position and velocity within 1e-5 squared) is dropped, and one with no frame is
+  // filed.
+  correctionFiles (correction: StampedCorrection): boolean {
+    const oldest = Math.max(this.rewind.oldest, this.rewind.current - this.rewind.history + 1)
+    if (correction.tick < oldest) return false
+    const frame = this.rewind.snapshots.get(correction.tick)
+    if (!frame) return true
+    const eye = f(this.eyeHeight)
+    const position = { x: f(correction.x), y: f(f(correction.y) - eye), z: f(correction.z) }
+    const velocity = { x: f(correction.dx), y: f(correction.dy), z: f(correction.dz) }
+    return !!frame.onGround !== !!correction.onGround ||
+      distanceSquared(position, frame.pos) > DIVERGENCE ||
+      distanceSquared(velocity, frame.vel) > DIVERGENCE
+  }
+
+  // ---- packets -----------------------------------------------------------------------------------------------------
+
+  // A packet as bedrock-protocol decodes it. The local player's movement packets are scheduled for the next tick and
+  // return true; anything else returns false.
+  handlePacket (name: string, params: Record<string, any>): boolean {
+    switch (name) {
+      case 'start_game':
+        this.localRuntimeId = params.runtime_entity_id
+        if (Number.isSafeInteger(params.rewind_history_size)) this.rewind.history = sanitizeHistorySize(params.rewind_history_size)
+        return true
+      case 'move_player': {
+        if (!sameId(params.runtime_id, this.localRuntimeId)) return false
+        const mode = typeof params.mode === 'number' ? params.mode : MoveMode[params.mode as keyof typeof MoveMode]
+        const teleport: Teleport = { x: params.position.x, y: params.position.y, z: params.position.z, pitch: params.pitch, yaw: params.yaw, headYaw: params.head_yaw, mode, onGround: !!params.on_ground }
+        this.schedule(state => this.teleport(state, this.rewind.current, teleport))
+        return true
+      }
+      case 'correct_player_move_prediction': {
+        const vehicle = params.prediction_type === 'vehicle' || params.prediction_type === 1
+        if (!vehicle && params.prediction_type !== undefined && params.prediction_type !== 'player' && params.prediction_type !== 0) return false
+        const correction: StampedCorrection = { tick: Number(params.tick), x: params.position.x, y: params.position.y, z: params.position.z, dx: params.delta.x, dy: params.delta.y, dz: params.delta.z, onGround: !!params.on_ground }
+        if (vehicle) this.schedule(state => { if (this.vehicleCorrectionFiles(state, correction)) this.correctVehicle(state, correction) })
+        else this.schedule(state => { if (this.correctionFiles(correction)) this.correct(state, correction) })
+        return true
+      }
+      case 'set_entity_motion': {
+        if (!sameId(params.runtime_entity_id, this.localRuntimeId)) return false
+        const motion: StampedMotion = { tick: Number(params.tick || 0), x: params.velocity.x, y: params.velocity.y, z: params.velocity.z }
+        this.schedule(state => this.motion(state, motion))
+        return true
+      }
+      case 'update_attributes': {
+        if (!sameId(params.runtime_entity_id, this.localRuntimeId)) return false
+        const attribute = movementAttribute(params)
+        if (!attribute) return false
+        // attributes received together are read at once: the last is the one that applies
+        const entry = { attribute }
+        this.pendingAttribute = entry
+        this.schedule(state => {
+          if (this.pendingAttribute !== entry) return
+          this.pendingAttribute = null
+          this.movementAttribute(state, attribute)
+        })
+        return true
+      }
+      case 'mob_effect': {
+        if (!sameId(params.runtime_entity_id, this.localRuntimeId)) return false
+        const field = EFFECT_FIELDS[params.effect_id]
+        if (!field) return false
+        const effect: StampedEffect = { tick: Number(params.tick || 0), field, level: params.event_id === 'remove' || params.event_id === 3 ? 0 : params.amplifier + 1 }
+        this.schedule(state => this.effect(state, effect))
+        return true
+      }
+      case 'movement_effect': {
+        if (!sameId(params.runtime_id, this.localRuntimeId)) return false
+        if (params.effect_type !== 'GLIDE_BOOST' && params.effect_type !== 0) return false
+        const boost: StampedGlideBoost = { tick: Number(params.tick || 0), duration: params.effect_duration >= -1 ? params.effect_duration : 0 }
+        this.schedule(state => this.glideBoost(state, boost))
+        return true
+      }
+      case 'set_entity_data': {
+        if (!sameId(params.runtime_entity_id, this.localRuntimeId)) return false
+        const flags = restatedFlags(params)
+        if (!flags) return false
+        this.schedule(state => this.actorFlags(state, flags))
+        return true
+      }
+      default:
+        return false
+    }
+  }
+}
+
+// The movement attribute of an update_attributes packet: `walk` the value without the sprint boost (the default plus
+// the additive modifiers, e.g. the powder snow freeze), `current` the server's value.
+export function movementAttribute (params: Record<string, any>): StampedAttribute | null {
+  const entry = (params.attributes || []).find((a: { name: string }) => a.name === 'minecraft:movement')
+  if (!entry) return null
+  let additive = 0
+  for (const modifier of entry.modifiers || []) {
+    const operation = typeof modifier.operation === 'number' ? modifier.operation : ({ addition: 0 } as Record<string, number>)[modifier.operation]
+    // an addition to the value (operand 2; a protocol without operands has only those), not to the bounds
+    if (operation === 0 && (modifier.operand === undefined || modifier.operand === 2)) additive = f(additive + f(modifier.amount))
+  }
+  return { tick: Number(params.tick), walk: f(f(entry.default) + additive), current: f(entry.current) }
+}
+
+const FLAGS_WORD = ['sneaking', 'sprinting', 'gliding', 'swimming', 'spinning'] as const
+const EXTENDED_FLAGS_WORD = ['crawling', 'pushTowardsClosestSpace'] as const
+// The flags' names in a decoded flags word.
+const WIRE_NAMES: Readonly<Record<string, string>> = { pushTowardsClosestSpace: 'push_towards_closest_space', spinning: 'spin_attack' }
+
+// A named flag of a decoded flags word: an object of booleans or a list of set names.
+export function flagValue (value: unknown, name: string): boolean | undefined {
+  if (value && typeof value === 'object' && !Array.isArray(value)) return name in value ? !!(value as Record<string, unknown>)[name] : false
+  if (Array.isArray(value)) return value.includes(name)
+  return undefined
+}
+
+// The actor flags a set_entity_data packet restates, and the box height it sends with a pose; null when neither.
+export function restatedFlags (params: Record<string, any>): StampedFlags | null {
+  const out: StampedFlags = { tick: Number(params.tick) }
+  let found = false
+  for (const item of params.metadata || []) {
+    if (item.key === 'flags' || item.key === 'flags_extended') {
+      for (const name of item.key === 'flags' ? FLAGS_WORD : EXTENDED_FLAGS_WORD) {
+        const on = flagValue(item.value, WIRE_NAMES[name] || name)
+        if (on !== undefined) {
+          out[name] = on
+          found = true
+        }
+      }
+    } else if (item.key === 'boundingbox_height' && typeof item.value === 'number') {
+      out.height = item.value
+      found = true
+    }
+  }
+  return found ? out : null
+}

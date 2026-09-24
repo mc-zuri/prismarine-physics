@@ -66,6 +66,24 @@ See `examples/` for more.
 - playerState : instance of the PlayerState class
 - world : interface with a function `getBlock(position)` returning the prismarine-block at the given position
 
+### Bedrock Edition
+
+`Physics(registry, world)` returns the Bedrock engine when `registry.type === 'bedrock'` (a
+[prismarine-registry](https://github.com/PrismarineJS/prismarine-registry) such as
+`require('prismarine-registry')('bedrock_1.26.20')`). It takes the same `PlayerState` and exposes the same
+`simulatePlayer` / `adjustPositionHeight`, so mineflayer code does not change; it reproduces the Bedrock client's
+movement bit for bit (1.26.10 to 1.26.51) and adds what a Bedrock client needs:
+
+- `physics.playerAuthInput(playerState)`: the `player_auth_input` packet the client would send after the tick.
+- `BedrockSession`: the server's movement packets (teleports, corrections re-simulated from their tick, the movement
+  attribute, restated actor flags) applied the way the client applies them.
+- The controls are raw keys: sprinting, sneaking, crawling, swimming, gliding and flying are decided from them, as on
+  the client.
+
+The engine is TypeScript under `lib/bedrock/`, loaded without a build step (Node 22.18+). See
+[docs/bedrock](docs/bedrock/README.md): an overview, the mineflayer integration, a reference of every module, and
+how it is tested.
+
 ### PlayerState
 
 A player state is an object containing the properties:

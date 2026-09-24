@@ -4,16 +4,22 @@ const math = require('./lib/math')
 const features = require('./lib/features')
 const attribute = require('./lib/attribute')
 
+// The Bedrock engine is TypeScript, loaded as it is through lib/ts-hooks.js.
+function bedrock () {
+  require('./lib/ts-hooks')
+  return require('./lib/bedrock/index.ts')
+}
+
 function makeSupportFeature (mcData) {
   return feature => features.some(({ name, versions }) => name === feature && versions.includes(mcData.version.majorVersion))
 }
 
 function Physics (mcData, world) {
+  // Bedrock Edition (prismarine-registry reports type 'bedrock') uses its own engine; everything below is Java.
+  if (mcData.type === 'bedrock') return bedrock().Physics(mcData, world)
+
   const supportFeature = makeSupportFeature(mcData)
   const blocksByName = mcData.blocksByName
-  // Bedrock edition: prismarine-registry reports type 'bedrock' (Java is 'pc'). Bedrock's data lacks the Java-only
-  // attribute table and Java feature flags, so a few constructor reads need edition-aware fallbacks.
-  const isBedrock = mcData.type === 'bedrock'
 
   // Block Slipperiness
   // https://www.mcpk.wiki/w/index.php?title=Slipperiness
@@ -99,8 +105,7 @@ function Physics (mcData, world) {
       maxUp: 0.7
     },
     slowFalling: 0.125,
-    // Java exposes the movement-speed attribute name in mcData; Bedrock has no attribute table, so use its resource id.
-    movementSpeedAttribute: mcData.attributesByName?.movementSpeed?.resource ?? 'minecraft:movement',
+    movementSpeedAttribute: mcData.attributesByName.movementSpeed.resource,
     sprintingUUID: '662a6b8d-da3e-4c1c-8813-96ea6097278d' // SPEED_MODIFIER_SPRINTING_UUID is from LivingEntity.java
   }
 
@@ -110,22 +115,8 @@ function Physics (mcData, world) {
   } else if (supportFeature('proportionalLiquidGravity')) {
     physics.waterGravity = physics.gravity / 16
     physics.lavaGravity = physics.gravity / 4
-  } else if (isBedrock) {
-    // Bedrock uses independent liquid gravity (not derived from air gravity).
-    physics.waterGravity = 0.02
-    physics.lavaGravity = 0.02
   } else {
     throw new Error('No liquid gravity settings, have you made sure the liquid gravity features are up to date?')
-  }
-
-  if (isBedrock) {
-    // Bedrock movement constants. Bedrock's movement math differs from Java in detail, but tuning the ground speed so
-    // this (Java) model reproduces vanilla Bedrock cruise matches walk/sprint to within ~0.3%: measured from a real
-    // 1.26.51 client, walk ~2.75 b/s and sprint ~5.87 b/s. playerSpeed/sprintSpeed are fitted to hit those terminal
-    // speeds in this engine (verified by offline terminal-velocity measurement); a full Bedrock movement model (accel
-    // curve, air control) is a follow-up. Gravity/jump already match Bedrock.
-    physics.playerSpeed = 0.0637
-    physics.sprintSpeed = 1.133
   }
 
   function getPlayerBB (pos) {
@@ -563,13 +554,11 @@ function Physics (mcData, world) {
       const blockUnder = world.getBlock(pos.offset(0, -1, 0))
       if (entity.onGround && blockUnder) {
         let playerSpeedAttribute
-        if (!isBedrock && entity.attributes && entity.attributes[physics.movementSpeedAttribute]) {
-          // Use server-side player attributes (Java shape: { value, modifiers }).
+        if (entity.attributes && entity.attributes[physics.movementSpeedAttribute]) {
+          // Use server-side player attributes
           playerSpeedAttribute = entity.attributes[physics.movementSpeedAttribute]
         } else {
-          // Bedrock's server movement attribute is a different shape (current/min/max, no Java modifiers) and, fed
-          // through the Java speed formula, would give Java speed; use the fitted Bedrock playerSpeed constant instead.
-          // Java with no attribute also lands here.
+          // Create an attribute if the player does not have it
           playerSpeedAttribute = attribute.createAttributeValue(physics.playerSpeed)
         }
         // Client-side sprinting (don't rely on server-side sprinting)
@@ -790,7 +779,16 @@ function Physics (mcData, world) {
   return physics
 }
 
+// Bedrock's wire effect ids (MobEffectPacket, what mineflayer keys bot.entity.effects by); minecraft-data's Bedrock
+// effect table carries the Java numbering, which differs from levitation on.
+const BEDROCK_EFFECT_IDS = { Speed: 1, Slowness: 2, JumpBoost: 8, Blindness: 15, Levitation: 24, SlowFalling: 27, Weaving: 33 }
+
 function getEffectLevel (mcData, effectName, effects) {
+  if (mcData.type === 'bedrock') {
+    const id = BEDROCK_EFFECT_IDS[effectName]
+    const effectInfo = id === undefined ? undefined : (effects[id] ?? effects[String(id)])
+    return effectInfo ? effectInfo.amplifier + 1 : 0
+  }
   const effectDescriptor = mcData.effectsByName?.[effectName]
   if (!effectDescriptor) {
     return 0
@@ -840,6 +838,44 @@ class PlayerState {
     this.jumpTicks = bot.jumpTicks
     this.jumpQueued = bot.jumpQueued
     this.fireworkRocketDuration = bot.fireworkRocketDuration
+    // Bedrock engine state (float32 collision box, swim pose, pending block slowdowns); undefined on Java.
+    this.bedrock = bot.bedrockPhysicsState
+    // Bedrock-only inputs (ignored by the Java engine): creative flight (the server-granted ability, mineflayer's
+    // bot.abilities from UpdateAbilities, or bot.flying), the client's own fly toggle when tracked separately,
+    // the ability fly speeds, and the item-use movement slowdown.
+    const abilities = bot.abilities || {}
+    const abilityFlags = abilities.flags || {}
+    // The abilities are the server's alone (update_abilities, the layers merged): the client takes none from the game
+    // mode, and the server restates them a second or so after the mode changes.
+    const mode = bot.game ? bot.game.gameMode : undefined
+    this.flying = bot.flying !== undefined ? !!bot.flying : !!abilityFlags.flying
+    this.flyIntent = bot.flyIntent
+    this.flySpeed = typeof abilities.flySpeed === 'number' ? abilities.flySpeed : undefined
+    this.verticalFlySpeed = typeof abilities.verticalFlySpeed === 'number' ? abilities.verticalFlySpeed : undefined
+    this.usingItem = !!bot.usingHeldItem
+    // Bedrock-only inputs of the client's sprint and flight triggers: the may-fly ability, the food level (a sprint
+    // needs more than 6) and blindness (no sprint).
+    this.mayFly = !!(abilityFlags.mayFly || abilityFlags.may_fly)
+    this.noClip = !!(abilityFlags.noClip || abilityFlags.no_clip)
+    // Instant build (the creative ability): a held jump then ends no glide, and boosts it.
+    this.instabuild = !!(abilityFlags.instabuild || abilityFlags.instant_build)
+    // The game mode (mineflayer's bot.game.gameMode, the default already resolved to the world's): the creative hover
+    // damping and the spectator's standing pose.
+    this.gameMode = mode
+    // Whether the client holds the player immobile: the server's NO_AI actor flag, sleeping, or no health left.
+    const actorFlags = (bot.entity.metadata && bot.entity.metadata.flags) || {}
+    this.immobile = !!actorFlags.no_ai || !!bot.isSleeping || (typeof bot.health === 'number' && bot.health <= 0)
+    this.food = bot.food
+    // A riptide launch this tick (the released trident's Riptide level) and the mobs the spin hit this tick; the
+    // Bedrock engine consumes both.
+    this.riptideLaunch = bot.riptideLaunch || 0
+    this.spinHits = bot.spinHits || 0
+    // A firework rocket the bot used this tick (consumed by the tick): the glide boost the client gives itself.
+    this.fireworkUsed = !!bot.fireworkUsed
+    // An item use the bot started this tick (consumed by the tick): the packet's start_using_item.
+    this.itemUseStarted = !!bot.itemUseStarted
+    // The vehicle the bot rides (the Bedrock engine's, kept by mineflayer's vehicles plugin as bot.bedrockVehicle).
+    this.vehicle = bot.bedrockVehicle || undefined
 
     // Input only (not modified)
     this.attributes = bot.entity.attributes
@@ -857,6 +893,8 @@ class PlayerState {
     this.dolphinsGrace = getEffectLevel(mcData, 'DolphinsGrace', effects)
     this.slowFalling = getEffectLevel(mcData, 'SlowFalling', effects)
     this.levitation = getEffectLevel(mcData, 'Levitation', effects)
+    this.blindness = mcData.type === 'bedrock' ? getEffectLevel(mcData, 'Blindness', effects) : 0
+    this.weaving = mcData.type === 'bedrock' ? getEffectLevel(mcData, 'Weaving', effects) : 0
 
     // armour enchantments
     const boots = bot.inventory.slots[8]
@@ -864,8 +902,20 @@ class PlayerState {
       const simplifiedNbt = nbt.simplify(boots.nbt)
       const enchantments = simplifiedNbt.Enchantments ?? simplifiedNbt.ench ?? []
       this.depthStrider = getEnchantmentLevel(mcData, 'depth_strider', enchantments)
+      this.soulSpeed = getEnchantmentLevel(mcData, 'soul_speed', enchantments)
     } else {
       this.depthStrider = 0
+      this.soulSpeed = 0
+    }
+    // leather boots: powder snow holds the player up (Bedrock)
+    this.leatherBoots = !!boots && boots.name === 'leather_boots'
+    // Swift Sneak on the leggings: the sneaking move is scaled less
+    const leggings = bot.inventory.slots[7]
+    if (leggings && leggings.nbt) {
+      const simplifiedNbt = nbt.simplify(leggings.nbt)
+      this.swiftSneak = getEnchantmentLevel(mcData, 'swift_sneak', simplifiedNbt.Enchantments ?? simplifiedNbt.ench ?? [])
+    } else {
+      this.swiftSneak = 0
     }
 
     // extra elytra requirements
@@ -886,7 +936,18 @@ class PlayerState {
     bot.jumpTicks = this.jumpTicks
     bot.jumpQueued = this.jumpQueued
     bot.fireworkRocketDuration = this.fireworkRocketDuration
+    bot.riptideLaunch = this.riptideLaunch
+    bot.spinHits = this.spinHits
+    bot.fireworkUsed = this.fireworkUsed
+    bot.itemUseStarted = this.itemUseStarted
+    if (bot.bedrockVehicle) bot.bedrockVehicle = this.vehicle
+    if (this.bedrock !== undefined) bot.bedrockPhysicsState = this.bedrock
   }
 }
 
+// The Bedrock classes load with the engine on first use, so requiring the package for Java needs neither the engine
+// nor the Node.js it runs on.
 module.exports = { Physics, PlayerState }
+for (const name of ['BedrockRewind', 'BedrockSession']) {
+  Object.defineProperty(module.exports, name, { enumerable: true, get: () => bedrock()[name] })
+}
