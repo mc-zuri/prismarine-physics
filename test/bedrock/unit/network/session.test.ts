@@ -162,7 +162,7 @@ describe('bedrock network/session', () => {
     assert.deepStrictEqual(restatedFlags({ tick: 1n }), null)
   })
 
-  it('takes the restated climbable-block flag as sent', () => {
+  it('takes the restated climbable-block flag as sent with no frame to weigh it against', () => {
     const s = session()
     const p = player(undefined, { bedrock: {} as any })
     s.actorFlags(p, { tick: 1, inAscendable: false })
@@ -170,6 +170,24 @@ describe('bedrock network/session', () => {
     const bare = player()
     s.actorFlags(bare, { tick: 1, inAscendable: true })
     assert.strictEqual(bare.bedrock, undefined)
+  })
+
+  it('writes the restated climbable-block flag only where it differs from the one a frame\'s next climb reads', () => {
+    const s = session()
+    const p = player(undefined, { bedrock: {} as any })
+    for (let t = 1; t <= 4; t++) {
+      s.rewind.push({ t })
+      s.rewind.snapshot(t, p)
+    }
+    // the climb's own check has it set: a set one agrees, a cleared one differs, and goes into the latest frame too
+    s.actorFlags(p, { tick: 2, inAscendable: true })
+    assert.strictEqual(p.bedrock!.ascendRestated, undefined)
+    s.actorFlags(p, { tick: 2, inAscendable: false })
+    assert.strictEqual(p.bedrock!.ascendRestated, false)
+    assert.strictEqual(s.rewind.snapshots.get(3)!.bedrock!.ascendRestated, false)
+    // set again where that frame had it cleared: it differs there
+    s.actorFlags(p, { tick: 3, inAscendable: true })
+    assert.strictEqual(p.bedrock!.ascendRestated, true)
   })
 
   it('writes only the restated flags that differ from the frame, and all of them with no frame', () => {

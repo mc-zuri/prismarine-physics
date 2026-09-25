@@ -392,8 +392,13 @@ export class BedrockSession {
       if (frame && known === value) continue
       ;(changed as Record<string, unknown>)[name] = value
     }
-    // the climbable-block flag is not weighed against the history: taken as sent, for the next scaffolding climb
-    if (flags.inAscendable !== undefined && state.bedrock) state.bedrock.ascendRestated = flags.inAscendable
+    // the climbable-block flag, for the next scaffolding climb: weighed against the one the frame's next climb reads (set
+    // by a restatement since, else by the climb's own check, which finds it set), and written only where it differs
+    const view = this.rewind.snapshots.get(this.rewind.current - 1)
+    if (flags.inAscendable !== undefined && state.bedrock && (!frame || (frame.bedrock?.ascendRestated ?? true) !== flags.inAscendable)) {
+      state.bedrock.ascendRestated = flags.inAscendable
+      if (view?.bedrock) view.bedrock.ascendRestated = flags.inAscendable
+    }
     if (!Object.keys(changed).length) return
     // one that differed from the history is filed on its frame too: the next rewind simulates again from there
     const filed = Object.fromEntries(Object.entries(changed).filter(([name]) => name !== 'pushTowardsClosestSpace')) as ActorFlags
@@ -403,7 +408,6 @@ export class BedrockSession {
     }
     this.physics.setActorFlags(state, changed)
     // the tick's frame is taken after the packets that land between ticks: a later restatement compares with this
-    const view = this.rewind.snapshots.get(this.rewind.current - 1)
     if (view) this.physics.setActorFlags(view, changed)
   }
 
