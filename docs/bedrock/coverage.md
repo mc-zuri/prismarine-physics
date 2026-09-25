@@ -42,7 +42,11 @@ or the shared rewind cases (`test/bedrock/rewind-parity.test.js`); see [Testing]
 - no-clip (the ability a spectator has): the move passes through everything; a spectator is in no block's effect
 - stepping up to 0.5625; the sneak edge; the 500 speed cap and the 16-block move clamp
 - cobweb (less with Weaving), powder snow and sweet berry bushes; powder snow holds up and is climbed in leather boots,
-  and catches a fall of more than 2.5 on its 0.9 high box (the fall distance tracked as the client counts it)
+  and catches a fall of more than 2.5 on its 0.9 high box (the fall distance tracked as the client counts it); in
+  leather boots it is climbed at 0.15, and the sneak of the tick before descends through it at 0.15 (a sneak pressed as
+  the player lands on it still lands)
+- the climbable-block flag the server restates, weighed against the client's own check of the block at the feet: set,
+  a jump beside scaffolding rises 0.15 (with a 10 tick wait) instead of jumping
 - the landing bounce: slime and beds, and the landing tick's gravity correction from 1.26.20
 
 **After the move**
@@ -138,10 +142,10 @@ tick against the client's packets. Of about 115,000 ticks the client captured on
 | mounts, 1.26.20.4 | 241 of 3322 | where the rider sits on a camel, a pig or an untamed horse the server moves (the seat follows the mount's interpolated body turn and a rearing horse's lean); the stand spot after jumping out of a minecart or pig is 1e-7 low |
 | mounts, 1.26.51.1 | 610 of 3355 | the same, and a boat left to bob: this capture has no random state, so the big waves are guessed |
 | teleport, 1.26.20.4 | 5 of 5974 | a sprint stopped at a teleport, and two landings after a long hop |
-| snow, both clients | 65 and 64 of about 700 | powder snow in leather boots: sneaking down through it begins a tick later than the engine's (a landing and the sneak on one tick land first), climbing out of it, and sprinting into it |
+| snow, both clients | 13 and 14 of about 700 | the first steps of a sprint off the walkway after dropping onto it, and single ticks of the boots cases |
 | climbing, both clients | 14 and 5 | holding jump while leaving scaffolding on its far side climbs on (the engine stops the climb on leaving it sideways, which the static 1.26.10 import needs: it carries no restated flags); cave vines are slid down a tick sooner |
 | effects, 1.26.20.4 | 12 of 1638 | the end of a Levitation cleared by `effect clear` acts a tick later than the model (1.26.51.1 exact) |
-| blocks, 1.26.20.4 | 11 of 1838 | walking in powder snow in leather boots (1.26.51.1 exact) |
+| blocks, 1.26.20.4 | 6 of 1838 | walking in powder snow in leather boots (1.26.51.1 exact) |
 | sneakedge, 1.26.51.1 | 6 of 1219 | a wall collision flag at an edge |
 | parity, 1.26.51.1 | 22 of 1385 | a column whose sections the server has not sent yet: the client moves through it as air at altitude, but stands on it at the spawn; the replay's section timing on this client (1.26.20.4 exact) |
 | boat and items, 1.26.51.1 | 34 and 7 | a boat's big waves: this client's captures carry no random state |
@@ -152,5 +156,5 @@ The 1.26.10.4 proxy recording (10109 of 10167) has no client capture to time its
 
 The recorder (`bedrock-tools-v2/packages/recorder`, `BEDROCK_FIXTURE=<name> node src/main.ts`, with
 `BEDROCK_FIXTURE_VERSION=Flat2651` for 1.26.51.1; `BEDROCK_FIXTURE=list` lists them) has recorded every fixture it
-registers on both clients: 70 recordings, 244,000 ticks, 99.5% of them replayed exactly. Knockback, push, teleport, ice, soul sand, sneak edges, poses, epsilon moves, multi-system cases,
+registers on both clients: 70 recordings, 244,000 ticks, 99.5% of them replayed exactly (242,801 of 243,978). Knockback, push, teleport, ice, soul sand, sneak edges, poses, epsilon moves, multi-system cases,
 mounts and powder snow are replayed on both; the rows above are what they still show.
