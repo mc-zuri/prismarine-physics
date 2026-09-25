@@ -94,6 +94,18 @@ describe('bedrock movement/input', () => {
     assert.deepStrictEqual(cook({ moveVector: {} }, undefined, {}).move, { x: 0, z: 0 })
   })
 
+  it('clears the input while a screen is open, keeping the persisted sneak and the previous sneaking and sprinting', () => {
+    const before = cook({ forward: true, sneak: true, sprint: true }, undefined, {})
+    const control = { forward: true, jump: true, sneak: true, analogMoveVector: { x: 1 }, raw: { sneakToggleDown: true, wantUpSlow: true } }
+    const held = cook({ ...control, screen: true, persistSneak: true }, before.keys, {}, before)
+    assert.deepStrictEqual([held.move, held.rawMove, held.analog], [{ x: 0, z: 0 }, { x: 0, z: 0 }, { x: 0, z: 0 }])
+    assert.deepStrictEqual([held.sprinting, held.sneaking, held.jumping, held.wantUp, held.wantDown, held.persistSneak], [true, true, false, false, false, true])
+    assert.deepStrictEqual([held.keys.up, held.keys.jumpDown, held.keys.sneakDown, held.keys.sneakToggleDown, held.keys.wantUpSlow, held.keys.jumpPressed], [false, false, true, true, true, true])
+    const dropped = cook({ ...control, screen: true }, before.keys, {})
+    assert.deepStrictEqual([dropped.keys.sneakDown, dropped.sneaking, dropped.sprinting, dropped.persistSneak], [false, false, false, false])
+    assert.deepStrictEqual([before.inputMode, cook({ inputMode: 'game_pad', screen: true }, undefined, {}).inputMode], ['mouse', 'game_pad'])
+  })
+
   it('damps the move for the travel by 0.98', () => {
     const input = cook({ forward: true, left: true }, undefined, {})
     assert.deepStrictEqual(travelInput(input), { x: f(DIAGONAL * f(0.98)), z: f(DIAGONAL * f(0.98)) })

@@ -82,6 +82,12 @@ export interface Control {
   raw?: RawKeys | undefined
   analogMoveVector?: Partial<XZ> | undefined
   moveVector?: Partial<XZ> | undefined
+  // the client keeps the sneak key held through an input clear (a gamepad's toggle sneak); the packet reports it
+  persistSneak?: boolean | undefined
+  // a screen is open (a menu, the inventory): the client clears the tick's input
+  screen?: boolean | undefined
+  // the input device the packet reports: 'mouse' (keyboard and mouse, the default), 'touch', 'game_pad'
+  inputMode?: string | undefined
 }
 
 // Every raw key bit of one tick, levels and edges.
@@ -100,6 +106,8 @@ export interface CookedInput {
   jumping: boolean
   wantUp: boolean
   wantDown: boolean
+  persistSneak: boolean
+  inputMode: string
 }
 
 // What a player climbs.

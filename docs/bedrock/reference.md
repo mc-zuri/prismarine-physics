@@ -282,7 +282,7 @@ mineflayer's booleans (forward/back/left/right/jump/sneak/sprint) are the key le
 - `interface SneakPose` -- What the sneak scale depends on.
 - `function sneakFactor (pose: SneakPose): number` -- The sneak scale: 0.3, raised by 0.15 per Swift Sneak level up to 1.
 - `function scaleMove (move: XZ, keys: RawKeys, pose: SneakPose): XZ` -- The move scaled for sneaking: when the sneak key or descend is down, or the player already sneaks or crawls (so it holds for the tick the key is released), and never while flying, swimming or on the tick after being in water.
-- `function cook (control: Control, previousKeys: RawKeys | undefined, pose: SneakPose): CookedInput` -- One tick of input: the keys, the move vector (the packet's move_vector), the raw direction (raw_move_vector), the stick, and the derived flags.
+- `function cook (control: Control, previousKeys: RawKeys | undefined, pose: SneakPose, previous?: CookedInput): CookedInput` -- One tick of input: the keys, the move vector (the packet's move_vector), the raw direction (raw_move_vector), the stick, and the derived flags. `previous` is the input of the tick before, which a screen's clear keeps flags from.
 - `const USING_ITEM_MOVE` -- Using an item (eating, drinking, drawing a bow) scales the move to 0.1225 (0.35 squared) -- the move the packet reports and the one the sprint decision reads.
 - `function usingItemMove (move: XZ): XZ`
 - `function travelInput (input: CookedInput): XZ` -- The move the travel uses: the cooked move damped by 0.98.

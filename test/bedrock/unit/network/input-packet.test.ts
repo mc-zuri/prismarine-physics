@@ -21,6 +21,9 @@ describe('bedrock network/input-packet', () => {
       assert.ok(flags.has(name), name)
     }
     assert.ok(!flags.has('down'))
+    assert.ok(!flags.has('persistSneak'))
+    const persisted = cook({ persistSneak: true }, undefined, {})
+    assert.ok(inputFlags(player(undefined, { bedrock: { keys: persisted.keys, input: persisted } })).has('persistSneak'))
   })
 
   it('reports only the constant flag before any tick', () => {
@@ -41,6 +44,8 @@ describe('bedrock network/input-packet', () => {
     assert.ok(packet.input_data.includes('handled_teleport') && packet.input_data.includes('up'))
     assert.ok(!packet.input_data.includes(undefined), 'an action with no flag is left out')
     assert.deepStrictEqual([packet.input_mode, packet.play_mode, packet.interaction_model], ['mouse', 'screen', 'touch'])
+    const gamepad = cook({ inputMode: 'game_pad' }, undefined, {})
+    assert.strictEqual(buildPlayerAuthInput(player(undefined, { bedrock: { keys: gamepad.keys, input: gamepad } })).input_mode, 'game_pad')
     assert.strictEqual((buildPlayerAuthInput(p, 1).position as { y: number }).y, f(2 + 1))
   })
 

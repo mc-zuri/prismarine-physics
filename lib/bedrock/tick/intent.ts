@@ -24,7 +24,7 @@ export function readInput (entity: Simulated, tick: TickState): void {
     sneaking: !!st.sneaking,
     crawling: !!st.crawling,
     swiftSneak: entity.swiftSneak
-  })
+  }, st.input)
   if (entity.usingItem && !entity.vehicle) input.move = usingItemMove(input.move)
   st.keys = input.keys
   st.input = input
