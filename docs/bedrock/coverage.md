@@ -34,7 +34,8 @@ or the shared rewind cases (`test/bedrock/rewind-parity.test.js`); see [Testing]
   fall distance reset
 - ladders, vines and scaffolding: the fall clamp, climbing on jump or while pushing into the wall, descending on sneak; from
   1.26.20 a held jump in scaffolding climbs while the climbable-block flag the last move left is on (before, a move about
-  to cross into a cell without scaffolding stopped it)
+  to cross into a cell without scaffolding stopped it); a sneak in scaffolding does not descend on the tick after the server
+  restates its scaffolding flags cleared
 - leaving a liquid over a ledge
 
 **The move**
@@ -145,7 +146,7 @@ tick against the client's packets. Of about 115,000 ticks the client captured on
 | mounts, 1.26.51.1 | 144 of 3355 | the same |
 | teleport, 1.26.20.4 | 5 of 5974 | a sprint stopped at a teleport, and two landings after a long hop |
 | snow, both clients | 1 and 3 of about 700 | a tick of sneaking down through it in leather boots |
-| climbing, both clients | 8 and 1 | sneaking down scaffolding, and a landing between scenarios |
+| climbing, 1.26.20.4 | 3 | a landing at the foot of a scaffolding descent, and a landing between scenarios (1.26.51.1 exact) |
 | effects, 1.26.20.4 | 12 of 1638 | the end of a Levitation cleared by `effect clear` acts a tick later than the model (1.26.51.1 exact) |
 | blocks, 1.26.20.4 | 2 of 1838 | a landing between scenarios and a move vector while swimming down a bubble column (1.26.51.1 exact) |
 | sneakedge, 1.26.51.1 | 2 of 1219 | a float32 unit of a slow slide between scenarios |
@@ -159,5 +160,5 @@ The 1.26.10.4 proxy recording (10109 of 10167) has no client capture to time its
 
 The recorder (`bedrock-tools-v2/packages/recorder`, `BEDROCK_FIXTURE=<name> node src/main.ts`, with
 `BEDROCK_FIXTURE_VERSION=Flat2651` for 1.26.51.1; `BEDROCK_FIXTURE=list` lists them) has recorded every fixture it
-registers on both clients: 71 recordings, 245,600 ticks, 99.7% of them replayed exactly (244,928 of 245,555). Knockback, push, teleport, ice, soul sand, sneak edges, poses, epsilon moves, multi-system cases,
+registers on both clients: 71 recordings, 245,600 ticks, 99.7% of them replayed exactly (244,934 of 245,555). Knockback, push, teleport, ice, soul sand, sneak edges, poses, epsilon moves, multi-system cases,
 mounts and powder snow are replayed on both; the rows above are what they still show.

@@ -83,6 +83,10 @@ describe('bedrock tick/climb', () => {
     const down = start(SCAFFOLD, player([0.5, 0.2, 0.5], { control: { sneak: true } }))
     climbBeforeMove(down.c, down.entity, down.tick)
     assert.deepStrictEqual([down.entity.bedrock.scaffoldDescend, down.entity.vel.y], [true, f(-0.15)])
+    // the server restated the scaffolding flags cleared since: the sneak does not descend, once
+    const held = start(SCAFFOLD, player([0.5, 0.2, 0.5], { control: { sneak: true }, vel: new Vec3(0, -0.147, 0), bedrock: { scaffoldRestated: false } as any }))
+    climbBeforeMove(held.c, held.entity, held.tick)
+    assert.deepStrictEqual([held.entity.bedrock.scaffoldDescend, held.entity.vel.y, held.entity.bedrock.scaffoldRestated], [false, f(-0.147), undefined])
     const up = start(SCAFFOLD, player([0.5, 0.2, 0.5], { control: { jump: true } }))
     climbBeforeMove(up.c, up.entity, up.tick)
     assert.strictEqual(up.entity.vel.y, f(0.15))

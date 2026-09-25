@@ -39,7 +39,9 @@ export function climbBeforeMove (ctx: Ctx, entity: Simulated, tick: TickState): 
     }
     return
   }
-  if (kind === 'scaffolding' && st.input!.sneaking) {
+  const scaffoldCleared = st.scaffoldRestated === false
+  st.scaffoldRestated = undefined
+  if (kind === 'scaffolding' && st.input!.sneaking && !scaffoldCleared) {
     vel.y = f(-SCAFFOLDING_CLIMB_SPEED)
     st.scaffoldDescend = true
   }

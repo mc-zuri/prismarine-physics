@@ -102,7 +102,7 @@ describe('BedrockSession packets', () => {
         { key: 'health', type: 'int', value: 1 }
       ]
     })
-    assert.deepStrictEqual(flags, { tick: 40, sneaking: false, sprinting: true, gliding: false, swimming: false, inAscendable: false, crawling: false, pushTowardsClosestSpace: false, spinning: false, height: 0.6000000238418579 })
+    assert.deepStrictEqual(flags, { tick: 40, sneaking: false, sprinting: true, gliding: false, swimming: false, inAscendable: false, inScaffolding: false, crawling: false, pushTowardsClosestSpace: false, spinning: false, height: 0.6000000238418579 })
     assert.strictEqual(restatedFlags({ tick: 1n, metadata: [{ key: 'health', type: 'int', value: 1 }] }), null)
   })
 

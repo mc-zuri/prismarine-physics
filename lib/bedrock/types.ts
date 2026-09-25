@@ -187,6 +187,7 @@ export interface BedrockState {
   // the climbable-block flag the server restated since the last tick (false: a scaffolding climb does not rise; true
   // outside a climbable: a jump rises 0.15 instead)
   ascendRestated?: boolean | undefined
+  scaffoldRestated?: boolean | undefined
   // the climbable-block flag as the client's own check left it after the tick's move
   ascendable?: boolean | undefined
   // the same check of the layer under the feet (a block to descend through), and whether the player descends through
