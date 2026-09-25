@@ -83,6 +83,25 @@ describe('bedrock network/session', () => {
     assert.strictEqual(s.rewind.oldest, 12)
   })
 
+  it('leaves a player waiting for the chunks it was teleported to where the teleport put it, through a correction', () => {
+    const world = { ...FLAT, getBlock: FLAT.getBlock, loaded: (pos: { x: number }) => pos.x < 20 }
+    const s = new BedrockSession({ physics: Physics({ version: { minecraftVersion: '1.26.20' } }, world), world })
+    s.handlePacket('start_game', { runtime_entity_id: 7n, rewind_history_size: 40 })
+    s.rewind.history = 5
+    const p = player([0.5, 0, 0.5])
+    for (let t = 1; t <= 10; t++) s.tick(p, { t })
+    s.handlePacket('move_player', { runtime_id: 7n, position: { x: 50.5, y: 10 + EYE, z: 50.5 }, mode: 'teleport', tick: 4n })
+    s.handlePacket('correct_player_move_prediction', { prediction_type: 'player', position: { x: 50.5, y: 10 + EYE, z: 50.5 }, delta: { x: 0, y: 0, z: 0 }, on_ground: false, tick: 6n })
+    s.tick(p, { t: 11 })
+    assert.ok(p.bedrock!.actions!.has('handledTeleport'))
+    assert.deepStrictEqual([p.pos.x, p.pos.y, p.vel.y], [50.5, 10, 0], 'held where it landed')
+    // one to a loaded column is simulated through as before
+    s.handlePacket('move_player', { runtime_id: 7n, position: { x: 10.5, y: 10 + EYE, z: 0.5 }, mode: 'teleport', tick: 6n })
+    s.handlePacket('correct_player_move_prediction', { prediction_type: 'player', position: { x: 10.5, y: 10 + EYE, z: 0.5 }, delta: { x: 0, y: 0, z: 0 }, on_ground: false, tick: 7n })
+    s.tick(p, { t: 12 })
+    assert.ok(p.pos.y < 10)
+  })
+
   describe('whether a correction is filed', () => {
     const at = (t: number, pos: [number, number, number], vel: [number, number, number], onGround = true) => {
       const s = session()

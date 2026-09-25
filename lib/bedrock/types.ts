@@ -35,6 +35,8 @@ export interface World {
   solidEntityBoxes? (query: BoxLike): BoxLike[]
   // whether a dolphin is in a box (Dolphin's Grace)
   dolphinsNear? (query: BoxLike): boolean
+  // whether the column at a position has loaded: a player teleported to one that has not waits there for it
+  loaded? (pos: Vec3Like): boolean
 }
 
 // The raw key bits beyond mineflayer's booleans, and the six jump / sneak edge bits (derived from the key levels when

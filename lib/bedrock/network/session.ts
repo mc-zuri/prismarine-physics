@@ -131,6 +131,8 @@ export class BedrockSession {
   // last rewind, the oldest of which still in the history the next one simulates again from
   flagCorrections = new Map<number, ActorFlags>()
   flagged = new Set<number>()
+  // the last teleport that left the history as it was (stamped before it)
+  staleTeleport: Teleport | undefined
   // an attribute was filed since the last rewind: every stamped one is, until the next
   attributesFiled = false
   // the actions ticks simulated again raised that they had not, which the next tick reports
@@ -213,7 +215,7 @@ export class BedrockSession {
   // since, nothing is.
   rewindTo (tick: number, state: Player, install: (state: Player) => void): void {
     const riding = state.vehicle
-    // a teleport not yet run is simulated through by the rewind: it is still reported
+    // a teleport not yet run is simulated through by the rewind (it is still reported), unless the player waits there
     const teleported = !!state.bedrock?.teleported
     // off a vehicle since: the dismount placed the player where no simulation leads, so nothing is simulated again
     if (!riding) {
@@ -237,7 +239,10 @@ export class BedrockSession {
     this.carried = undefined
     if (state.bedrock && carried.size) state.bedrock.carriedActions = carried
     for (const t of this.flagCorrections.keys()) if (t < oldest) this.flagCorrections.delete(t)
-    if (teleported) state.bedrock!.teleportSimulatedThrough = true
+    // a player waiting for the chunks it was teleported to is not moved: the teleport still stands after the rewind
+    const stale = this.staleTeleport
+    if (teleported && stale && this.world.loaded && !this.world.loaded(stale)) this.physics.handleTeleport(state, stale)
+    else if (teleported) state.bedrock!.teleportSimulatedThrough = true
   }
 
   // A movement correction: installed on the frame after its tick, and every tick since simulated again.
@@ -445,8 +450,10 @@ export class BedrockSession {
           // behind it still simulates the ticks since again (through the teleport)
           if (stamp > 0 && stamp < this.rewind.current - this.rewind.history) {
             this.physics.handleTeleport(state, teleport)
+            this.staleTeleport = teleport
             return
           }
+          this.staleTeleport = undefined
           this.teleport(state, this.rewind.current, teleport)
         })
         return true
