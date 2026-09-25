@@ -58,6 +58,24 @@ export function handleTeleport (entity: Player, teleport: Teleport, eyeHeight: n
   if (mode === MoveMode.teleport) st.teleported = true
 }
 
+// A respawn at `at` (the eye position): a new player there, at rest and standing (its pose, the box and the flags a
+// death left dropped); its first tick makes no move, like a teleport's, but reports no handled teleport.
+export function respawnAt (entity: Player, at: Vec3Like, eyeHeight: number): void {
+  const st = stateOf(entity)
+  entity.pos.set(f(at.x), f(f(at.y) - f(eyeHeight)), f(at.z))
+  entity.vel.set(0, 0, 0)
+  entity.onGround = false
+  entity.isCollidedHorizontally = false
+  entity.isCollidedVertically = false
+  entity.elytraFlying = false
+  for (const name of ACTOR_FLAG_NAMES) st[name] = false
+  st.fallDistance = 0
+  st.poseHeight = undefined
+  dropBox(st)
+  st.teleported = true
+  st.respawned = true
+}
+
 // A movement correction: the eye position, the velocity and the ground flag.
 export interface MoveCorrection {
   // the eye position, the velocity and the ground flag the server says the player had

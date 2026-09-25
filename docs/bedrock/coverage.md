@@ -70,6 +70,7 @@ or the shared rewind cases (`test/bedrock/rewind-parity.test.js`); see [Testing]
 **Server packets**
 
 - movement corrections and teleports, installed in the tick history and simulated forward
+- the respawn: a new player at the spawn, at rest, standing and full size, whose first tick falls without moving
 - movement attributes, with effect modifiers
 - restated actor flags
 - knockback (`set_entity_motion`)
@@ -106,7 +107,7 @@ then continues from the correction.
   chunk of the move, and a move next to one keeps its horizontal velocity when it is blocked. Which chunks count is
   the client's own state (a chunk is not loaded until its sub-chunks are built), not something the packets tell, so
   a bot's world cannot follow it tick for tick; the engine collides with the blocks it has and nothing else
-- a dead player sends no input until the server's respawn marks it ready; the engine only freezes a dead player
+- a dead player sends no input until the server's respawn marks it ready (the caller's to hold back)
 - the loading screen of a dimension change: its ability layer and the ticks that send no input
 
 **Input**

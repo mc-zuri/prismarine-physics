@@ -51,6 +51,14 @@ describe('bedrock tick/index (the tick sequence)', () => {
     assert.ok(p.bedrock!.actions!.has('handledTeleport'))
   })
 
+  it('falls on a respawn tick without moving, and reports no handled teleport', () => {
+    const p = player([0.5, 1, 0.5], { onGround: false, bedrock: { teleported: true, respawned: true } })
+    simulatePlayer(ctx(FLAT), p)
+    assert.deepStrictEqual([p.pos.y, p.vel.y], [1, f(f(0 - f(0.08)) * f(0.98))])
+    assert.ok(!p.bedrock!.actions!.has('handledTeleport'))
+    assert.strictEqual(p.bedrock!.respawned, false)
+  })
+
   it('moves a no-clip player through blocks, without landing', () => {
     const p = player([0.5, 0.2, 0.5], { noClip: true, onGround: false, vel: new Vec3(0, -0.5, 0) })
     simulatePlayer(ctx(FLAT), p)

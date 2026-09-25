@@ -59,6 +59,8 @@ describe('bedrock physics object', () => {
     assert.strictEqual(p.attributes!['minecraft:movement']!.current, f(0.13))
     physics.handleTeleport(p, { x: 0, y: 64 + physics.eyeHeight, z: 0 })
     assert.strictEqual(p.pos.y, f(f(64 + physics.eyeHeight) - f(physics.eyeHeight)))
+    physics.respawn(p, { x: 0, y: 66 + physics.eyeHeight, z: 0 })
+    assert.strictEqual(p.pos.y, f(f(66 + physics.eyeHeight) - f(physics.eyeHeight)))
     physics.applyCorrection(p, { x: 0, y: 70 + physics.eyeHeight, z: 0 })
     assert.strictEqual(p.pos.y, f(f(70 + physics.eyeHeight) - f(physics.eyeHeight)))
     physics.setActorFlags(p, { sneaking: true })

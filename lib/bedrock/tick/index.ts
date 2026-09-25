@@ -64,8 +64,9 @@ function moveTowardsClosestSpace (ctx: Ctx, entity: Simulated, tick: TickState):
 }
 
 // A teleport tick ends after the jump: the travel, the move and what follows are skipped (the blocks the player is
-// in still act).
-function endTeleportTick (ctx: Ctx, entity: Simulated): void {
+// in still act). A respawn's still takes the fall: gravity and the air's drag, with no move.
+function endTeleportTick (ctx: Ctx, entity: Simulated, tick: TickState): void {
+  if (tick.respawned) entity.vel.y = f(f(entity.vel.y - f(ctx.settings.gravity)) * f(ctx.settings.airdrag))
   entity.jumpQueued = false
   insideBlocks(ctx, entity)
   endInput(entity)
@@ -82,7 +83,7 @@ function travelPhase (ctx: Ctx, entity: Simulated, tick: TickState): boolean {
     if (tick.flyIntent) flightControls(ctx, entity)
     if (!tick.flying) jump(ctx, entity, tick)
     if (tick.teleported) {
-      endTeleportTick(ctx, entity)
+      endTeleportTick(ctx, entity, tick)
       return false
     }
     travel(ctx, entity, tick)

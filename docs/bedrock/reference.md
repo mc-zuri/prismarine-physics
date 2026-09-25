@@ -580,6 +580,7 @@ What the server's movement packets write to the player: a teleport, a movement c
 
 - `interface Teleport` -- A move of the local player: the eye position, the rotation, the mode and the ground flag.
 - `function handleTeleport (entity: Player, teleport: Teleport, eyeHeight: number): void` -- A move of the local player. The position is the eye position. A teleport zeroes the velocity and makes the next tick report it handled and skip its travel and move. The ground flag and the rotation are installed; the box is rebuilt at the next tick; the collision flags of the previous move stand.
+- `function respawnAt (entity: Player, at: Vec3Like, eyeHeight: number): void` -- A respawn at `at` (the eye position): a new player there, at rest and standing (its pose, the box and the flags a death left dropped); its first tick makes no move, like a teleport's, but reports no handled teleport.
 - `interface MoveCorrection` -- A movement correction: the eye position, the velocity and the ground flag.
 - `function applyCorrection (entity: Player, correction: MoveCorrection, eyeHeight: number): void` -- A movement correction: the position (eye height included), velocity and ground flag installed, the collision flags cleared, and the box rebuilt at the next tick.
 - `function applyMotion (entity: Player, motion: Vec3Like): void` -- Restated actor flags, and the box height sent with a pose. A motion the server sets on the player (a knockback, an explosion): the velocity and nothing else.

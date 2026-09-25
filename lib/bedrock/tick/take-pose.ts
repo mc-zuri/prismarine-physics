@@ -21,8 +21,11 @@ export function takePose (ctx: Ctx, entity: Simulated, tick: TickState): void {
   entity.isInLava = !entity.isInWater && liquidInInnerBox(ctx.world, st.aabb!, isLavaName, 0.1, 0.4)
 
   tick.teleported = !!st.teleported
-  if (st.teleported || st.teleportSimulatedThrough) st.actions!.add('handledTeleport')
+  tick.respawned = !!st.respawned
+  // a respawn's first tick moves no more than a teleport's, and reports nothing
+  if ((st.teleported && !st.respawned) || st.teleportSimulatedThrough) st.actions!.add('handledTeleport')
   st.teleported = false
+  st.respawned = false
   st.teleportSimulatedThrough = false
   // what the ticks a rewind simulated again raised is reported with this one
   for (const action of st.carriedActions || []) st.actions!.add(action)
