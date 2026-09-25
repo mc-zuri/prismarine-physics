@@ -212,6 +212,14 @@ export class BedrockSession {
 
   // ---- the actions -----------------------------------------------------------------------------------------------
 
+  // A respawn: a new player, with nothing of the one that died to simulate again. What the server sent the dead player
+  // and the session has not run yet (a knockback stamped before the death) is dropped, and the history starts over.
+  respawn (): void {
+    this.scheduled = []
+    this.ringOldest = this.rewind.current
+    this.rewind.reset(this.rewind.current)
+  }
+
   // A teleport of the local player on tick `t`. A far one clears the client's history; the replay history starts over
   // either way, since a re-simulation cannot re-apply a teleport.
   teleport (state: Player, t: number, teleport: Teleport): void {

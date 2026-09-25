@@ -81,7 +81,9 @@ or the shared rewind cases (`test/bedrock/rewind-parity.test.js`); see [Testing]
   `set_default_game_type`) where its own is the default; a `/gamemode`'s `update_player_game_type` changes nothing for
   the local player (a player switched to creative that way hovers as a survival player)
 - movement corrections and teleports, installed in the tick history and simulated forward
-- the respawn: a new player at the spawn, at rest, standing and full size, whose first tick falls without moving
+- the respawn: a new player at the spawn, at rest, standing and full size, whose first tick falls without moving;
+  what the server sent the player that died and the session has not run yet (a knockback stamped before the death) is
+  dropped, and the history starts over
 - movement attributes, with effect modifiers
 - restated actor flags
 - knockback (`set_entity_motion`)
@@ -160,5 +162,5 @@ The 1.26.10.4 proxy recording (10109 of 10167) has no client capture to time its
 
 The recorder (`bedrock-tools-v2/packages/recorder`, `BEDROCK_FIXTURE=<name> node src/main.ts`, with
 `BEDROCK_FIXTURE_VERSION=Flat2651` for 1.26.51.1; `BEDROCK_FIXTURE=list` lists them) has recorded every fixture it
-registers on both clients: 71 recordings, 245,600 ticks, 99.8% of them replayed exactly (244,966 of 245,575). Knockback, push, teleport, ice, soul sand, sneak edges, poses, epsilon moves, multi-system cases,
+registers on both clients: 72 recordings, 246,400 ticks, 99.8% of them replayed exactly (245,820 of 246,429). Knockback, push, teleport, ice, soul sand, sneak edges, poses, epsilon moves, multi-system cases,
 mounts and powder snow are replayed on both; the rows above are what they still show.

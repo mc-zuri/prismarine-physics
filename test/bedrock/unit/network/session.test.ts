@@ -169,6 +169,17 @@ describe('bedrock network/session', () => {
     assert.deepStrictEqual(restatedFlags({ tick: 1n }), null)
   })
 
+  it('drops what it has not run yet and starts the history over on a respawn', () => {
+    const s = session()
+    const p = player([0.5, 1, 0.5])
+    for (let t = 1; t <= 4; t++) s.tick(p, { t })
+    s.handlePacket('set_entity_motion', { runtime_entity_id: 7n, velocity: { x: 1, y: 0, z: 0 }, tick: 2n })
+    s.respawn()
+    assert.deepStrictEqual([s.scheduled.length, s.ringOldest, s.rewind.oldest], [0, 4, 4])
+    s.tick(p, { t: 5 })
+    assert.strictEqual(p.vel.x, 0, 'the knockback of the player that died does not reach the new one')
+  })
+
   it('takes the restated climbable-block flag as sent with no frame to weigh it against', () => {
     const s = session()
     const p = player(undefined, { bedrock: {} as any })
