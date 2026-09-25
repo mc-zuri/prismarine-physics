@@ -205,6 +205,9 @@ describe('bedrock network/session', () => {
     s.rewind.snapshot(2, bare)
     s.actorFlags(bare, { tick: 2, swimming: true })
     assert.strictEqual(bare.bedrock!.swimming, true, 'a frame without engine state')
+    const unstamped = player()
+    fresh.actorFlags(unstamped, { tick: 0, gliding: true })
+    assert.strictEqual(unstamped.bedrock!.gliding, true, 'an unstamped one: no frame for tick 0')
   })
 
   it('weighs a restatement stamped before the history against the oldest frame the history keeps', () => {
