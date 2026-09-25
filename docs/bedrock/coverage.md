@@ -22,7 +22,9 @@ or the shared rewind cases (`test/bedrock/rewind-parity.test.js`); see [Testing]
 
 **Travel**
 
-- ground, air, water, lava and flying travel speeds; Speed and Slowness through the movement attribute
+- ground, air, water, lava and flying travel speeds; Speed and Slowness through the movement attribute; the speed in
+  water and in lava from their own movement attributes (`minecraft:underwater_movement`, `minecraft:lava_movement`),
+  0.02 unless the server changes them
 - Depth Strider in water; Soul Speed on soul sand
 - Dolphin's Grace: a swimming player looks for dolphins every 60 ticks of swimming, the first after 60 (the world's
   `dolphinsNear`), and one within 5 blocks doubles its swim speed for 60 ticks, without the Depth Strider drag
@@ -69,12 +71,76 @@ or the shared rewind cases (`test/bedrock/rewind-parity.test.js`); see [Testing]
 
 ## Not modelled yet
 
-- the liquid movement attributes the server can send (vanilla keeps them at their defaults)
-- horse, camel and other mounts the player steers (the client predicts a tamed, saddled one; unverified, so the
-  engine seats the player and leaves the mount to the server)
-- a boat's wave phase: its timer runs from the boat's spawn and a random draw makes the big waves, so the bobbing
-  height drifts from the server's within a few hundredths, and the server corrects it
-- the different step height on blocks that prevent jumping
+What the client does and the engine does not, found by comparing the engine with the client's own systems and by
+replaying every recorded session. A server running authoritative movement corrects the player on these; the engine
+then continues from the correction.
 
-A server running authoritative movement corrects the player on these; the engine then continues from the
-correction.
+**Mounts the player steers**
+
+- horses, donkeys and mules: the client predicts a tamed, saddled one (its speed and the `horse.jump_strength` jump,
+  charged by holding jump, the rearing, the landing that ends the jump), and reports it in the packet as a
+  client-predicted vehicle. The engine seats the player and leaves the mount to the server
+- camels: the same, plus the dash (the jump key, with a cooldown) and their 1.5625 step, which is 0.5625 while they
+  stand on honey (the block that prevents jumping). A player's own step never changes: 0.5625 everywhere
+- leaving a vehicle the player cannot steer (a minecart, a pig) by jumping
+- the rider's yaw clamped to its vehicle's
+
+**Boats**
+
+- the wave phase: the bobbing timer runs from the boat's spawn and a random draw makes the big waves, from a
+  generator other things draw from too, so the height drifts from the server's within a few hundredths
+
+**Attributes and entity data**
+
+- the `friction_modifier`, `air_drag_modifier` and `bounciness` attributes and the uniform air drag flag, which the
+  client applies to ground friction, air drag and landings (vanilla keeps them at 1, 1 and 0; flight already takes
+  the first two from the caller)
+- entity data other than the flags and the box height
+
+**Chunks, death and loading**
+
+- a chunk the client has not loaded is a wall: the collision adds a full-height box for each such column within half a
+  chunk of the move, and a move next to one keeps its horizontal velocity when it is blocked. Which chunks count is
+  the client's own state (a chunk is not loaded until its sub-chunks are built), not something the packets tell, so
+  a bot's world cannot follow it tick for tick; the engine collides with the blocks it has and nothing else
+- a dead player sends no input until the server's respawn marks it ready; the engine only freezes a dead player
+- the loading screen of a dimension change: its ability layer and the ticks that send no input
+
+**Input**
+
+- gamepad and touch input modes (the scaffolding descend hold, their sprint trigger and paddles): the engine is a
+  keyboard-and-mouse client
+- `missed_swing`: the flag a swing at nothing sets; the caller has no way to ask for it yet
+- the prediction-sync packet a client sends some time after a correction
+
+## Where the replays still differ
+
+Every recording below is replayed through a full mineflayer bot (`test/bedrock/replay.test.js` in mineflayer), tick by
+tick against the client's packets. Of about 115,000 ticks the client captured on 1.26.20.4 and 1.26.51.1, these differ:
+
+| Recording | Differs | Why |
+|---|---|---|
+| elytra, 1.26.20.4 | 76 of 2673 | gliding at 15 blocks a tick into chunks the client had not loaded: most stop at their walls (see above); 20 are `missed_swing` |
+| ground, 1.26.51.1 | 20 of 3264 | `sprintYaw_91_20t` (18) and `walkThenSneak_w3_s10` (2); not established |
+| core, 1.26.20.4 | 12 of 7065 | walking into powder snow; not established |
+| water, both clients | 2 and 10 | `water_surface_sprint_y0`: a server-restated swim resizes the box before the move, dropping the float32 drift x keeps in the box; one ULP of position. Rebuilding the box on every restated height breaks the sneak recordings, so which restatements rebuild it is open |
+| honey, both clients | 8 and 2 | `honey_sneak_20t`: sneaking on honey; not established |
+| ground, 1.26.20.4 | 4 | `sprint_10t_to_sneak_10t`; not established |
+| air, 1.26.51.1 | 1 | a sprint start one tick apart |
+| mob effects (202) | 1 | a turn at the pole: the camera's own jitter |
+
+The 1.26.10.4 proxy recording (10109 of 10167) has no client capture to time its packets by.
+
+## Not recorded yet
+
+The recorder (`bedrock-tools-v2/packages/recorder`, `BEDROCK_FIXTURE=<name> node src/main.ts`, with
+`BEDROCK_FIXTURE_VERSION=Flat2651` for 1.26.51.1; `BEDROCK_FIXTURE=list` lists them) has fixtures for all of the
+following, which no client has recorded yet:
+
+- `mounts`: a tamed horse walking, turning and jumping at three charges, a donkey, an untamed horse, a camel walking,
+  dashing and stepping up from stone and from honey, a minecart on powered rails and jumping in it, a pig led by a
+  carrot on a stick, a boat left to bob for 400 ticks, a death with the immediate respawn
+- `knockback` (damage, explosions, a zombie; in survival), `push` (mobs pushing the player), `teleport`
+- `ice`, `soulsand`, `flight`, `climbing`, `effects`, `blocks`, `collision`, `sneakedge`, `pose`, `epsilon`,
+  `multi`, `snow`
+- `boat`, `items`, `parity` and `probe` on 1.26.51.1 (recorded on 1.26.20.4 only)
