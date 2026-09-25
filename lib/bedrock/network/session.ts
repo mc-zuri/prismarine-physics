@@ -54,7 +54,8 @@ export interface StampedCorrection extends MoveCorrection { tick: number, dx: nu
 // A movement attribute with its tick: the value without the sprint boost, and the current one.
 export interface StampedAttribute { tick: number, walk: number, current: number }
 // Restated actor flags with their tick.
-export type StampedFlags = ActorFlags & { tick: number }
+// `inAscendable`: the climbable-block flag, where the raw word carries it
+export type StampedFlags = ActorFlags & { tick: number, inAscendable?: boolean }
 // The effect levels the engine reads, by the effect's id on the wire.
 export const EFFECT_FIELDS: Readonly<Record<number, 'speed' | 'slowness' | 'jumpBoost' | 'blindness' | 'levitation' | 'slowFalling' | 'weaving'>> = {
   1: 'speed', 2: 'slowness', 8: 'jumpBoost', 15: 'blindness', 24: 'levitation', 27: 'slowFalling', 33: 'weaving'
@@ -383,6 +384,8 @@ export class BedrockSession {
       if (frame && known === value) continue
       ;(changed as Record<string, unknown>)[name] = value
     }
+    // the climbable-block flag is not weighed against the history: taken as sent, for the next scaffolding climb
+    if (flags.inAscendable !== undefined && state.bedrock) state.bedrock.ascendRestated = flags.inAscendable
     if (!Object.keys(changed).length) return
     // one that differed from the history is filed on its frame too: the next rewind simulates again from there
     const filed = Object.fromEntries(Object.entries(changed).filter(([name]) => name !== 'pushTowardsClosestSpace')) as ActorFlags
@@ -530,6 +533,8 @@ const WIRE_NAMES: Readonly<Record<string, string>> = { pushTowardsClosestSpace: 
 // The extended word's bits: where a decoded word carries its raw value, the flags are read from it (a decoder's names
 // for this word can be a bit off).
 const EXTENDED_BITS: Readonly<Record<string, number>> = { crawling: 50, pushTowardsClosestSpace: 45 }
+// The extended word's bit of the climbable block the player is in.
+const IN_ASCENDABLE_BIT = 35
 
 // The raw 64-bit word of a decoded flags word, where it carries one.
 function rawWord (value: unknown): bigint | undefined {
@@ -552,6 +557,7 @@ export function restatedFlags (params: Record<string, any>): StampedFlags | null
   for (const item of params.metadata || []) {
     if (item.key === 'flags' || item.key === 'flags_extended') {
       const raw = item.key === 'flags_extended' ? rawWord(item.value) : undefined
+      if (raw !== undefined) out.inAscendable = ((raw >> BigInt(IN_ASCENDABLE_BIT)) & 1n) === 1n
       for (const name of item.key === 'flags' ? FLAGS_WORD : EXTENDED_FLAGS_WORD) {
         const on = raw !== undefined ? ((raw >> BigInt(EXTENDED_BITS[name]!)) & 1n) === 1n : flagValue(item.value, WIRE_NAMES[name] || name)
         if (on !== undefined) {

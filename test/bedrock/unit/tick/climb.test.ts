@@ -61,6 +61,13 @@ describe('bedrock tick/climb', () => {
     const falling = start(SCAFFOLD, player([0.5, 0.2, 0.5], { vel: new Vec3(0, -0.5, 0) }))
     climbBeforeMove(falling.c, falling.entity, falling.tick)
     assert.strictEqual(falling.entity.vel.y, -0.5, 'scaffolding does not clamp a fall')
+    // the server cleared the climbable-block flag since: the climb does not rise, once
+    const cleared = start(SCAFFOLD, player([0.5, 0.2, 0.5], { control: { jump: true }, bedrock: { ascendRestated: false } as any }))
+    climbBeforeMove(cleared.c, cleared.entity, cleared.tick)
+    assert.deepStrictEqual([cleared.entity.vel.y, cleared.entity.bedrock.ascendRestated], [0, undefined])
+    const restated = start(SCAFFOLD, player([0.5, 0.2, 0.5], { control: { jump: true }, bedrock: { ascendRestated: true } as any }))
+    climbBeforeMove(restated.c, restated.entity, restated.tick)
+    assert.strictEqual(restated.entity.vel.y, f(0.15))
   })
 
   it('climbs on pushing into a wall on a ladder, not on scaffolding or without a push', () => {

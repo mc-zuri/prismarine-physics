@@ -29,7 +29,10 @@ export function climbBeforeMove (ctx: Ctx, entity: Simulated, tick: TickState): 
     if (vel.y < -speed) vel.y = f(-speed)
   }
   const exiting = kind === 'scaffolding' && exitingScaffolding(ctx.world, entity.pos, vel, !!entity.isCollidedVertically)
-  if (!exiting && (st.input!.jumping || entity.jumpQueued)) vel.y = speed
+  // the scaffolding climb reads the flag its last check set, which a server restatement since can have cleared
+  const cleared = kind === 'scaffolding' && st.ascendRestated === false
+  st.ascendRestated = undefined
+  if (!exiting && !cleared && (st.input!.jumping || entity.jumpQueued)) vel.y = speed
 }
 
 // After the move: a ladder or vine at the feet while pushing against a block climbs at the climb speed, and the tick

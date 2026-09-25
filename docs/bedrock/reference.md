@@ -635,7 +635,7 @@ The actions (teleport, correct, movementAttribute, actorFlags) are callable dire
 - `interface TickFrame` -- One tick's inputs: the tick number, the control state, the rotation, and a riptide launch and the mobs the spin hit.
 - `interface StampedCorrection` -- A movement correction with the tick it is stamped for.
 - `interface StampedAttribute` -- A movement attribute with its tick: the value without the sprint boost, and the current one.
-- `type StampedFlags` -- Restated actor flags with their tick.
+- `type StampedFlags` -- Restated actor flags with their tick. `inAscendable`: the climbable-block flag, where the raw word carries it
 - `const EFFECT_FIELDS` -- The effect levels the engine reads, by the effect's id on the wire.
 - `interface StampedEffect` -- A mob effect's level (0: removed) on the player field it sets, with the tick it is stamped for (0: not stamped) and its ticks (none, or a negative count: it lasts until removed).
 - `type EffectField` -- A level field a mob effect sets.

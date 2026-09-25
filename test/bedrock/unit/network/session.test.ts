@@ -137,10 +137,20 @@ describe('bedrock network/session', () => {
     assert.deepStrictEqual(restatedFlags({ tick: 2n, metadata: [{ key: 'flags_extended', value: ['push_towards_closest_space'] }] }), { tick: 2, crawling: false, pushTowardsClosestSpace: true })
     // a word with its raw value is read by bit (push 45, crawling 50), whatever its names say
     const pushWord = { _value: String(BigInt.asIntN(64, (1n << 63n) | (1n << 45n))), push_towards_closest_space: false, scenting: true }
-    assert.deepStrictEqual(restatedFlags({ tick: 3n, metadata: [{ key: 'flags_extended', value: pushWord }] }), { tick: 3, crawling: false, pushTowardsClosestSpace: true })
-    assert.deepStrictEqual(restatedFlags({ tick: 4n, metadata: [{ key: 'flags_extended', value: 1n << 50n }] }), { tick: 4, crawling: true, pushTowardsClosestSpace: false })
-    assert.deepStrictEqual(restatedFlags({ tick: 5n, metadata: [{ key: 'flags_extended', value: { _value: 0 } }] }), { tick: 5, crawling: false, pushTowardsClosestSpace: false })
+    assert.deepStrictEqual(restatedFlags({ tick: 3n, metadata: [{ key: 'flags_extended', value: pushWord }] }), { tick: 3, inAscendable: false, crawling: false, pushTowardsClosestSpace: true })
+    assert.deepStrictEqual(restatedFlags({ tick: 4n, metadata: [{ key: 'flags_extended', value: (1n << 50n) | (1n << 35n) }] }), { tick: 4, inAscendable: true, crawling: true, pushTowardsClosestSpace: false })
+    assert.deepStrictEqual(restatedFlags({ tick: 5n, metadata: [{ key: 'flags_extended', value: { _value: 0 } }] }), { tick: 5, inAscendable: false, crawling: false, pushTowardsClosestSpace: false })
     assert.deepStrictEqual(restatedFlags({ tick: 1n }), null)
+  })
+
+  it('takes the restated climbable-block flag as sent', () => {
+    const s = session()
+    const p = player(undefined, { bedrock: {} as any })
+    s.actorFlags(p, { tick: 1, inAscendable: false })
+    assert.strictEqual(p.bedrock!.ascendRestated, false)
+    const bare = player()
+    s.actorFlags(bare, { tick: 1, inAscendable: true })
+    assert.strictEqual(bare.bedrock, undefined)
   })
 
   it('writes only the restated flags that differ from the frame, and all of them with no frame', () => {
