@@ -38,6 +38,21 @@ describe('bedrock tick/climb', () => {
     assert.strictEqual(sneaking.tick.ascendJumped, false, 'sneaking: descending, nothing')
   })
 
+  it('descends through powder snow at 0.15 on the sneak of the tick before over it, without the ladder hold', () => {
+    const over = start(worldOf({}), player(undefined, { vel: new Vec3(0, -0.3, 0), leatherBoots: true, bedrock: { wasSneaking: true, overDescendable: true, fallDistance: 2, ascendRestated: true } }), true)
+    climbBeforeMove(over.c, over.entity, over.tick)
+    assert.deepStrictEqual([over.entity.vel.y, over.entity.bedrock.descendingSnow, over.entity.bedrock.fallDistance, over.entity.bedrock.ascendRestated], [f(-0.15), true, 0, undefined])
+    const inside = start(worldOf({ '0,0,0': 'powder_snow' }), player(undefined, { vel: new Vec3(0, -0.1, 0), leatherBoots: true, bedrock: { wasSneaking: true, overDescendable: true } }), true)
+    climbBeforeMove(inside.c, inside.entity, inside.tick)
+    assert.strictEqual(inside.entity.vel.y, f(-0.15), 'inside it too: not held')
+    const fresh = start(worldOf({}), player(undefined, { bedrock: { wasSneaking: false, overDescendable: true } }), true)
+    climbBeforeMove(fresh.c, fresh.entity, fresh.tick)
+    assert.strictEqual(fresh.entity.bedrock.descendingSnow, false, 'a sneak of this tick waits a tick')
+    const inScaffold = start(SCAFFOLD, player(undefined, { bedrock: { wasSneaking: true, overDescendable: true } }), true)
+    climbBeforeMove(inScaffold.c, inScaffold.entity, inScaffold.tick)
+    assert.strictEqual(inScaffold.entity.bedrock.descendingSnow, false, 'scaffolding descends by its own rule')
+  })
+
   it('clamps a fall on a ladder to the climb speed', () => {
     const s = start(LADDER, player(undefined, { vel: new Vec3(0, -0.5, 0) }))
     climbBeforeMove(s.c, s.entity, s.tick)

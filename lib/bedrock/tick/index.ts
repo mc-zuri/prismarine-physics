@@ -174,6 +174,7 @@ export function simulatePlayer (ctx: Ctx, player: Player): Player {
   entity.bedrock.pendingSlowdowns = entity.gameMode === 'spectator' ? new Set() : slowdownBlocksIn(ctx.world, entity.bedrock.aabb!)
   // the climbable-block flag the client's own check sets after the move (what a restatement is weighed against)
   entity.bedrock.ascendable = ascendableAt(ctx.world, entity.bedrock.aabb!, !!entity.leatherBoots)
+  entity.bedrock.overDescendable = ascendableAt(ctx.world, entity.bedrock.aabb!, !!entity.leatherBoots, Math.floor(f(entity.bedrock.aabb!.minY + -1)))
   endInput(entity)
   standOnSticky(ctx, entity, tick)
   tickMovementEffects(entity)

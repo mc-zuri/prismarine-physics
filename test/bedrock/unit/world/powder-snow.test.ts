@@ -12,6 +12,8 @@ describe('bedrock powder snow', () => {
   it('holds up a mover in leather boots on or above its top', () => {
     assert.deepStrictEqual(powderSnowShapes({ aabb: above(1), descend: false, leatherBoots: true }, 0), [[0, 0, 0, 1, 1, 1]])
     assert.deepStrictEqual(powderSnowShapes({ aabb: above(1), descend: false }, 0), [], 'no boots: through')
+    assert.deepStrictEqual(powderSnowShapes({ aabb: above(1), descend: false, descendSnow: true, leatherBoots: true }, 0), [], 'descending through it: the sneak of the tick before, not of the move')
+    assert.deepStrictEqual(powderSnowShapes({ aabb: above(1), descend: true, descendSnow: false, leatherBoots: true }, 0), [[0, 0, 0, 1, 1, 1]], 'a sneak of this tick still stands')
     assert.deepStrictEqual(powderSnowShapes({ aabb: above(0.5), descend: false, leatherBoots: true }, 0), [], 'feet below the top')
     assert.deepStrictEqual(powderSnowShapes({ aabb: above(1), descend: true, leatherBoots: true }, 0), [], 'descending')
   })

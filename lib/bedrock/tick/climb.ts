@@ -18,6 +18,16 @@ export function climbBeforeMove (ctx: Ctx, entity: Simulated, tick: TickState): 
   const kind = climbableAt(ctx.world, entity.pos, st.aabb!, !!entity.leatherBoots)
   st.scaffoldDescend = false
   st.climbable = kind
+  // over powder snow in leather boots, the sneak of the tick before (the flag the client reads was set then) descends
+  // through it at 0.15; the snow does not hold the player this tick
+  st.descendingSnow = !!st.wasSneaking && !!st.overDescendable && kind !== 'scaffolding'
+  if (st.descendingSnow) {
+    vel.y = f(-SCAFFOLDING_CLIMB_SPEED)
+    st.fallDistance = 0
+    // the descent is the whole of the climb: no hold, no clamp, no rise
+    st.ascendRestated = undefined
+    return
+  }
   if (!kind) {
     // the server restated the climbable-block flag set: a jump rises at the scaffolding climb speed, and waits 10
     const restated = st.ascendRestated === true

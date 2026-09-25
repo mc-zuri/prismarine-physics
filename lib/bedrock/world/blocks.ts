@@ -59,6 +59,8 @@ export function blockShapes (block: Block | null | undefined): Shape[] {
 export interface Mover {
   aabb: BoxLike
   descend: boolean
+  // descending through powder snow (the previous tick's sneak over it), where not given the move's own sneak
+  descendSnow?: boolean | undefined
   leatherBoots?: boolean | undefined
   fallDistance?: number | undefined
 }
@@ -70,7 +72,7 @@ const POWDER_SNOW_TOP_TOLERANCE = f(-1.1920929e-7)
 const POWDER_SNOW_FALL = 2.5
 const POWDER_SNOW_LANDING: Shape[] = [[0, 0, 0, 1, f(0.9), 1]]
 export function powderSnowShapes (mover: Mover, y: number): Shape[] {
-  if (f(f(y + 1) + POWDER_SNOW_TOP_TOLERANCE) > mover.aabb.minY || mover.descend) return NO_SHAPE
+  if (f(f(y + 1) + POWDER_SNOW_TOP_TOLERANCE) > mover.aabb.minY || (mover.descendSnow ?? mover.descend)) return NO_SHAPE
   if (mover.fallDistance! > POWDER_SNOW_FALL) return POWDER_SNOW_LANDING
   return mover.leatherBoots ? FULL_BLOCK : NO_SHAPE
 }

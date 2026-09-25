@@ -83,7 +83,7 @@ export function sweepMove (ctx: Ctx, entity: Simulated, tick: TickState): void {
   const report: SweepReport = { totalClip: 0 }
   const aabb = st.aabb!
   const limit = moveDepenetrationLimit(ctx.world, aabb, bits)
-  tick.applied = moveWithCollisions(ctx.world, aabb.clone(), tick.requested, !!entity.onGround, ctx.settings.stepHeight, !!st.input!.sneaking, limit, report, { leatherBoots: !!entity.leatherBoots, fallDistance: st.fallDistance || 0 })
+  tick.applied = moveWithCollisions(ctx.world, aabb.clone(), tick.requested, !!entity.onGround, ctx.settings.stepHeight, !!st.input!.sneaking, limit, report, { leatherBoots: !!entity.leatherBoots, fallDistance: st.fallDistance || 0, descendSnow: !!st.descendingSnow })
   tick.penetrated = report.totalClip >= PENETRATION_EPSILON
   st.depenetrationBits = updateDepenetrationBits(bits, !!st.pushTowardsClosestSpace, tick.penetrated)
   tick.moveShapes = report.shapes!

@@ -26,8 +26,7 @@ export function climbableAt (world: World, pos: Vec3Like, aabb: BoxLike, leather
 
 // Whether the feet's layer under the box holds a block the player can go up by jumping: scaffolding with something
 // other than air or water under it, or powder snow in leather boots (what the client's own check of the flag finds).
-export function ascendableAt (world: World, aabb: BoxLike, leatherBoots = false): boolean {
-  const y = Math.floor(aabb.minY)
+export function ascendableAt (world: World, aabb: BoxLike, leatherBoots = false, y = Math.floor(aabb.minY)): boolean {
   for (let x = Math.floor(aabb.minX); x <= Math.floor(aabb.maxX); x++) {
     for (let z = Math.floor(aabb.minZ); z <= Math.floor(aabb.maxZ); z++) {
       const name = blockName(blockAt(world, x, y, z))

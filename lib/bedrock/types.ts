@@ -189,6 +189,10 @@ export interface BedrockState {
   ascendRestated?: boolean | undefined
   // the climbable-block flag as the client's own check left it after the tick's move
   ascendable?: boolean | undefined
+  // the same check of the layer under the feet (a block to descend through), and whether the player descends through
+  // powder snow this tick (the sneak of the tick before over it)
+  overDescendable?: boolean | undefined
+  descendingSnow?: boolean | undefined
   carriedActions?: Set<string> | undefined
   // left a vehicle it steered since the last tick (the tick's input was read in the seat)
   leftSteeredVehicle?: boolean | undefined
