@@ -19,6 +19,8 @@ export interface TickState {
   sneaking: boolean
   // a teleport was handled since the last tick: the tick ends after the jump
   teleported: boolean
+  // a jump the restated climbable-block flag turned into a 0.15 rise
+  ascendJumped: boolean
   // the teleport is a respawn's: its tick still falls
   respawned: boolean
   // gliding this tick (the glide flag, out of liquids and climbables)
@@ -52,6 +54,7 @@ export function newTick (control: Control): TickState {
     sprinting: false,
     sneaking: false,
     teleported: false,
+    ascendJumped: false,
     respawned: false,
     gliding: false,
     slowdowns: new Set(),

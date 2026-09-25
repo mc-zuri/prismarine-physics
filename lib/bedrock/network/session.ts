@@ -419,7 +419,7 @@ export class BedrockSession {
     // the climbable-block flag, for the next scaffolding climb: weighed against the one the frame's next climb reads (set
     // by a restatement since, else by the climb's own check, which finds it set), and written only where it differs
     const view = this.rewind.snapshots.get(this.rewind.current - 1)
-    if (flags.inAscendable !== undefined && state.bedrock && (!frame || (frame.bedrock?.ascendRestated ?? true) !== flags.inAscendable)) {
+    if (flags.inAscendable !== undefined && state.bedrock && (!frame || (frame.bedrock?.ascendRestated ?? frame.bedrock?.ascendable ?? true) !== flags.inAscendable)) {
       state.bedrock.ascendRestated = flags.inAscendable
       if (view?.bedrock) view.bedrock.ascendRestated = flags.inAscendable
     }

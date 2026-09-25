@@ -18,7 +18,17 @@ export function climbBeforeMove (ctx: Ctx, entity: Simulated, tick: TickState): 
   const kind = climbableAt(ctx.world, entity.pos, st.aabb!, !!entity.leatherBoots)
   st.scaffoldDescend = false
   st.climbable = kind
-  if (!kind) return
+  if (!kind) {
+    // the server restated the climbable-block flag set: a jump rises at the scaffolding climb speed, and waits 10
+    const restated = st.ascendRestated === true
+    st.ascendRestated = undefined
+    if (restated && (st.input!.jumping || entity.jumpQueued) && !st.input!.sneaking) {
+      vel.y = SCAFFOLDING_CLIMB_SPEED
+      entity.jumpTicks = 10
+      tick.ascendJumped = true
+    }
+    return
+  }
   if (kind === 'scaffolding' && st.input!.sneaking) {
     vel.y = f(-SCAFFOLDING_CLIMB_SPEED)
     st.scaffoldDescend = true

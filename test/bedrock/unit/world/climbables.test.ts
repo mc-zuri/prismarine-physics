@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import { Box } from '../../../../lib/bedrock/math/box.ts'
-import { climbableAt, exitingScaffolding, scaffoldingUnder } from '../../../../lib/bedrock/world/climbables.ts'
+import { ascendableAt, climbableAt, exitingScaffolding, scaffoldingUnder } from '../../../../lib/bedrock/world/climbables.ts'
 import { worldOf } from '../helpers.ts'
 
 const at = (x: number, y: number, z: number) => ({ x, y, z })
@@ -18,6 +18,14 @@ describe('bedrock world/climbables', () => {
     assert.strictEqual(climbableAt(worldOf({ '0,0,0': 'vine' }, null), at(0.5, 0, 0.5), box(0.5, 0, 0.5)), 'vine')
     assert.strictEqual(climbableAt(worldOf({ '0,0,0': 'scaffolding' }, null), at(0.5, 0, 0.5), box(0.5, 0, 0.5)), 'scaffolding')
     assert.strictEqual(climbableAt(worldOf({}, null), at(0.5, 0, 0.5), box(0.5, 0, 0.5)), null)
+  })
+
+  it('finds a block to go up by jumping: scaffolding on something that is not air or water, powder snow in leather boots', () => {
+    assert.ok(ascendableAt(worldOf({ '1,1,0': 'scaffolding', '1,0,0': 'stone' }, null), box(0.9, 1, 0.5)))
+    assert.ok(!ascendableAt(worldOf({ '1,1,0': 'scaffolding' }, null), box(0.9, 1, 0.5)), 'nothing under it')
+    assert.ok(!ascendableAt(worldOf({ '0,1,0': 'scaffolding', '0,0,0': 'water' }, null), box(0.5, 1, 0.5)), 'water under it')
+    assert.ok(ascendableAt(worldOf({ '0,1,0': 'powder_snow' }, null), box(0.5, 1, 0.5), true))
+    assert.ok(!ascendableAt(worldOf({ '0,1,0': 'powder_snow' }, null), box(0.5, 1, 0.5)), 'without leather boots')
   })
 
   it('climbs scaffolding anywhere under the box in the feet layer', () => {

@@ -10,6 +10,7 @@ import type { Ctx, Player, Simulated } from '../types.ts'
 import { applyLiquidFlow, senseLiquids } from '../world/liquids.ts'
 import { collisionBoxes } from '../world/blocks.ts'
 import { slowdownBlocksIn } from '../world/slowdown-blocks.ts'
+import { ascendableAt } from '../world/climbables.ts'
 import { bubbleColumns, honeyBlocks, standOnSticky, velocityAfterMove } from './after-move.ts'
 import { beginTick } from './begin.ts'
 import { climbBeforeMove, climbOnPush, climbOutOfLiquid } from './climb.ts'
@@ -171,6 +172,8 @@ export function simulatePlayer (ctx: Ctx, player: Player): Player {
   moveTowardsClosestSpace(ctx, entity, tick)
 
   entity.bedrock.pendingSlowdowns = entity.gameMode === 'spectator' ? new Set() : slowdownBlocksIn(ctx.world, entity.bedrock.aabb!)
+  // the climbable-block flag the client's own check sets after the move (what a restatement is weighed against)
+  entity.bedrock.ascendable = ascendableAt(ctx.world, entity.bedrock.aabb!, !!entity.leatherBoots)
   endInput(entity)
   standOnSticky(ctx, entity, tick)
   tickMovementEffects(entity)

@@ -24,6 +24,22 @@ export function climbableAt (world: World, pos: Vec3Like, aabb: BoxLike, leather
   return scaffoldingUnder(world, aabb, Math.floor(aabb.minY + 0.001)) ? 'scaffolding' : null
 }
 
+// Whether the feet's layer under the box holds a block the player can go up by jumping: scaffolding with something
+// other than air or water under it, or powder snow in leather boots (what the client's own check of the flag finds).
+export function ascendableAt (world: World, aabb: BoxLike, leatherBoots = false): boolean {
+  const y = Math.floor(aabb.minY)
+  for (let x = Math.floor(aabb.minX); x <= Math.floor(aabb.maxX); x++) {
+    for (let z = Math.floor(aabb.minZ); z <= Math.floor(aabb.maxZ); z++) {
+      const name = blockName(blockAt(world, x, y, z))
+      if (name === 'powder_snow' && leatherBoots) return true
+      if (name !== 'scaffolding') continue
+      const below = blockName(blockAt(world, x, y - 1, z))
+      if (below !== 'air' && below !== 'water' && below !== 'flowing_water') return true
+    }
+  }
+  return false
+}
+
 // Whether a climb in scaffolding is leaving it sideways: the feet are in scaffolding, the move enters another cell,
 // and that cell is not scaffolding. A vertical collision (a ceiling) never counts.
 export function exitingScaffolding (world: World, pos: Vec3Like, vel: Vec3Like, collidedVertically: boolean): boolean {

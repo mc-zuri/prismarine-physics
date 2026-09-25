@@ -101,7 +101,7 @@ export function jump (ctx: Ctx, entity: Simulated, tick: TickState): void {
     vel.y = inLiquid
     return
   }
-  if (held && !st.climbable && entity.onGround && !entity.jumpTicks) jumpFromGround(ctx, entity, tick)
+  if (held && !st.climbable && !tick.ascendJumped && entity.onGround && !entity.jumpTicks) jumpFromGround(ctx, entity, tick)
 }
 
 // The travel speed for the travel type: flying, or on foot (the ground's friction -- soul sand's only without Soul

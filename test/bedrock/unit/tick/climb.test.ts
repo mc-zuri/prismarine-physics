@@ -26,6 +26,18 @@ describe('bedrock tick/climb', () => {
     assert.deepStrictEqual([s.entity.bedrock.climbable, s.entity.bedrock.scaffoldDescend, s.entity.vel.y], [null, false, -0.5])
   })
 
+  it('rises at 0.15 on a jump off a climbable when the server restated the climbable-block flag set', () => {
+    const jumping = start(worldOf({}), player(undefined, { control: { jump: true }, bedrock: { ascendRestated: true } }))
+    climbBeforeMove(jumping.c, jumping.entity, jumping.tick)
+    assert.deepStrictEqual([jumping.entity.vel.y, jumping.entity.jumpTicks, jumping.tick.ascendJumped, jumping.entity.bedrock.ascendRestated], [f(0.15), 10, true, undefined])
+    const still = start(worldOf({}), player(undefined, { vel: new Vec3(0, -0.1, 0), bedrock: { ascendRestated: true } }))
+    climbBeforeMove(still.c, still.entity, still.tick)
+    assert.deepStrictEqual([still.entity.vel.y, still.tick.ascendJumped], [f(-0.1), false], 'no jump: nothing')
+    const sneaking = start(worldOf({}), player(undefined, { control: { jump: true, sneak: true }, bedrock: { ascendRestated: true } }))
+    climbBeforeMove(sneaking.c, sneaking.entity, sneaking.tick)
+    assert.strictEqual(sneaking.tick.ascendJumped, false, 'sneaking: descending, nothing')
+  })
+
   it('clamps a fall on a ladder to the climb speed', () => {
     const s = start(LADDER, player(undefined, { vel: new Vec3(0, -0.5, 0) }))
     climbBeforeMove(s.c, s.entity, s.tick)

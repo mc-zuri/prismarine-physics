@@ -437,6 +437,7 @@ Ladders, vines and scaffolding.
 
 - `function scaffoldingUnder (world: World, aabb: BoxLike, y: number): boolean` -- Whether any cell of layer `y` under the box's footprint (shrunk by 0.001) is scaffolding.
 - `function climbableAt (world: World, pos: Vec3Like, aabb: BoxLike, leatherBoots = false): ClimbableKind | null` -- What the player climbs: the block at the feet (a ladder, any vine, scaffolding, powder snow in leather boots), else scaffolding anywhere in the feet's layer under the box.
+- `function ascendableAt (world: World, aabb: BoxLike, leatherBoots = false): boolean` -- Whether the feet's layer under the box holds a block the player can go up by jumping: scaffolding with something other than air or water under it, or powder snow in leather boots (what the client's own check of the flag finds).
 - `function exitingScaffolding (world: World, pos: Vec3Like, vel: Vec3Like, collidedVertically: boolean): boolean` -- Whether a climb in scaffolding is leaving it sideways: the feet are in scaffolding, the move enters another cell, and that cell is not scaffolding. A vertical collision (a ceiling) never counts.
 
 ### `world/honey.ts`
