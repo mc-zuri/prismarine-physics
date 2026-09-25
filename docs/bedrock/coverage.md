@@ -150,5 +150,5 @@ The 1.26.10.4 proxy recording (10109 of 10167) has no client capture to time its
 
 The recorder (`bedrock-tools-v2/packages/recorder`, `BEDROCK_FIXTURE=<name> node src/main.ts`, with
 `BEDROCK_FIXTURE_VERSION=Flat2651` for 1.26.51.1; `BEDROCK_FIXTURE=list` lists them) has recorded every fixture it
-registers on both clients: 72 recordings, 244,000 ticks, 96.9% of them replayed exactly. Knockback, push, teleport, ice, soul sand, sneak edges, poses, epsilon moves, multi-system cases,
+registers on both clients: 70 recordings, 244,000 ticks, 96.9% of them replayed exactly. Knockback, push, teleport, ice, soul sand, sneak edges, poses, epsilon moves, multi-system cases,
 mounts and powder snow are replayed on both; the rows above are what they still show.
