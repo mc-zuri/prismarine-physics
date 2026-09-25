@@ -139,7 +139,7 @@ tick against the client's packets. Of about 115,000 ticks the client captured on
 | mounts, 1.26.51.1 | 610 of 3355 | the same, and a boat left to bob: this capture has no random state, so the big waves are guessed |
 | teleport, 1.26.20.4 | 5 of 5974 | a sprint stopped at a teleport, and two landings after a long hop |
 | snow, both clients | 65 and 64 of about 700 | powder snow in leather boots: sneaking down through it begins a tick later than the engine's (a landing and the sneak on one tick land first), climbing out of it, and sprinting into it |
-| climbing, both clients | 18 and 5 | walking into scaffolding with jump held pushes up 0.15 before the box reaches it; cave vines are slid down a tick sooner |
+| climbing, both clients | 14 and 5 | holding jump while leaving scaffolding on its far side climbs on (the engine stops the climb on leaving it sideways, which the static 1.26.10 import needs: it carries no restated flags); cave vines are slid down a tick sooner |
 | effects, 1.26.20.4 | 12 of 1638 | the end of a Levitation cleared by `effect clear` acts a tick later than the model (1.26.51.1 exact) |
 | blocks, 1.26.20.4 | 11 of 1838 | walking in powder snow in leather boots (1.26.51.1 exact) |
 | sneakedge, 1.26.51.1 | 6 of 1219 | a wall collision flag at an edge |
