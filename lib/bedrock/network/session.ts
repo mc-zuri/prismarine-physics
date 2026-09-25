@@ -206,7 +206,9 @@ export class BedrockSession {
   // A teleport of the local player on tick `t`. A far one clears the client's history; the replay history starts over
   // either way, since a re-simulation cannot re-apply a teleport.
   teleport (state: Player, t: number, teleport: Teleport): void {
-    const far = Math.hypot(teleport.x - state.pos.x, teleport.y - this.eyeHeight - state.pos.y, teleport.z - state.pos.z) >= FAR_TELEPORT
+    // measured from where the last tick left the player (the caller may have placed it at the target already)
+    const from = this.rewind.snapshots.get(this.rewind.current - 1)?.pos ?? state.pos
+    const far = Math.hypot(teleport.x - from.x, teleport.y - this.eyeHeight - from.y, teleport.z - from.z) >= FAR_TELEPORT
     if (far) this.ringOldest = t
     this.physics.handleTeleport(state, teleport)
     this.rewind.reset(t)

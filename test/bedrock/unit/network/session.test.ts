@@ -315,6 +315,13 @@ describe('bedrock network/session', () => {
     s.teleport(p, 6, { x: 30, y: EYE, z: 0 })
     assert.strictEqual(s.ringOldest, 6)
     assert.strictEqual(s.rewind.oldest, 6)
+    // measured from where the last tick left the player, though the caller placed it at the target already
+    const moved = session()
+    const q = player([0, 0, 0])
+    for (let t = 1; t <= 3; t++) moved.tick(q, { t })
+    q.pos.set(30, 0, 0)
+    moved.teleport(q, 4, { x: 30, y: EYE, z: 0 })
+    assert.strictEqual(moved.ringOldest, 4)
   })
 
   it('writes a movement attribute onto the history frames from its tick', () => {
