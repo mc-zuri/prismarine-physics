@@ -351,9 +351,12 @@ export class BedrockSession {
   }
 
   // A movement attribute: installed on the player and on the history frames from its tick, so a later correction
-  // re-simulates with it. It does not re-simulate itself; a sprint the player started after its tick keeps the boost.
+  // re-simulates with it. It does not re-simulate itself; a sprint the player started after its tick keeps the boost,
+  // unless the packet changes the speed.
   movementAttribute (state: Player, attribute: StampedAttribute): void {
-    const sprintStartedSince = [...this.rewind.snapshots].some(([tick, frame]) => tick > attribute.tick && !!frame.bedrock?.actions?.has('startSprinting'))
+    // a packet that changes the speed without the boost (the server has not seen the sprint yet) takes the boost off
+    const held = state.attributes?.[this.physics.movementSpeedAttribute]
+    const sprintStartedSince = (!held || held.base === attribute.walk) && [...this.rewind.snapshots].some(([tick, frame]) => tick > attribute.tick && !!frame.bedrock?.actions?.has('startSprinting'))
     this.physics.setMovementAttribute(state, { base: attribute.walk, current: attribute.current, sprintStartedSince })
     const key = this.physics.movementSpeedAttribute
     const walk = state.attributes![key]

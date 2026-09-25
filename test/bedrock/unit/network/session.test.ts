@@ -368,16 +368,18 @@ describe('bedrock network/session', () => {
   })
 
   it('keeps the sprint boost when the player started sprinting after the attribute\'s tick', () => {
-    const at = (startTick: number) => {
+    const at = (startTick: number, walk = 0.1) => {
       const s = session()
       const p = player(undefined, { bedrock: { sprinting: true } })
       for (let t = 1; t <= 4; t++) s.rewind.snapshot(t, { ...p, bedrock: { actions: new Set(t === startTick ? ['startSprinting'] : []) } })
       s.rewind.snapshot(5, { ...p, bedrock: undefined })
       s.movementAttribute(p, { tick: 2, walk: 0.1, current: 0.1 })
+      if (walk !== 0.1) s.movementAttribute(p, { tick: 2, walk, current: walk })
       return p.bedrock!.sprintBoost
     }
     assert.strictEqual(at(3), true, 'started after the tick')
     assert.strictEqual(at(2), false, 'started on the tick itself')
+    assert.strictEqual(at(3, f(0.08)), false, 'a packet that changes the speed takes the boost off')
   })
 
   it('files restated flags that differ from the history, simulates the next rewind again from them and reports what that raised', () => {
