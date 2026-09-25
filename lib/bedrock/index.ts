@@ -132,9 +132,10 @@ export function Physics (registry: Registry, world: World): BedrockPhysics {
   const settings = defaultSettings()
   const trig = supportFeature(registry, 'scalarTrig') ? scalar : paired
   const bounceCorrection = supportFeature(registry, 'landingBounceCorrection')
+  const scaffoldingClimbFlag = supportFeature(registry, 'scaffoldingClimbFlag')
   // `settings` is the physics object itself, so a caller's change to a tunable reaches the tick
   const physics = settings as BedrockPhysics
-  const ctxFor = (w: World): Ctx => ({ settings: physics, trig, bounceCorrection, world: w })
+  const ctxFor = (w: World): Ctx => ({ settings: physics, trig, bounceCorrection, scaffoldingClimbFlag, world: w })
 
   physics.simulatePlayer = (entity, w) => simulatePlayer(ctxFor(w), entity)
   physics.dismount = (entity, w = world, byRider = true, alpha, unlinked = false) => dismount(ctxFor(w), entity, byRider, alpha, unlinked)

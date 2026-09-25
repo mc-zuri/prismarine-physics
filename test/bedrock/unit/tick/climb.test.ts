@@ -8,8 +8,8 @@ import { ctx, player, worldFrom, worldOf } from '../helpers.ts'
 
 const f = Math.fround
 
-function start (world: World, p: Player, sneaking = false) {
-  const c = ctx(world)
+function start (world: World, p: Player, sneaking = false, modern = true) {
+  const c = ctx(world, { modern })
   const { tick, entity } = beginTick(c, p)
   readInput(entity, tick)
   tick.sneaking = sneaking
@@ -79,14 +79,18 @@ describe('bedrock tick/climb', () => {
     assert.strictEqual(queued.entity.vel.y, f(0.2))
   })
 
-  it('descends scaffolding on the sneak key, and climbs it on jump unless leaving sideways', () => {
+  it('descends scaffolding on the sneak key, and climbs it on jump while the last move left it climbable', () => {
     const down = start(SCAFFOLD, player([0.5, 0.2, 0.5], { control: { sneak: true } }))
     climbBeforeMove(down.c, down.entity, down.tick)
     assert.deepStrictEqual([down.entity.bedrock.scaffoldDescend, down.entity.vel.y], [true, f(-0.15)])
     const up = start(SCAFFOLD, player([0.5, 0.2, 0.5], { control: { jump: true } }))
     climbBeforeMove(up.c, up.entity, up.tick)
     assert.strictEqual(up.entity.vel.y, f(0.15))
-    const leaving = start(SCAFFOLD, player([0.5, 0.2, 0.5], { control: { jump: true }, vel: new Vec3(0.6, 0, 0) }))
+    const left = start(SCAFFOLD, player([0.5, 0.2, 0.5], { control: { jump: true }, bedrock: { ascendable: false } as any }))
+    climbBeforeMove(left.c, left.entity, left.tick)
+    assert.strictEqual(left.entity.vel.y, 0, 'the last move left it out of the climbable block')
+    // before 1.26.20: a move about to cross into a cell without scaffolding stops the climb
+    const leaving = start(SCAFFOLD, player([0.5, 0.2, 0.5], { control: { jump: true }, vel: new Vec3(0.6, 0, 0) }), false, false)
     climbBeforeMove(leaving.c, leaving.entity, leaving.tick)
     assert.strictEqual(leaving.entity.vel.y, 0)
     const falling = start(SCAFFOLD, player([0.5, 0.2, 0.5], { vel: new Vec3(0, -0.5, 0) }))

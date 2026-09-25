@@ -70,7 +70,7 @@ export function settings (overrides: Partial<Settings> = {}): Settings {
 
 export function ctx (world: World = FLAT, options: { modern?: boolean, settings?: Partial<Settings> } = {}): Ctx {
   const modern = options.modern !== false
-  return { settings: settings(options.settings), trig: modern ? scalar : paired, bounceCorrection: modern, world }
+  return { settings: settings(options.settings), trig: modern ? scalar : paired, bounceCorrection: modern, scaffoldingClimbFlag: modern, world }
 }
 
 // A player standing at `pos` (feet) with the given fields.

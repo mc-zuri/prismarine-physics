@@ -49,7 +49,9 @@ export function climbBeforeMove (ctx: Ctx, entity: Simulated, tick: TickState): 
     if (tick.sneaking && !st.actions?.has('stopCrawling') && vel.y < 0) vel.y = 0
     if (vel.y < -speed) vel.y = f(-speed)
   }
-  const exiting = kind === 'scaffolding' && exitingScaffolding(ctx.world, entity.pos, vel, !!entity.isCollidedVertically)
+  // (from 1.26.20 the flag the last move left says whether it still climbs; before, a move about to cross into a cell
+  // without scaffolding stops it)
+  const exiting = kind === 'scaffolding' && (ctx.scaffoldingClimbFlag ? st.ascendable === false : exitingScaffolding(ctx.world, entity.pos, vel, !!entity.isCollidedVertically))
   // the scaffolding climb reads the flag its last check set, which a server restatement since can have cleared
   const cleared = kind === 'scaffolding' && st.ascendRestated === false
   st.ascendRestated = undefined

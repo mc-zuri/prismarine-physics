@@ -343,5 +343,7 @@ export interface Ctx {
   trig: Trig
   // from 1.26.20: a slow landing on slime does not bounce, and the landing tick's gravity is corrected for the bounce
   bounceCorrection: boolean
+  // from 1.26.20: a held jump in scaffolding climbs while the climbable-block flag the last move left is on
+  scaffoldingClimbFlag: boolean
   world: World
 }

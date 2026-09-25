@@ -17,7 +17,7 @@ describe('bedrock physics object', () => {
   })
 
   it('keys the version-dependent rules on the full version, from features.json', () => {
-    assert.deepStrictEqual(FEATURES.map(feature => feature.name), ['scalarTrig', 'landingBounceCorrection'])
+    assert.deepStrictEqual(FEATURES.map(feature => feature.name), ['scalarTrig', 'landingBounceCorrection', 'scaffoldingClimbFlag'])
     assert.ok(supportFeature(registry('1.26.20'), 'landingBounceCorrection'))
     assert.ok(!supportFeature(registry('1.26.10'), 'landingBounceCorrection'), 'the same major version, before it')
     assert.ok(!supportFeature(registry('1.26.51'), 'noSuchFeature'), 'an unknown feature: never')
