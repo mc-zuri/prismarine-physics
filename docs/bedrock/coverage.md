@@ -139,7 +139,7 @@ tick against the client's packets. Of about 115,000 ticks the client captured on
 | ground, 1.26.20.4 | 4 | `sprint_10t_to_sneak_10t`; not established |
 | air, 1.26.51.1 | 1 | a sprint start one tick apart |
 | mob effects (202) | 1 | a turn at the pole: the camera's own jitter |
-| mounts, 1.26.20.4 | 241 of 3322 | where the rider sits on a camel, a pig or an untamed horse the server moves (the seat follows the mount's interpolated body turn and a rearing horse's lean); the stand spot after jumping out of a minecart or pig is 1e-7 low |
+| mounts, 1.26.20.4 | 222 of 3322 | where the rider sits on a camel, a pig or an untamed horse the server moves: the client seats it where the vehicle is rendered in the frame that runs the tick (its render interpolation at that frame's progress, and a rearing horse's lean); the engine seats it where the vehicle is shown at the tick |
 | mounts, 1.26.51.1 | 610 of 3355 | the same, and a boat left to bob: this capture has no random state, so the big waves are guessed |
 | teleport, 1.26.20.4 | 5 of 5974 | a sprint stopped at a teleport, and two landings after a long hop |
 | snow, both clients | 13 and 14 of about 700 | the first steps of a sprint off the walkway after dropping onto it, and single ticks of the boots cases |
@@ -156,5 +156,5 @@ The 1.26.10.4 proxy recording (10109 of 10167) has no client capture to time its
 
 The recorder (`bedrock-tools-v2/packages/recorder`, `BEDROCK_FIXTURE=<name> node src/main.ts`, with
 `BEDROCK_FIXTURE_VERSION=Flat2651` for 1.26.51.1; `BEDROCK_FIXTURE=list` lists them) has recorded every fixture it
-registers on both clients: 70 recordings, 244,000 ticks, 99.5% of them replayed exactly (242,801 of 243,978). Knockback, push, teleport, ice, soul sand, sneak edges, poses, epsilon moves, multi-system cases,
+registers on both clients: 70 recordings, 244,000 ticks, 99.5% of them replayed exactly (242,820 of 243,978). Knockback, push, teleport, ice, soul sand, sneak edges, poses, epsilon moves, multi-system cases,
 mounts and powder snow are replayed on both; the rows above are what they still show.
