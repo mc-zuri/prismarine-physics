@@ -289,7 +289,7 @@ mineflayer's booleans (forward/back/left/right/jump/sneak/sprint) are the key le
 Jumping, and rising or sinking in a liquid with the jump and sneak keys.
 
 - `const LADDER_CLIMB_SPEED` -- The climb speed on ladders and vines.
-- `const SCAFFOLDING_CLIMB_SPEED` -- The climb and descend speed in scaffolding.
+- `const SCAFFOLDING_CLIMB_SPEED` -- The climb and descend speed in scaffolding, and the climb in powder snow in leather boots.
 - `function climbSpeed (kind: ClimbableKind): number` -- The climb speed of a climbable.
 - `function waterSink (y: number, { down, downSlow, flying }: { down?: boolean | undefined, downSlow?: boolean | undefined, flying?: boolean | undefined }): number` -- Sneaking in water sinks 0.04 per tick (the sneak key or the slow descend), unless flying.
 - `function jumpReduced (feet: Block | null | undefined, below: Block | null | undefined): boolean` -- Whether a jump from these blocks (the one at the feet and the one below) is reduced.
