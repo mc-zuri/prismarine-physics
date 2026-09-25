@@ -135,6 +135,7 @@ tick against the client's packets. Of about 115,000 ticks the client captured on
 | mounts, 1.26.20.4 | 241 of 3322 | where the rider sits on a camel, a pig or an untamed horse the server moves (the seat follows the mount's interpolated body turn and a rearing horse's lean); the stand spot after jumping out of a minecart or pig is 1e-7 low |
 | mounts, 1.26.51.1 | 610 of 3355 | the same, and a boat left to bob: this capture has no random state, so the big waves are guessed |
 | teleport, 1.26.20.4 | 5 of 5974 | a sprint stopped at a teleport, and two landings after a long hop |
+| teleport, 1.26.51.1 | 1 of 2741 | a sprint stopped a tick early after a far teleport |
 
 The 1.26.10.4 proxy recording (10109 of 10167) has no client capture to time its packets by.
 
@@ -149,6 +150,6 @@ following, which no client has recorded yet:
 - `boat`, `items`, `parity` and `probe` on 1.26.51.1 (recorded on 1.26.20.4 only)
 
 `knockback` (a cow's hits: standing, walking, sprinting, in the air, three in a row), `push` and `teleport` are recorded
-on 1.26.20.4 and replay exactly but for the teleport row above. `mounts` is recorded on both clients (a tamed horse walking, turning and jumping at three charges, a donkey, an untamed
+on both clients and replay exactly but for the teleport rows above. `mounts` is recorded on both clients (a tamed horse walking, turning and jumping at three charges, a donkey, an untamed
 horse, camels walking, dashing and stepping up, a minecart on powered rails, a pig led by a carrot on a stick, jumping
 out of both, a boat left to bob for 400 ticks, a death with the immediate respawn).
