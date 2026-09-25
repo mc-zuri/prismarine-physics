@@ -16,6 +16,7 @@ or the shared rewind cases (`test/bedrock/rewind-parity.test.js`); see [Testing]
     toggle held over scaffolding sets the sneak from its sixth tick (cleared when let go after six or more); on touch
     it descends on the descend key;
   - on touch a sprint started from the input stops when the sprint key lets go
+- a swing at nothing (`missedSwing`, which mineflayer's `bot.swingArm()` sets): the tick reports `missed_swing`
 - a screen open (a menu, the inventory) clears the tick's input: no move and no want up, want down or jumping, the
   sneaking and sprinting of the tick before standing
 - sprint: the key, the double tap, the hunger and riding limits, stopping on a wall or a slow move, the server's
@@ -142,7 +143,6 @@ then continues from the correction.
 **Input**
 
 - touch's own paddles (a touch client with the touch interaction model paddles with its buttons, not the move)
-- `missed_swing`: the flag a swing at nothing sets; the caller has no way to ask for it yet
 - the prediction-sync packet a client sends some time after a correction
 
 ## Where the replays still differ
