@@ -3,6 +3,8 @@ import { Vec3 } from 'vec3'
 import { Box } from '../../../../lib/bedrock/math/box.ts'
 import { BedrockRewind, cloneState, cloneValue, type Frame } from '../../../../lib/bedrock/network/rewind.ts'
 
+const f = Math.fround
+
 describe('bedrock network/rewind', () => {
   it('deep-copies vectors, cloneables, sets, maps, arrays and objects', () => {
     const value = { v: new Vec3(1, 2, 3), box: new Box(0, 0, 0, 1, 1, 1), set: new Set([{ a: 1 }]), map: new Map([['k', { b: 2 }]]), list: [{ c: 3 }], n: null, s: 'x' }
@@ -79,29 +81,53 @@ describe('bedrock network/rewind', () => {
     assert.deepStrictEqual([live.n, steps.length], [160, 1], 'no state kept: installed live, nothing replayed')
   })
 
-  it('replays a frame after the first with no turn at the rotation the one before it ran with', () => {
-    const ran: Array<Array<number | undefined>> = []
-    const rewind = new BedrockRewind<{ yaw: number, pitch: number }>({
+  it('replays the ticks after the first with their turns only, on the rotation the tick before ran with', () => {
+    const deg = (yaw: number): number => Math.PI - yaw * Math.PI / 180
+    const pit = (pitch: number): number => -pitch * Math.PI / 180
+    const ran: number[][] = []
+    const rewind = new BedrockRewind<{ yaw: number, pitch: number, bedrockYaw?: number, bedrockPitch?: number }>({
       step: (state, frame: Frame) => {
         if (typeof frame.yaw === 'number') state.yaw = frame.yaw
         if (typeof frame.pitch === 'number') state.pitch = frame.pitch
-        ran.push([frame.t, state.yaw, state.pitch, frame.bedrockYaw as number | undefined])
+        if (typeof frame.bedrockYaw === 'number') state.bedrockYaw = frame.bedrockYaw
+        if (typeof frame.bedrockPitch === 'number') state.bedrockPitch = frame.bedrockPitch
+        ran.push([frame.t, f((Math.PI - state.yaw) * 180 / Math.PI), f(-state.pitch * 180 / Math.PI)])
       }
     })
+    // recorded: 10 (jittered to 10.0001 on tick 3, no turn), a turn of +5 yaw and -95 pitch on tick 4, one of +200 yaw
+    // on tick 5
     const frames: Frame[] = [
-      { t: 1, yaw: 1, pitch: 1 },
-      { t: 2, yaw: 2, pitch: 2, turned: false },
-      { t: 3, yaw: 3, pitch: 3, bedrockYaw: 3, bedrockPitch: 3, turned: false },
-      { t: 4, yaw: 4, pitch: 4, turned: true },
-      { t: 5, yaw: 5, pitch: 5 }
+      { t: 1, yaw: deg(0), pitch: pit(0) },
+      { t: 2, yaw: deg(10), pitch: pit(0) },
+      { t: 3, yaw: deg(f(10.0001)), pitch: pit(0) },
+      { t: 4, yaw: deg(f(15.0001)), pitch: pit(-95) },
+      { t: 5, yaw: deg(f(215.0001)), pitch: pit(-95) },
+      { t: 6 }
     ]
     for (const frame of frames) {
       rewind.push(frame)
-      rewind.snapshot(frame.t, { yaw: frame.t, pitch: frame.t })
+      rewind.snapshot(frame.t, { yaw: frame.yaw as number ?? 0, pitch: frame.pitch as number ?? 0 })
     }
     rewind.rewindTo(1, { yaw: 0, pitch: 0 }, () => {})
-    assert.deepStrictEqual(ran, [[2, 2, 2, undefined], [3, 2, 2, undefined], [4, 4, 4, undefined]], 'the first replayed frame and a turn take their own')
-    assert.strictEqual(frames[2]!.yaw, 3, 'the frame kept is left as it is')
+    assert.deepStrictEqual(ran.map(r => r[0]), [2, 3, 4, 5])
+    assert.deepStrictEqual(ran[0]!.slice(1), [10, 0], 'the first its own')
+    assert.deepStrictEqual(ran[1]!.slice(1), [10, 0], 'a change below the threshold is no turn')
+    assert.deepStrictEqual(ran[2]!.slice(1), [f(10 + f(f(15.0001) - f(10.0001))), -90], 'the turn added, the pitch within 90')
+    assert.deepStrictEqual(ran[3]!.slice(1), [f(f(ran[2]![1]! + 200) - 360), -90], 'the yaw wrapped')
+    // while the rotation simulated again is the recorded one, a turn takes the recorded rotation as it is
+    ran.length = 0
+    rewind.rewindTo(3, { yaw: 0, pitch: 0 }, () => {})
+    assert.deepStrictEqual(ran.map(r => r.slice(1)), [[f(15.0001), -95], [f(215.0001), -95]])
+    // a frame carrying Bedrock degrees gets them back in degrees
+    const inDegrees = new BedrockRewind<{ bedrockYaw: number, bedrockPitch: number }>({ step: (state, frame: Frame) => { state.bedrockYaw = frame.bedrockYaw as number ?? state.bedrockYaw; state.bedrockPitch = frame.bedrockPitch as number ?? state.bedrockPitch } })
+    for (const [t, yaw] of [[1, 0], [2, 0], [3, f(0.0001)], [4, 30]] as const) {
+      inDegrees.push({ t, bedrockYaw: yaw, bedrockPitch: 0 })
+      inDegrees.snapshot(t, { bedrockYaw: yaw, bedrockPitch: 0 })
+    }
+    inDegrees.push({ t: 5 })
+    const live = { bedrockYaw: 0, bedrockPitch: 0 }
+    inDegrees.rewindTo(1, live, () => {})
+    assert.strictEqual(live.bedrockYaw, f(0 + f(30 - f(0.0001))))
   })
 
   it('simulates again from an earlier tick, the install still made after its own', () => {

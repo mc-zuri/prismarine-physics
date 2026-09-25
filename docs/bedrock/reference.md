@@ -617,7 +617,7 @@ const rewind = new BedrockRewind({ step: (state, frame) => { ...apply frame's in
 
 - `function cloneValue<T> (value: T): T` -- A deep copy: vectors, anything with clone(), sets, maps, arrays and plain objects.
 - `function cloneState<T> (state: T): T` -- A deep copy of a player state.
-- `interface Frame` -- One tick's inputs, by tick. `turned: false` says no turn input reached the tick's move.
+- `interface Frame` -- One tick's inputs, by tick.
 - `type Step` -- Simulates one past tick again from its frame.
 - `class BedrockRewind` -- The history of the last ticks: their frames and the state after each, and the re-simulation from a corrected tick.
 
@@ -627,12 +627,12 @@ A local player's session: its ticks, the history they leave, and the server's mo
 
 const session = new BedrockSession({ physics, world })   session.handlePacket(name, params)   // a packet as bedrock-protocol decodes it; takes effect next tick   session.tick(state, frame)           // one tick: the packets due, then the simulation
 
-`state` is the player (a PlayerState or the same shape) and `frame` the tick's inputs: { t, control, yaw?, pitch?, bedrockYaw?, bedrockPitch?, turned?, riptideLaunch?, spinHits?, fireworkUsed?, usingItem?, itemUseStarted? }. The session keeps each tick's frame and the state after it, so a correction stamped for an earlier tick is installed there and the ticks since are simulated again with their inputs.
+`state` is the player (a PlayerState or the same shape) and `frame` the tick's inputs: { t, control, yaw?, pitch?, bedrockYaw?, bedrockPitch?, riptideLaunch?, spinHits?, fireworkUsed?, usingItem?, itemUseStarted? }. The session keeps each tick's frame and the state after it, so a correction stamped for an earlier tick is installed there and the ticks since are simulated again with their inputs.
 
 The actions (teleport, correct, movementAttribute, actorFlags) are callable directly, for a caller that decides itself which tick a packet takes effect on.
 
 - `interface SessionPhysics` -- What the session needs of the physics object.
-- `interface TickFrame` -- One tick's inputs: the tick number, the control state, the rotation (and `turned: false` when no turn input reached the tick), and a riptide launch and the mobs the spin hit.
+- `interface TickFrame` -- One tick's inputs: the tick number, the control state, the rotation, and a riptide launch and the mobs the spin hit.
 - `interface StampedCorrection` -- A movement correction with the tick it is stamped for.
 - `interface StampedAttribute` -- A movement attribute with its tick: the value without the sprint boost, and the current one.
 - `type StampedFlags` -- Restated actor flags with their tick.

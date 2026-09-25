@@ -6,7 +6,7 @@
 //   session.tick(state, frame)           // one tick: the packets due, then the simulation
 //
 // `state` is the player (a PlayerState or the same shape) and `frame` the tick's inputs: { t, control, yaw?, pitch?,
-// bedrockYaw?, bedrockPitch?, turned?, riptideLaunch?, spinHits?, fireworkUsed?, usingItem?, itemUseStarted? }. The session keeps each tick's frame and the state after it, so a correction stamped for
+// bedrockYaw?, bedrockPitch?, riptideLaunch?, spinHits?, fireworkUsed?, usingItem?, itemUseStarted? }. The session keeps each tick's frame and the state after it, so a correction stamped for
 // an earlier tick is installed there and the ticks since are simulated again with their inputs.
 //
 // The actions (teleport, correct, movementAttribute, actorFlags) are callable directly, for a caller that decides
@@ -35,8 +35,7 @@ export interface SessionPhysics {
   setActorFlags (state: Player, flags: ActorFlags): void
 }
 
-// One tick's inputs: the tick number, the control state, the rotation (and `turned: false` when no turn input reached
-// the tick), and a riptide launch and the mobs the spin hit.
+// One tick's inputs: the tick number, the control state, the rotation, and a riptide launch and the mobs the spin hit.
 export interface TickFrame extends Frame {
   control?: Control | undefined
   yaw?: number | undefined
