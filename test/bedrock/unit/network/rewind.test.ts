@@ -6,8 +6,8 @@ import { BedrockRewind, cloneState, cloneValue, type Frame } from '../../../../l
 const f = Math.fround
 
 describe('bedrock network/rewind', () => {
-  it('deep-copies vectors, cloneables, sets, maps, arrays and objects', () => {
-    const value = { v: new Vec3(1, 2, 3), box: new Box(0, 0, 0, 1, 1, 1), set: new Set([{ a: 1 }]), map: new Map([['k', { b: 2 }]]), list: [{ c: 3 }], n: null, s: 'x' }
+  it('deep-copies vectors, cloneables, sets, maps, typed arrays, arrays and objects', () => {
+    const value = { v: new Vec3(1, 2, 3), box: new Box(0, 0, 0, 1, 1, 1), set: new Set([{ a: 1 }]), map: new Map([['k', { b: 2 }]]), bytes: new Uint8Array([1, 2]), list: [{ c: 3 }], n: null, s: 'x' }
     const copy = cloneValue(value)
     assert.deepStrictEqual(copy, value)
     assert.notStrictEqual(copy.v, value.v)
@@ -16,6 +16,7 @@ describe('bedrock network/rewind', () => {
     assert.notStrictEqual([...copy.set][0], [...value.set][0])
     assert.notStrictEqual(copy.map.get('k'), value.map.get('k'))
     assert.notStrictEqual(copy.list[0], value.list[0])
+    assert.ok(copy.bytes instanceof Uint8Array && copy.bytes !== value.bytes, 'the random state stays a byte array')
     assert.strictEqual(cloneValue(5), 5)
     assert.deepStrictEqual(cloneState({ a: [1] }), { a: [1] })
   })

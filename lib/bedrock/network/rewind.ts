@@ -9,9 +9,10 @@ import { Vec3 } from 'vec3'
 import { f } from '../math/float.ts'
 import { pitchOf, wrapDegrees, yawOf, type Rotated } from '../math/rotation.ts'
 
-// A deep copy: vectors, anything with clone(), sets, maps, arrays and plain objects.
+// A deep copy: vectors, anything with clone(), sets, maps, typed arrays (the random state), arrays and plain objects.
 export function cloneValue<T> (value: T): T {
   if (value === null || typeof value !== 'object') return value
+  if (value instanceof Uint8Array) return value.slice() as T
   if (value instanceof Vec3) return new Vec3(value.x, value.y, value.z) as T
   const cloneable = value as { clone?: () => T }
   if (typeof cloneable.clone === 'function') return cloneable.clone()

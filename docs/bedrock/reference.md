@@ -625,7 +625,7 @@ The movement history the client keeps: the inputs of the last few ticks and the 
 
 const rewind = new BedrockRewind({ step: (state, frame) => { ...apply frame's inputs; physics.simulatePlayer(state, world) } })   // every tick: rewind.push(frame); step(state, frame); rewind.snapshot(frame.t, state)   // a correction stamped for tick T: rewind.rewindTo(T, state, () => physics.applyCorrection(state, correction))
 
-- `function cloneValue<T> (value: T): T` -- A deep copy: vectors, anything with clone(), sets, maps, arrays and plain objects.
+- `function cloneValue<T> (value: T): T` -- A deep copy: vectors, anything with clone(), sets, maps, typed arrays (the random state), arrays and plain objects.
 - `function cloneState<T> (state: T): T` -- A deep copy of a player state.
 - `interface Frame` -- One tick's inputs, by tick.
 - `interface Turns` -- The turns a tick's input made, where the caller knows them apart from the view's jitter: each [pitch, yaw] change the history kept (in degrees, as the view moved it), and the yaw the last of them set.
