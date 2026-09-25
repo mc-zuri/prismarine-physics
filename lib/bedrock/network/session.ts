@@ -417,8 +417,9 @@ export class BedrockSession {
       if (view?.bedrock) view.bedrock.ascendRestated = flags.inAscendable
     }
     if (!Object.keys(changed).length) return
-    // one that differed from the history is filed on its frame too: the next rewind simulates again from there
-    const filed = Object.fromEntries(Object.entries(changed).filter(([name]) => name !== 'pushTowardsClosestSpace')) as ActorFlags
+    // one that differed from the history is filed on its frame too: the next rewind simulates again from there. The
+    // sprint is the client's own: a restated one is taken, but not filed (a rewind does not undo a sprint it started)
+    const filed = Object.fromEntries(Object.entries(changed).filter(([name]) => name !== 'pushTowardsClosestSpace' && name !== 'sprinting')) as ActorFlags
     // one stamped before the history a far teleport started is taken, but not filed: no rewind reaches behind the teleport
     const beforeTeleport = flags.tick < this.ringOldest && at === this.ringOldest
     if (frame && !beforeTeleport && Object.keys(filed).length) {

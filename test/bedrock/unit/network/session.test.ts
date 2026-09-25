@@ -324,6 +324,15 @@ describe('bedrock network/session', () => {
     assert.strictEqual(moved.ringOldest, 4)
   })
 
+  it('takes a restated sprint that differs from the history without filing it', () => {
+    const s = session()
+    const p = player([0, 0, 0], { bedrock: { sprinting: true } })
+    for (let t = 1; t <= 5; t++) s.tick(p, { t })
+    s.actorFlags(p, { tick: 3, sprinting: false, sneaking: true })
+    assert.deepStrictEqual([p.bedrock!.sprinting, p.bedrock!.sneaking], [false, true])
+    assert.deepStrictEqual(s.flagCorrections.get(3), { sneaking: true }, 'the sneak is filed, the sprint is not')
+  })
+
   it('takes a restatement stamped before a far teleport without filing it', () => {
     const s = session()
     const p = player([0, 0, 0], { bedrock: { sprinting: true } })
