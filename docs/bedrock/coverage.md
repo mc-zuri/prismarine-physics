@@ -135,21 +135,18 @@ tick against the client's packets. Of about 115,000 ticks the client captured on
 | mounts, 1.26.20.4 | 241 of 3322 | where the rider sits on a camel, a pig or an untamed horse the server moves (the seat follows the mount's interpolated body turn and a rearing horse's lean); the stand spot after jumping out of a minecart or pig is 1e-7 low |
 | mounts, 1.26.51.1 | 610 of 3355 | the same, and a boat left to bob: this capture has no random state, so the big waves are guessed |
 | teleport, 1.26.20.4 | 5 of 5974 | a sprint stopped at a teleport, and two landings after a long hop |
-| teleport, 1.26.51.1 | 1 of 2741 | a sprint stopped a tick early after a far teleport |
+| snow, both clients | 65 and 64 of about 700 | powder snow in leather boots: sneaking down through it begins a tick later than the engine's (a landing and the sneak on one tick land first), climbing out of it, and sprinting into it |
+| climbing, both clients | 18 and 5 | walking into scaffolding with jump held pushes up 0.15 before the box reaches it; cave vines are slid down a tick sooner |
+| effects, 1.26.20.4 | 12 of 1638 | the end of a Levitation cleared by `effect clear` acts a tick later than the model (1.26.51.1 exact) |
+| blocks, 1.26.20.4 | 11 of 1838 | walking in powder snow in leather boots (1.26.51.1 exact) |
+| sneakedge, 1.26.51.1 | 6 of 1219 | a wall collision flag at an edge |
 
 The 1.26.10.4 proxy recording (10109 of 10167) has no client capture to time its packets by.
 
-## Not recorded yet
+## Recordings
 
 The recorder (`bedrock-tools-v2/packages/recorder`, `BEDROCK_FIXTURE=<name> node src/main.ts`, with
-`BEDROCK_FIXTURE_VERSION=Flat2651` for 1.26.51.1; `BEDROCK_FIXTURE=list` lists them) has fixtures for all of the
-following, which no client has recorded yet:
-
-- `ice`, `soulsand`, `flight`, `climbing`, `effects`, `blocks`, `collision`, `sneakedge`, `pose`, `epsilon`,
-  `multi`, `snow`
-- `boat`, `items`, `parity` and `probe` on 1.26.51.1 (recorded on 1.26.20.4 only)
-
-`knockback` (a cow's hits: standing, walking, sprinting, in the air, three in a row), `push` and `teleport` are recorded
-on both clients and replay exactly but for the teleport rows above. `mounts` is recorded on both clients (a tamed horse walking, turning and jumping at three charges, a donkey, an untamed
-horse, camels walking, dashing and stepping up, a minecart on powered rails, a pig led by a carrot on a stick, jumping
-out of both, a boat left to bob for 400 ticks, a death with the immediate respawn).
+`BEDROCK_FIXTURE_VERSION=Flat2651` for 1.26.51.1; `BEDROCK_FIXTURE=list` lists them) has recorded every fixture it
+registers on both clients except `flight` and `collision` (the two long sweeps), and `boat`, `items`, `parity` and
+`probe` on 1.26.51.1. Knockback, push, teleport, ice, soul sand, sneak edges, poses, epsilon moves, multi-system cases,
+mounts and powder snow are replayed on both; the rows above are what they still show.
