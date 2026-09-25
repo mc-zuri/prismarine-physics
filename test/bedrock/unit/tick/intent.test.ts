@@ -155,6 +155,12 @@ describe('bedrock tick/intent', () => {
     const beached = start(FLAT, player(undefined, { bedrock: { swimming: true, sprinting: true } }))
     decidePose(beached.c, beached.entity, beached.tick, decideSprint(beached.c, beached.entity, beached.tick))
     assert.ok(beached.entity.bedrock.actions!.has('stopSwimming'))
+
+    // teleported out of the water: the teleport tick makes no move, so it weighs no new water and keeps the swim
+    const landed = start(FLAT, player(undefined, { isInWater: true, bedrock: { swimming: true, sprinting: true, teleported: true } }))
+    decidePose(landed.c, landed.entity, landed.tick, decideSprint(landed.c, landed.entity, landed.tick))
+    assert.ok(!landed.entity.bedrock.actions!.has('stopSwimming'))
+    assert.ok(!landed.entity.bedrock.actions!.has('stopSprinting'))
   })
 
   it('stands a spectator up', () => {

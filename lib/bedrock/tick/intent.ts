@@ -116,7 +116,8 @@ export function decidePose (ctx: Ctx, entity: Simulated, tick: TickState, sprint
   const room = poseRoom(ctx, entity)
   const aabb = st.aabb!
   const centreY = f(f(f(aabb.maxY - aabb.minY) * 0.5) + aabb.minY)
-  const swim = swimAction({
+  // the water the swim weighs is the one the last move left, and a teleport tick makes none: it starts or stops no swim
+  const swim = !st.teleported && swimAction({
     swimming,
     eyeInWater,
     flying: tick.flying,

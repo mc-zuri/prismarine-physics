@@ -83,7 +83,7 @@ The start of a tick: the state it begins from, the box in the pose the player is
 - `function startingPoseHeight (entity: Player, standHeight: number): number` -- The box height the tick starts with: the pose's kept height, else the pose the controls and flags say.
 - `function syncGlideFlag (entity: Simulated): void` -- The glide flag: the engine's own, unless the caller changed entity.elytraFlying since the engine last wrote it.
 - `function clientFlying (st: BedrockState, serverFlying: boolean): boolean` -- The flying ability as the client holds it: its own toggle (the double tap sets it at once), until the server's flag changes and restates it.
-- `function beginTick (ctx: Ctx, entity: Player): { tick: TickState, entity: Simulated }` -- Begins a tick: float32 velocity, the jump cooldown, the box, the ground block and its friction, the flying ability and fly intent (the caller's own toggle when it tracks one, else the ability), and the liquids on the box -- with the flowing water's push.
+- `function beginTick (ctx: Ctx, entity: Player): { tick: TickState, entity: Simulated }` -- Begins a tick: float32 velocity, the jump cooldown, the box, the ground block and its friction, the flying ability and fly intent (the caller's own toggle when it tracks one, else the ability), and the liquids on the box -- with the flowing water's push. A teleport tick makes no move, and keeps the liquids the last move sensed.
 
 ### `tick/climb.ts`
 
