@@ -98,14 +98,16 @@ then continues from the correction.
 **Mounts**
 
 - a horse's rearing (it stands after a jump, and a standing horse takes no move)
-- where the rider of a vehicle the server moves sits between the server's positions: the seat follows the vehicle as
-  the client shows it (its interpolation, and a rearing horse's lean), not only its last position
+- where the rider of a vehicle the server moves sits between the server's positions: the seat turns and moves with the
+  vehicle as the client shows it at the tick, but not as far as the frame the client renders when it runs the tick (a
+  part of the next interpolation step), nor with a rearing horse's lean
 - the rider's yaw clamped to its vehicle's
 
 **Boats**
 
 - the wave phase: the bobbing timer runs from the boat's spawn and a random draw makes the big waves, from a
-  generator other things draw from too, so the height drifts from the server's within a few hundredths
+  generator other things draw from too. A replay takes the draw from the client's random state in the capture (and is
+  exact); a live bot does not know that state, so its height drifts from the server's within a few hundredths
 
 **Attributes and entity data**
 
@@ -133,7 +135,7 @@ then continues from the correction.
 ## Where the replays still differ
 
 Every recording below is replayed through a full mineflayer bot (`test/bedrock/replay.test.js` in mineflayer), tick by
-tick against the client's packets. Of about 115,000 ticks the client captured on 1.26.20.4 and 1.26.51.1, these differ:
+tick against the client's packets. Of the 246,429 ticks the client captured on 1.26.20.4 and 1.26.51.1, these differ:
 
 | Recording | Differs | Why |
 |---|---|---|
