@@ -9,6 +9,10 @@ or the shared rewind cases (`test/bedrock/rewind-parity.test.js`); see [Testing]
 **Input and pose**
 
 - raw keys and analogue sticks cooked into the move vector; the input flags of `player_auth_input`
+- a gamepad: the stick, the input mode the packet reports, and the toggle sneak, which the client keeps held through
+  an input clear and reports as `persist_sneak`
+- a screen open (a menu, the inventory) clears the tick's input: no move and no want up, want down or jumping, the
+  sneaking and sprinting of the tick before standing
 - sprint: the key, the double tap, the hunger and riding limits, stopping on a wall or a slow move, the server's
   restated sprint flag
 - using an item (eating, drinking, drawing a bow, charging a trident) scales the move to 0.1225 and stops a sprint;
@@ -127,8 +131,8 @@ then continues from the correction.
 
 **Input**
 
-- gamepad and touch input modes (the scaffolding descend hold, their sprint trigger and paddles): the engine is a
-  keyboard-and-mouse client
+- touch input, and what a gamepad or touch changes beyond the stick, the toggle sneak and the input mode (the
+  scaffolding descend hold, their sprint trigger and paddles)
 - `missed_swing`: the flag a swing at nothing sets; the caller has no way to ask for it yet
 - the prediction-sync packet a client sends some time after a correction
 
@@ -156,9 +160,14 @@ tick against the client's packets. Of the 246,429 ticks the client captured on 1
 | sneakedge, 1.26.51.1 | 2 of 1219 | a float32 unit of a slow slide between scenarios |
 | parity, 1.26.51.1 | 22 of 1385 | a column the client has the level chunk of but has not yet requested the sections of: it moves through it as air at altitude (the level chunk says the content ends 64 blocks above the floor), while over a column whose sections it has requested (a teleport's target) it stands; the replay does not know which the client has requested, and treating everything above a column's content as air breaks the teleports (1.26.20.4 exact) |
 | items, both clients | 2 of 3335 and 3 of 3319 | one tick of a sprint swim toward a dolphin held 10 blocks ahead (the swim is a little faster for that tick, and even again after it; the dolphin held 4 ahead and the free one are exact), a crawl start between scenarios (1.26.20.4), and one float32 unit (one ULP) in the height of a landing on the boat just left (1.26.51.1) |
+| monsters, 1.26.20.4 (gamepad) | 326 of 3203 | a hand-played fight: a float32 unit of position for a tick or two after most hits (the knockback's velocity is exact), and a few item uses and swings; not established |
+| happy_ghast, 1.26.20.4 (gamepad) | 303 of 1850 | riding the happy ghast, which the server moves: the rider's seat (see above) |
+| dragon, 1.26.20.4 (gamepad) | 928 of 5003 | the change to the End, which is not modelled, and a float32 unit of position after hits |
 | boat, both clients | 11 of 1529 and 1 of 1561 | the first strokes of a boat on the ground whose click mount took three tries, a tick apart (1.26.20.4), and the landing on the boat just left (1.26.51.1) |
 
-The 1.26.10.4 proxy recording (10109 of 10167) has no client capture to time its packets by.
+The 1.26.10.4 proxy recording (10109 of 10167) has no client capture to time its packets by. The gameplay sessions
+played by hand on a gamepad (`npm run record -- <scenario>` in the recorder, batch 203) are replayed too; `ghast`
+(1118 ticks) is exact.
 
 ## Recordings
 
