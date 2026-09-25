@@ -8,8 +8,8 @@ const f = Math.fround
 const EYE = 1.6200100183486938
 
 // test/bedrock/session.test.js covers the packets end to end; these cover the decisions around them.
-function session () {
-  const physics = Physics({ version: { minecraftVersion: '1.26.20' } }, FLAT)
+function session (version = '1.26.51') {
+  const physics = Physics({ version: { minecraftVersion: version } }, FLAT)
   const s = new BedrockSession({ physics, world: FLAT })
   s.handlePacket('start_game', { runtime_entity_id: 7n, rewind_history_size: 40 })
   return s
@@ -582,6 +582,18 @@ describe('bedrock network/session', () => {
       s.tick(p, { t: 9 })
       assert.strictEqual(rewound, 0, 'adding one already there at that level')
       assert.strictEqual(effectLevel(s.effects.get('levitation')!, 2), 2, 'but the history has it')
+    })
+
+    it('takes a late Levitation effect no further back than 4 ticks before 1.26.51', () => {
+      const late = (version: string) => {
+        const s = session(version)
+        const p = player([0.5, 5, 0.5], { onGround: false })
+        for (let t = 1; t <= 9; t++) s.tick(p, { t })
+        s.handlePacket('mob_effect', packet({ tick: 1n, duration: -1 }))
+        s.tick(p, { t: 10 })
+        return s.effects.get('levitation')![0]!.frame
+      }
+      assert.deepStrictEqual([late('1.26.20'), late('1.26.51')], [6, 2])
     })
 
     it('rewinds to its frame only where a tick since changes, and not at all when a later event still sets them', () => {

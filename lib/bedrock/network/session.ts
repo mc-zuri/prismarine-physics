@@ -34,6 +34,8 @@ export interface SessionPhysics {
   applyMotion (state: Player, motion: { x: number, y: number, z: number }): void
   setMovementAttribute (state: Player, attribute: { base: number, current?: number, sprintStartedSince?: boolean }): void
   setActorFlags (state: Player, flags: ActorFlags): void
+  // how far back a Levitation packet takes effect at most, where the version limits it
+  levitationRewindReach?: number | undefined
 }
 
 // One tick's inputs: the tick number, the control state, the rotation, and a riptide launch and the mobs the spin hit.
@@ -267,7 +269,9 @@ export class BedrockSession {
   // changes the effect the player has now; a frame to come picks it up when it is simulated. The client counts its
   // duration down itself: it lasts through the tick before that frame plus its duration.
   effect (state: Player, effect: StampedEffect): void {
-    const frame = effect.tick > 0 ? effect.tick + 1 : this.rewind.current
+    // (a Levitation that arrives late takes effect no further back than the version reaches)
+    const reach = effect.field === 'levitation' ? this.physics.levitationRewindReach : undefined
+    const frame = effect.tick > 0 ? Math.max(effect.tick + 1, reach === undefined ? -Infinity : this.rewind.current - reach) : this.rewind.current
     const timed = effect.level > 0 && typeof effect.duration === 'number' && effect.duration >= 0
     const events = this.effects.get(effect.field) || []
     const before = [...events]

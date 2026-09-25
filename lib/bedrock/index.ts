@@ -43,6 +43,9 @@ export function versionAtLeast (registry: Registry, major: number, minor: number
 // rules change within a major version (1.26.10 and 1.26.20 differ), so a feature is keyed on the full version.
 export interface Feature { name: string, description: string, since: string }
 
+// How far back a Levitation packet takes effect at most before 1.26.51.
+const LEVITATION_REWIND_REACH = 4
+
 // The Bedrock features (features.json beside this file).
 export const FEATURES: readonly Feature[] = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, 'features.json'), 'utf8'))
 
@@ -101,6 +104,8 @@ export interface BedrockPhysics extends Settings {
   playerAuthInput (entity: Player): Record<string, unknown>
   setMovementAttribute (entity: Player, attribute: { base: number, current?: number, sprintStartedSince?: boolean }): void
   handleTeleport (entity: Player, teleport: Teleport): void
+  // how far back a Levitation packet takes effect at most (before 1.26.51: 4 ticks), none where there is no limit
+  levitationRewindReach: number | undefined
   // the player placed alive at `at` (the eye position) by the server's respawn
   respawn (entity: Player, at: Vec3Like): void
   applyCorrection (entity: Player, correction: MoveCorrection): void
@@ -146,6 +151,7 @@ export function Physics (registry: Registry, world: World): BedrockPhysics {
   physics.applyCorrection = (entity, correction) => applyCorrection(entity, correction, physics.eyeHeight)
   physics.setActorFlags = (entity, flags) => setActorFlags(entity, flags)
   physics.applyMotion = (entity, motion) => applyMotion(entity, motion)
+  physics.levitationRewindReach = supportFeature(registry, 'levitationFullRewind') ? undefined : LEVITATION_REWIND_REACH
   // the liquid state of the coming tick, for a caller deciding its inputs on it
   physics.senseLiquids = (entity, w) => senseLiquids(w, sensingBox(entity, physics))
   // drops the position onto the ground below it (up to one block)

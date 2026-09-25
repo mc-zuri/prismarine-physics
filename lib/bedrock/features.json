@@ -13,5 +13,10 @@
     "name": "scaffoldingClimbFlag",
     "description": "A held jump in scaffolding stops climbing when the climbable-block flag the last move left is off; before, on the tick the move is about to cross into a cell without scaffolding",
     "since": "1.26.20"
+  },
+  {
+    "name": "levitationFullRewind",
+    "description": "A Levitation added or removed takes effect from the tick after its stamp however late it arrives; before, from no earlier than 4 ticks before the current one",
+    "since": "1.26.51"
   }
 ]
