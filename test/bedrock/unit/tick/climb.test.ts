@@ -63,10 +63,14 @@ describe('bedrock tick/climb', () => {
     assert.strictEqual(slow.entity.vel.y, f(-0.1))
   })
 
-  it('holds a sneaker on a ladder, and climbs on jump', () => {
+  it('holds a sneaker on a ladder (not on the tick a crawl ends), and climbs on jump', () => {
     const sneak = start(LADDER, player(undefined, { vel: new Vec3(0, -0.1, 0) }), true)
     climbBeforeMove(sneak.c, sneak.entity, sneak.tick)
     assert.strictEqual(sneak.entity.vel.y, 0)
+    const uncrawl = start(LADDER, player(undefined, { vel: new Vec3(0, -0.1, 0) }), true)
+    uncrawl.entity.bedrock.actions = new Set(['stopCrawling'])
+    climbBeforeMove(uncrawl.c, uncrawl.entity, uncrawl.tick)
+    assert.strictEqual(uncrawl.entity.vel.y, f(-0.1), 'no hold on the tick a crawl ends')
     const jump = start(LADDER, player(undefined, { control: { jump: true } }))
     climbBeforeMove(jump.c, jump.entity, jump.tick)
     assert.strictEqual(jump.entity.vel.y, f(0.2))

@@ -45,7 +45,8 @@ export function climbBeforeMove (ctx: Ctx, entity: Simulated, tick: TickState): 
   }
   const speed = climbSpeed(kind)
   if (kind !== 'scaffolding') {
-    if (tick.sneaking && vel.y < 0) vel.y = 0
+    // (not on the tick a crawl ends: the player is not yet in the sneaking pose that holds)
+    if (tick.sneaking && !st.actions?.has('stopCrawling') && vel.y < 0) vel.y = 0
     if (vel.y < -speed) vel.y = f(-speed)
   }
   const exiting = kind === 'scaffolding' && exitingScaffolding(ctx.world, entity.pos, vel, !!entity.isCollidedVertically)
