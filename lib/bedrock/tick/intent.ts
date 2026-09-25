@@ -51,13 +51,31 @@ export function decideSprint (ctx: Ctx, entity: Simulated, tick: TickState): Spr
     flying: tick.flying,
     swimming: !!st.swimming,
     pos: entity.pos,
-    touch: false
+    touch: st.input!.inputMode === 'touch'
   })
   if (request.start) setSprintBoost(entity, ctx.settings, true)
   if (request.stop) setSprintBoost(entity, ctx.settings, false)
   tick.sprinting = !!st.sprinting
   st.jumpingFlag = (st.input!.jumping || st.keys!.ascendBlock) && !tick.flying
   return request
+}
+
+// A gamepad holding the sneak toggle over scaffolding (the block below the feet): from the sixth tick held, the sneak
+// key and the sneaking flag are set; let go after six ticks or more, both are cleared.
+const SCAFFOLD_HOLD_TO_SET = 5
+const SCAFFOLD_HOLD_TO_CLEAR = 6
+export function scaffoldingHold (entity: Simulated): void {
+  const st = entity.bedrock
+  const input = st.input!
+  if (input.inputMode !== 'game_pad') return
+  const held = st.scaffoldDropHeld || 0
+  if (input.keys.sneakToggleDown && st.overDescendable) {
+    st.scaffoldDropHeld = held + 1
+    if (held >= SCAFFOLD_HOLD_TO_SET) input.keys.sneakDown = input.sneaking = true
+    return
+  }
+  if (held >= SCAFFOLD_HOLD_TO_CLEAR) input.keys.sneakDown = input.sneaking = false
+  st.scaffoldDropHeld = 0
 }
 
 // The room the box has to stand, sneak and crawl.

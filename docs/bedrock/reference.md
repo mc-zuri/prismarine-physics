@@ -109,6 +109,7 @@ What the player wants this tick: the input, the sprint, and the pose (swimming, 
 
 - `function readInput (entity: Simulated, tick: TickState): void` -- Cooks the control state into the tick's input.
 - `function decideSprint (ctx: Ctx, entity: Simulated, tick: TickState): SprintRequest` -- The sprint decision, the sprint boost on the movement attribute, and the jumping flag the next tick's sprint decision reads. Starts the tick's action set.
+- `function scaffoldingHold (entity: Simulated): void`
 - `function poseRoom (ctx: Ctx, entity: Simulated): Room` -- The room the box has to stand, sneak and crawl.
 - `function decideFlight (ctx: Ctx, entity: Simulated, tick: TickState): { flyIntent: boolean, glideIntent: boolean }` -- The fly toggle, the glide start / stop and the creative glide lift; returns the intents the sneak decision reads.
 - `function decidePose (ctx: Ctx, entity: Simulated, tick: TickState, sprint: SprintRequest): void` -- The pose of the tick, in order: the swim pose amount steps from the previous tick's flags; the swim starts or stops; the fly and glide triggers run; the sneak / crawl / swim intent is decided and applied to the flags.

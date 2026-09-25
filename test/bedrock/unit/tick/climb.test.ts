@@ -109,6 +109,20 @@ describe('bedrock tick/climb', () => {
     assert.strictEqual(restated.entity.vel.y, f(0.15))
   })
 
+  it('descends scaffolding by the input mode: the descend key on touch, a sneak with the toggle held on a gamepad', () => {
+    const descends = (control: Player['control']) => {
+      const s = start(SCAFFOLD, player([0.5, 0.2, 0.5], { control }))
+      climbBeforeMove(s.c, s.entity, s.tick)
+      return s.entity.bedrock.scaffoldDescend
+    }
+    assert.deepStrictEqual([
+      descends({ inputMode: 'touch', sneak: true }),
+      descends({ inputMode: 'touch', raw: { descendBlock: true } }),
+      descends({ inputMode: 'game_pad', sneak: true }),
+      descends({ inputMode: 'game_pad', sneak: true, raw: { sneakToggleDown: true } })
+    ], [false, true, false, true])
+  })
+
   it('climbs on pushing into a wall on a ladder, not on scaffolding or without a push', () => {
     const push = start(LADDER, player(undefined, { isCollidedHorizontally: true }))
     assert.strictEqual(climbOnPush(push.c, push.entity), true)

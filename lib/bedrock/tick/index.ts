@@ -15,7 +15,7 @@ import { bubbleColumns, honeyBlocks, standOnSticky, velocityAfterMove } from './
 import { beginTick } from './begin.ts'
 import { climbBeforeMove, climbOnPush, climbOutOfLiquid } from './climb.ts'
 import { dolphinBoost, tickMovementEffects } from './dolphin.ts'
-import { decidePose, decideSprint, readInput } from './intent.ts'
+import { decidePose, decideSprint, readInput, scaffoldingHold } from './intent.ts'
 import { requestMove, settleCollisions, slowDown, sweepMove } from './move.ts'
 import type { TickState } from './state.ts'
 import { spinAttack } from './spin.ts'
@@ -144,6 +144,7 @@ export function simulatePlayer (ctx: Ctx, player: Player): Player {
   }
   entity.bedrock.riding = false
   const sprint = decideSprint(ctx, entity, tick)
+  scaffoldingHold(entity)
   spinAttack(entity, tick)
   decidePose(ctx, entity, tick, sprint)
   dolphinBoost(ctx, entity, tick)

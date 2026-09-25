@@ -3,11 +3,19 @@
 import { Box } from '../math/box.ts'
 import { f } from '../math/float.ts'
 import { climbSpeed, SCAFFOLDING_CLIMB_SPEED } from '../movement/jump.ts'
-import type { Ctx, Simulated } from '../types.ts'
+import type { CookedInput, Ctx, Simulated } from '../types.ts'
 import { collisionBoxes } from '../world/blocks.ts'
 import { climbableAt, exitingScaffolding } from '../world/climbables.ts'
 import { containsLiquid } from '../world/liquids.ts'
 import type { TickState } from './state.ts'
+
+// Whether the input asks to descend scaffolding: sneaking with a keyboard and mouse; the descend key on touch; on a
+// gamepad, sneaking with both the sneak key and the sneak toggle held.
+function wantsDescend (input: CookedInput): boolean {
+  if (input.inputMode === 'touch') return input.keys.descendBlock
+  if (input.inputMode === 'game_pad') return input.keys.sneakToggleDown && input.keys.sneakDown && input.sneaking
+  return input.sneaking
+}
 
 // Before the move. On a ladder or vine the fall is clamped to the climb speed (and held when sneaking); on scaffolding
 // sneaking descends at 0.15. A held jump climbs at the climb speed (0.2, scaffolding 0.15), unless it is leaving the
@@ -41,7 +49,7 @@ export function climbBeforeMove (ctx: Ctx, entity: Simulated, tick: TickState): 
   }
   const scaffoldCleared = st.scaffoldRestated === false
   st.scaffoldRestated = undefined
-  if (kind === 'scaffolding' && st.input!.sneaking && !scaffoldCleared) {
+  if (kind === 'scaffolding' && wantsDescend(st.input!) && !scaffoldCleared) {
     vel.y = f(-SCAFFOLDING_CLIMB_SPEED)
     st.scaffoldDescend = true
   }

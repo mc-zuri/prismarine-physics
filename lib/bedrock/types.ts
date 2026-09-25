@@ -185,6 +185,8 @@ export interface BedrockState {
 
   climbable?: ClimbableKind | null | undefined
   scaffoldDescend?: boolean | undefined
+  // the ticks a gamepad has held the sneak toggle over scaffolding
+  scaffoldDropHeld?: number | undefined
   wasInWater?: boolean | undefined
   wasInLava?: boolean | undefined
   // a teleport was handled since the last tick; and one a rewind simulated through since (still reported handled, but

@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 import { Vec3 } from 'vec3'
 import { beginTick } from '../../../../lib/bedrock/tick/begin.ts'
-import { decideFlight, decidePose, decideSprint, poseRoom, readInput } from '../../../../lib/bedrock/tick/intent.ts'
+import { decideFlight, decidePose, decideSprint, poseRoom, readInput, scaffoldingHold } from '../../../../lib/bedrock/tick/intent.ts'
 import type { Player, World } from '../../../../lib/bedrock/types.ts'
 import { ctx, FLAT, player, worldFrom, worldOf } from '../helpers.ts'
 
@@ -177,5 +177,34 @@ describe('bedrock tick/intent', () => {
     const s = start(worldOf({ '0,1,0': 'stone' }), player(undefined, { gameMode: 'spectator', bedrock: { crawling: true } }))
     decidePose(s.c, s.entity, s.tick, decideSprint(s.c, s.entity, s.tick))
     assert.strictEqual(s.entity.bedrock.crawling, false)
+  })
+
+  it('turns the sneak toggle of a gamepad held over scaffolding into a sneak from the sixth tick, cleared after six', () => {
+    const s = start(FLAT, player(undefined, { control: { inputMode: 'game_pad', raw: { sneakToggleDown: true } }, bedrock: { overDescendable: true } as any }))
+    const st = s.entity.bedrock
+    const state = () => [st.scaffoldDropHeld, st.input!.sneaking, st.input!.keys.sneakDown]
+    for (let i = 0; i < 5; i++) scaffoldingHold(s.entity)
+    assert.deepStrictEqual(state(), [5, false, false])
+    scaffoldingHold(s.entity)
+    assert.deepStrictEqual(state(), [6, true, true])
+    st.input!.keys.sneakToggleDown = false
+    scaffoldingHold(s.entity)
+    assert.deepStrictEqual(state(), [0, false, false])
+    // let go after five ticks: it was never set, so it is not cleared
+    st.scaffoldDropHeld = 5
+    st.input!.sneaking = true
+    scaffoldingHold(s.entity)
+    assert.deepStrictEqual(state(), [0, true, false])
+    const keyboard = start(FLAT, player(undefined, { control: { raw: { sneakToggleDown: true } }, bedrock: { overDescendable: true } as any }))
+    scaffoldingHold(keyboard.entity)
+    assert.strictEqual(keyboard.entity.bedrock.scaffoldDropHeld, undefined)
+  })
+
+  it('cancels a sprint started from the input on touch when the sprint key lets go', () => {
+    const cancel = (inputMode: string) => {
+      const s = start(FLAT, player(undefined, { control: { inputMode, forward: true }, bedrock: { sprinting: true, sprintingOnInput: true } as any }))
+      return decideSprint(s.c, s.entity, s.tick).sprintCanceled
+    }
+    assert.deepStrictEqual([cancel('touch'), cancel('game_pad')], [true, false])
   })
 })
