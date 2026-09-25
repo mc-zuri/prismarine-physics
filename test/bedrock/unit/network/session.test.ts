@@ -324,6 +324,17 @@ describe('bedrock network/session', () => {
     assert.strictEqual(moved.ringOldest, 4)
   })
 
+  it('takes a restatement stamped before a far teleport without filing it', () => {
+    const s = session()
+    const p = player([0, 0, 0], { bedrock: { sprinting: true } })
+    for (let t = 1; t <= 5; t++) s.tick(p, { t })
+    p.bedrock!.sprinting = false
+    s.teleport(p, 6, { x: 30, y: EYE, z: 0 })
+    s.tick(p, { t: 6 })
+    s.actorFlags(p, { tick: 4, sprinting: true })
+    assert.deepStrictEqual([p.bedrock!.sprinting, s.flagged.size], [true, 0])
+  })
+
   it('writes a movement attribute onto the history frames from its tick', () => {
     const s = session()
     const p = player()

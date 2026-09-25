@@ -419,7 +419,9 @@ export class BedrockSession {
     if (!Object.keys(changed).length) return
     // one that differed from the history is filed on its frame too: the next rewind simulates again from there
     const filed = Object.fromEntries(Object.entries(changed).filter(([name]) => name !== 'pushTowardsClosestSpace')) as ActorFlags
-    if (frame && Object.keys(filed).length) {
+    // one stamped before the history a far teleport started is taken, but not filed: no rewind reaches behind the teleport
+    const beforeTeleport = flags.tick < this.ringOldest && at === this.ringOldest
+    if (frame && !beforeTeleport && Object.keys(filed).length) {
       this.flagCorrections.set(at, { ...this.flagCorrections.get(at), ...filed })
       this.flagged.add(at)
     }
