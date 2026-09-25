@@ -70,7 +70,7 @@ export function jumpFromGround (ctx: Ctx, entity: Simulated, tick: TickState): v
 
 // The jump of the tick, in the client's order: a held jump in the swim pose holds still; on a ladder or vine it climbs
 // at 0.2 (in water too: the sink on the sneak key runs first and the climb replaces it), and a fresh press in
-// scaffolding climbs; in a liquid it rises (and the sneak key sinks in water); on the ground it jumps.
+// scaffolding climbs, each climb restarting the jump cooldown; in a liquid it rises (and the sneak key sinks in water); on the ground it jumps.
 export function jump (ctx: Ctx, entity: Simulated, tick: TickState): void {
   const st = entity.bedrock
   const vel = entity.vel
@@ -83,6 +83,8 @@ export function jump (ctx: Ctx, entity: Simulated, tick: TickState): void {
     if (st.wasInWater) vel.y = waterSink(vel.y, sink)
     if (st.climbable !== 'scaffolding') vel.y = climbSpeed(st.climbable)
     else if (pressed) vel.y = Math.max(vel.y, climbSpeed(st.climbable))
+    // a climb on the jump key restarts the jump cooldown: stepping off the top, the next jump waits for it
+    entity.jumpTicks = ctx.settings.autojumpCooldown
     return
   }
   const inLiquid = liquidJump(vel.y, {

@@ -116,11 +116,12 @@ describe('bedrock tick/travel', () => {
       assert.strictEqual(s.entity.vel.y, f(0.04))
     })
 
-    it('climbs a ladder or vine at 0.2 while jump is held, before any liquid rise', () => {
+    it('climbs a ladder or vine at 0.2 while jump is held, restarting the jump cooldown, before any liquid rise', () => {
       const s = start(FLAT, player(undefined, { control: { jump: true } }))
       s.entity.bedrock.climbable = 'vine'
       jump(s.c, s.entity, s.tick)
       assert.strictEqual(s.entity.vel.y, f(0.2))
+      assert.strictEqual(s.entity.jumpTicks, 10, 'the climb restarts the jump cooldown')
       s.entity.vel.y = 0
       jump(s.c, s.entity, s.tick)
       assert.strictEqual(s.entity.vel.y, f(0.2), 'held')
