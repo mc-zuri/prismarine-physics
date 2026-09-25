@@ -145,6 +145,8 @@ export function decidePose (ctx: Ctx, entity: Simulated, tick: TickState, sprint
     wasInWater: entity.isInWater,
     move: st.input!.move
   })
+  // a teleport tick stops no crawl (one without the room to stand still starts)
+  if (st.teleported && changes.crawl === false) delete changes.crawl
   raisePoseActions(st, changes, actions)
   applyPoseActions(st, actions)
 

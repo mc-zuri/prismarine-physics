@@ -163,6 +163,16 @@ describe('bedrock tick/intent', () => {
     assert.ok(!landed.entity.bedrock.actions!.has('stopSprinting'))
   })
 
+  it('stops no crawl on a teleport tick', () => {
+    const crawler = start(FLAT, player(undefined, { bedrock: { crawling: true } }))
+    decidePose(crawler.c, crawler.entity, crawler.tick, decideSprint(crawler.c, crawler.entity, crawler.tick))
+    assert.ok(crawler.entity.bedrock.actions!.has('stopCrawling'), 'with room to stand, a crawl stops')
+    const teleported = start(FLAT, player(undefined, { bedrock: { crawling: true, teleported: true } }))
+    decidePose(teleported.c, teleported.entity, teleported.tick, decideSprint(teleported.c, teleported.entity, teleported.tick))
+    assert.ok(!teleported.entity.bedrock.actions!.has('stopCrawling'))
+    assert.strictEqual(teleported.entity.bedrock.crawling, true)
+  })
+
   it('stands a spectator up', () => {
     const s = start(worldOf({ '0,1,0': 'stone' }), player(undefined, { gameMode: 'spectator', bedrock: { crawling: true } }))
     decidePose(s.c, s.entity, s.tick, decideSprint(s.c, s.entity, s.tick))
