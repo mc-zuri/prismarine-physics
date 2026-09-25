@@ -102,4 +102,20 @@ describe('bedrock network/rewind', () => {
     assert.deepStrictEqual(ran, [[2, 2, 2, undefined], [3, 2, 2, undefined], [4, 4, 4, undefined]], 'the first replayed frame and a turn take their own')
     assert.strictEqual(frames[2]!.yaw, 3, 'the frame kept is left as it is')
   })
+
+  it('simulates again from an earlier tick, the install still made after its own', () => {
+    const log: string[] = []
+    const rewind = new BedrockRewind<{ n: number }>({ step: (state, frame: Frame) => { log.push(`step ${frame.t}`); state.n += 10 } })
+    for (let t = 1; t <= 5; t++) {
+      rewind.push({ t })
+      rewind.snapshot(t, { n: t })
+    }
+    const state = { n: 0 }
+    rewind.rewindTo(3, state, s => { log.push('install'); s.n += 100 }, 1)
+    assert.deepStrictEqual(log, ['step 2', 'step 3', 'install', 'step 4'])
+    assert.strictEqual(state.n, 1 + 10 + 10 + 100 + 10)
+    log.length = 0
+    rewind.rewindTo(5, { n: 0 }, () => { log.push('install') }, 3)
+    assert.deepStrictEqual(log, ['step 4', 'install'], 'its own tick not simulated again: installed at the end')
+  })
 })

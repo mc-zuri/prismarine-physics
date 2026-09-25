@@ -57,6 +57,10 @@ describe('bedrock tick/take-pose', () => {
     const plain = start(FLAT, player())
     takePose(plain.c, plain.entity, plain.tick)
     assert.strictEqual(plain.tick.teleported, false)
+    const carried = start(FLAT, player(undefined, { bedrock: { carriedActions: new Set(['stopGliding']) } as any }))
+    takePose(carried.c, carried.entity, carried.tick)
+    assert.ok(carried.entity.bedrock.actions!.has('stopGliding'), 'what a rewind raised is reported with this tick')
+    assert.strictEqual(carried.entity.bedrock.carriedActions, undefined)
   })
 
   it('reports the paddles its keys pull once, on the tick after a boat it steered was left', () => {

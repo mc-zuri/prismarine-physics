@@ -24,6 +24,9 @@ export function takePose (ctx: Ctx, entity: Simulated, tick: TickState): void {
   if (st.teleported || st.teleportSimulatedThrough) st.actions!.add('handledTeleport')
   st.teleported = false
   st.teleportSimulatedThrough = false
+  // what the ticks a rewind simulated again raised is reported with this one
+  for (const action of st.carriedActions || []) st.actions!.add(action)
+  st.carriedActions = undefined
   // a tick begun in the seat of a boat it steered reports the paddles its keys pull
   if (st.leftSteeredVehicle) {
     if (st.keys?.left) st.actions!.add('paddlingLeft')

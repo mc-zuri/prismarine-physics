@@ -271,6 +271,36 @@ describe('bedrock network/session', () => {
     assert.strictEqual(at(2), false, 'started on the tick itself')
   })
 
+  it('files restated flags that differ from the history, simulates the next rewind again from them and reports what that raised', () => {
+    const s = session()
+    const p = player([0, 0, 0])
+    for (let t = 1; t <= 6; t++) s.tick(p, { t })
+    s.actorFlags(p, { tick: 3, gliding: true, pushTowardsClosestSpace: true })
+    assert.deepStrictEqual([[...s.flagged], s.flagCorrections.get(3)], [[3], { gliding: true }], 'the push is taken as sent, not filed')
+    p.bedrock!.carriedActions = new Set(['handledTeleport'])
+    s.rewindTo(5, p, () => {})
+    assert.strictEqual(s.flagged.size, 0)
+    assert.deepStrictEqual([...p.bedrock!.carriedActions!].sort(), ['handledTeleport', 'stopGliding'], 'the glide filed on tick 4 stops on the ground again')
+    s.tick(p, { t: 7 })
+    assert.ok(p.bedrock!.actions!.has('stopGliding'))
+    assert.strictEqual(p.bedrock!.carriedActions, undefined)
+    // one that agrees is not filed, nor one with no frame
+    s.actorFlags(p, { tick: 6, gliding: false })
+    s.actorFlags(p, { tick: 99, sneaking: true })
+    assert.strictEqual(s.flagged.size, 0)
+  })
+
+  it('forgets filed flags that left the history', () => {
+    const s = session()
+    s.handlePacket('start_game', { runtime_entity_id: 7n, rewind_history_size: 3 })
+    const p = player([0, 0, 0])
+    for (let t = 1; t <= 4; t++) s.tick(p, { t })
+    s.actorFlags(p, { tick: 2, gliding: true })
+    for (let t = 5; t <= 9; t++) s.tick(p, { t })
+    s.rewindTo(8, p, () => {})
+    assert.deepStrictEqual([s.flagged.size, s.flagCorrections.size], [0, 0], 'too old to simulate again from')
+  })
+
   describe('a mob effect', () => {
     const packet = (over = {}) => ({ runtime_entity_id: 7n, event_id: 'add', effect_id: 24, amplifier: 1, tick: 0n, ...over })
 

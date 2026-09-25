@@ -127,6 +127,12 @@ export class BedrockSession {
   // the mob effects the server sent, by the level field they set
   effects = new Map<EffectField, EffectEvent[]>()
   pendingAttribute: { attribute: StampedAttribute } | null = null
+  // the restated flags that differed from the history, by the tick they were filed after; and the ticks filed since the
+  // last rewind, the oldest of which still in the history the next one simulates again from
+  flagCorrections = new Map<number, ActorFlags>()
+  flagged = new Set<number>()
+  // the actions ticks simulated again raised that they had not, which the next tick reports
+  carried: Set<string> | undefined
 
   constructor ({ physics, world, history = 16, step }: { physics: SessionPhysics, world: World, history?: number, step?: (state: Player, frame: TickFrame) => void }) {
     this.physics = physics
@@ -136,8 +142,12 @@ export class BedrockSession {
     this.rewind = new BedrockRewind<Player>({ step: this.step as (state: Player, frame: Frame) => void, history })
   }
 
-  // One tick with the frame's inputs.
+  // One tick with the frame's inputs. A tick simulated again takes the flags filed on it again, and keeps the actions it
+  // raises that it had not.
   simulate (state: Player, frame: TickFrame): void {
+    const again = frame.t < this.rewind.current
+    const filed = again ? this.flagCorrections.get(frame.t - 1) : undefined
+    if (filed) this.physics.setActorFlags(state, filed)
     if (typeof frame.bedrockYaw === 'number') state.bedrockYaw = frame.bedrockYaw
     if (typeof frame.bedrockPitch === 'number') state.bedrockPitch = frame.bedrockPitch
     if (typeof frame.yaw === 'number') state.yaw = frame.yaw
@@ -155,6 +165,9 @@ export class BedrockSession {
       if (level !== undefined) state[field] = level
     }
     this.physics.simulatePlayer(state, this.world)
+    if (!again || !this.carried) return
+    const had = this.rewind.snapshots.get(frame.t)?.bedrock?.actions
+    for (const action of state.bedrock!.actions!) if (!had?.has(action)) this.carried.add(action)
   }
 
   // Files the tick's frame, runs `before(state)`, then the packets due on this tick, then the simulation, and keeps
@@ -204,12 +217,22 @@ export class BedrockSession {
     if (!riding) {
       for (let t = tick; t < this.rewind.current; t++) if (this.rewind.snapshots.get(t)?.vehicle) return
     }
+    // flags filed since the last rewind move it back to the oldest of them still in the history
+    const oldest = Math.max(this.rewind.oldest, this.rewind.current - this.rewind.history)
+    const from = Math.min(tick, ...[...this.flagged].filter(t => t >= oldest))
+    this.flagged.clear()
+    // what an earlier rewind since the last tick raised still stands
+    this.carried = new Set(state.bedrock?.carriedActions)
     this.rewind.rewindTo(tick, state, s => {
       if (!riding) delete s.vehicle
       // a vehicle the server moves is not simulated again: the rider sits on it where it is now
       else if (!s.vehicle || s.vehicle.id !== riding.id || !riding.predicted) s.vehicle = riding
       install(s)
-    })
+    }, from)
+    const carried = this.carried
+    this.carried = undefined
+    if (state.bedrock && carried.size) state.bedrock.carriedActions = carried
+    for (const t of this.flagCorrections.keys()) if (t < oldest) this.flagCorrections.delete(t)
     if (teleported) state.bedrock!.teleportSimulatedThrough = true
   }
 
@@ -345,6 +368,13 @@ export class BedrockSession {
       ;(changed as Record<string, unknown>)[name] = value
     }
     if (!Object.keys(changed).length) return
+    // one that differed from the history is filed on its frame too: the next rewind simulates again from there
+    const filed = Object.fromEntries(Object.entries(changed).filter(([name]) => name !== 'pushTowardsClosestSpace')) as ActorFlags
+    if (frame && Object.keys(filed).length) {
+      const at = Math.max(flags.tick, this.ringOldest)
+      this.flagCorrections.set(at, { ...this.flagCorrections.get(at), ...filed })
+      this.flagged.add(at)
+    }
     this.physics.setActorFlags(state, changed)
     // the tick's frame is taken after the packets that land between ticks: a later restatement compares with this
     const view = this.rewind.snapshots.get(this.rewind.current - 1)

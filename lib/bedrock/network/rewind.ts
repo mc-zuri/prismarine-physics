@@ -79,21 +79,31 @@ export class BedrockRewind<S extends object = Record<string, unknown>> {
   // live state alone: the frames since were simulated into that state already. A state is kept with the rotation the
   // view had at the end of its tick, which is the next tick's; nothing moves the view while the ticks are simulated
   // again, so a frame after the first that had no turn keeps the rotation the one before it ran with.
-  rewindTo (tick: number, state: S, install: (state: S) => void): void {
-    tick = Math.max(tick, this.oldest, this.current - this.history)
-    const saved = this.snapshots.get(tick)
+  // `from`: an earlier tick to simulate again from (a correction filed there before), the install still made after
+  // `tick`.
+  rewindTo (tick: number, state: S, install: (state: S) => void, from = tick): void {
+    const oldest = Math.max(this.oldest, this.current - this.history)
+    tick = Math.max(tick, oldest)
+    from = Math.min(Math.max(from, oldest), tick)
+    const saved = this.snapshots.get(from)
     if (!saved) {
       install(state)
       return
     }
     Object.assign(state, cloneState(saved))
-    install(state)
+    let installed = from === tick
+    if (installed) install(state)
     let first = true
     for (const past of this.frames) {
-      if (past.t <= tick || past.t >= this.current) continue
+      if (past.t <= from || past.t >= this.current) continue
       this.step!(state, !first && past.turned === false ? withoutRotation(past) : past)
       first = false
       this.snapshot(past.t, state)
+      if (past.t === tick) {
+        install(state)
+        installed = true
+      }
     }
+    if (!installed) install(state)
   }
 }
