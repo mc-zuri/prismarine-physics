@@ -113,6 +113,9 @@ describe('bedrock tick/move', () => {
     const zWall = start(worldOf({ '0,0,1': 'stone' }), player(undefined, { vel: new Vec3(0, 0, 0.5) }))
     move(zWall)
     assert.deepStrictEqual([zWall.entity.vel.z, zWall.entity.isCollidedHorizontally], [0, true])
+    const sliver = start(worldOf({ '0,0,1': 'stone' }), player([0.5, 0, 0.7], { vel: new Vec3(0, 0, 1e-9) }))
+    move(sliver)
+    assert.deepStrictEqual([sliver.entity.vel.z, sliver.entity.isCollidedHorizontally], [0, false], 'a sliver stopped by a touched wall raises no flag')
   })
 
   it('keeps the ground flag through a move with no vertical part, and loses it on a fall', () => {

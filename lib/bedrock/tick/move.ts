@@ -18,6 +18,8 @@ import type { TickState } from './state.ts'
 // Slower landings than this do not bounce on slime (from 1.26.20).
 const MIN_BOUNCE_SPEED = f(0.080000117)
 const MOVE_CAP = 500
+// How far a horizontal lane must be cut short to raise the collision flag.
+const HORIZONTAL_COLLISION_EPSILON = 1e-5
 const MAX_MOVE_LENGTH = 16
 
 // A move with any lane beyond 500 (an infinity, not a NaN), or of an immobile player, is dropped.
@@ -129,7 +131,9 @@ export function settleCollisions (ctx: Ctx, entity: Simulated, tick: TickState):
   if (zCollided) vel.z = 0
   st.bounce = null
   if (yCollided) vel.y = landingBounce(ctx, entity, tick)
-  entity.isCollidedHorizontally = xCollided || zCollided
+  // the flag takes a blocked lane only past a hundred-thousandth: a sliver of a move stopped by a wall the player
+  // touches (a turn's float residue) stops the lane but raises no collision
+  entity.isCollidedHorizontally = Math.abs(applied.x - requested.x) > HORIZONTAL_COLLISION_EPSILON || Math.abs(applied.z - requested.z) > HORIZONTAL_COLLISION_EPSILON
   entity.isCollidedVertically = yCollided
   entity.onGround = yCollided ? requested.y < 0 : (tick.startedOnGround && requested.y === 0 && blockName(blockAt(ctx.world, entity.pos.x, entity.pos.y, entity.pos.z)) !== 'powder_snow')
   if (tick.slowed) vel.set(0, 0, 0)
