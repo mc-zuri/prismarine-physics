@@ -428,6 +428,9 @@ export class BedrockSession {
     this.physics.setActorFlags(state, changed)
     // the tick's frame is taken after the packets that land between ticks: a later restatement compares with this
     if (view) this.physics.setActorFlags(view, changed)
+    // one weighed against the teleport's frame is written there too: the next restatement from before the teleport is
+    // weighed against what this one set
+    if (frame && beforeTeleport && frame !== view) this.physics.setActorFlags(frame, changed)
   }
 
   // Whether a correction is filed: one stamped before the history is refused, one that agrees with the frame of its

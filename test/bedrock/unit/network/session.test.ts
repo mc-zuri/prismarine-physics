@@ -333,6 +333,12 @@ describe('bedrock network/session', () => {
     s.tick(p, { t: 6 })
     s.actorFlags(p, { tick: 4, sprinting: true })
     assert.deepStrictEqual([p.bedrock!.sprinting, s.flagged.size], [true, 0])
+    // written into the teleport's frame too: the next one from before the teleport is weighed against it
+    s.tick(p, { t: 7 })
+    s.tick(p, { t: 8 })
+    s.actorFlags(p, { tick: 5, sprinting: true })
+    s.actorFlags(p, { tick: 5, sprinting: false })
+    assert.strictEqual(p.bedrock!.sprinting, false)
   })
 
   it('writes a movement attribute onto the history frames from its tick', () => {
