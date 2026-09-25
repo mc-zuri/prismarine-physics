@@ -38,6 +38,8 @@ export function decideSprint (ctx: Ctx, entity: Simulated, tick: TickState): Spr
   st.actions = new Set()
   if (entity.itemUseStarted) st.actions.add('startUsingItem')
   entity.itemUseStarted = false
+  if (entity.missedSwing) st.actions.add('missedSwing')
+  entity.missedSwing = false
   tickTriggerTimers(st)
   const request = sprintTrigger(st, {
     move: st.input!.move,

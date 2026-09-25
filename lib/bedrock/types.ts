@@ -299,6 +299,8 @@ export interface Player {
   fireworkUsed?: boolean | undefined
   // an item use started this tick (consumed by the tick; `usingItem` holds while it lasts)
   itemUseStarted?: boolean | undefined
+  // a swing at nothing this tick (consumed by the tick): the packet's missed_swing
+  missedSwing?: boolean | undefined
   lastOnGround?: boolean | undefined
   bedrock?: BedrockState | undefined
 }

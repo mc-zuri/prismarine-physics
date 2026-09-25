@@ -138,7 +138,8 @@ export function simulatePlayer (ctx: Ctx, player: Player): Player {
   const { tick, entity } = beginTick(ctx, player)
   readInput(entity, tick)
   if (entity.vehicle) {
-    entity.bedrock.actions = new Set()
+    entity.bedrock.actions = new Set(entity.missedSwing ? ['missedSwing'] : [])
+    entity.missedSwing = false
     rideTick(ctx, entity)
     return entity
   }

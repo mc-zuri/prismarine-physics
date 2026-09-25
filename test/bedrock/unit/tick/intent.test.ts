@@ -49,6 +49,14 @@ describe('bedrock tick/intent', () => {
     assert.strictEqual(entity.bedrock.actions!.has('startUsingItem'), false)
   })
 
+  it('raises a swing at nothing on its tick, once', () => {
+    const { c, tick, entity } = start(FLAT, player(undefined, { missedSwing: true }))
+    decideSprint(c, entity, tick)
+    assert.deepStrictEqual([entity.bedrock.actions!.has('missedSwing'), entity.missedSwing], [true, false])
+    decideSprint(c, entity, tick)
+    assert.strictEqual(entity.bedrock.actions!.has('missedSwing'), false)
+  })
+
   it('stops a sprint and takes the boost off', () => {
     const p = player(undefined, { control: {}, attributes: { [KEY]: { base: 0.1, current: f(0.13) } }, bedrock: { sprinting: true, sprintBoost: true } })
     const { c, tick, entity } = start(FLAT, p)

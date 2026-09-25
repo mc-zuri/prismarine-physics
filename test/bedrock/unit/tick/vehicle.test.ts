@@ -145,6 +145,14 @@ describe('bedrock tick/vehicle', () => {
       assert.deepStrictEqual([p.riptideLaunch, p.spinHits, p.fireworkUsed, p.itemUseStarted], [0, 0, false, false])
     })
 
+    it('reports a swing at nothing made while riding, once', () => {
+      const p = player([0.5, 0, 0.5], { vehicle: boat(), bigWaveRoll: () => 0.5, missedSwing: true })
+      simulatePlayer(ctx(FLAT), p)
+      assert.deepStrictEqual([p.bedrock!.actions!.has('missedSwing'), p.missedSwing], [true, false])
+      simulatePlayer(ctx(FLAT), p)
+      assert.strictEqual(p.bedrock!.actions!.has('missedSwing'), false)
+    })
+
     it('draws the big-wave roll from the client random state when no roll is given', () => {
       const state = mt19937FromSeed(5489)
       const p = player([0.5, 0, 0.5], { vehicle: boat(), randomState: state })

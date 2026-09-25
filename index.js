@@ -874,6 +874,8 @@ class PlayerState {
     this.fireworkUsed = !!bot.fireworkUsed
     // An item use the bot started this tick (consumed by the tick): the packet's start_using_item.
     this.itemUseStarted = !!bot.itemUseStarted
+    // A swing at nothing this tick (consumed by the tick): the packet's missed_swing.
+    this.missedSwing = !!bot.missedSwing
     // The vehicle the bot rides (the Bedrock engine's, kept by mineflayer's vehicles plugin as bot.bedrockVehicle).
     this.vehicle = bot.bedrockVehicle || undefined
     // The big-wave roll of a boat the bot steers (a uniform draw in [0, 1)), where the caller supplies the client's.
@@ -944,6 +946,7 @@ class PlayerState {
     bot.spinHits = this.spinHits
     bot.fireworkUsed = this.fireworkUsed
     bot.itemUseStarted = this.itemUseStarted
+    bot.missedSwing = this.missedSwing
     if (bot.bedrockVehicle) bot.bedrockVehicle = this.vehicle
     if (this.bedrock !== undefined) bot.bedrockPhysicsState = this.bedrock
   }
