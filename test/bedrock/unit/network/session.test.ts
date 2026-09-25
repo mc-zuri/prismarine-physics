@@ -180,6 +180,22 @@ describe('bedrock network/session', () => {
     assert.strictEqual(p.vel.x, 0, 'the knockback of the player that died does not reach the new one')
   })
 
+  it('holds the player still at the target of a dimension change, with the history started over, until it loads', () => {
+    const s = session()
+    const p = player([0.5, 1, 0.5])
+    for (let t = 1; t <= 4; t++) s.tick(p, { t })
+    const collided = p.isCollidedVertically
+    assert.strictEqual(s.handlePacket('change_dimension', { dimension: 2, position: { x: 100, y: 50, z: 0 }, respawn: false }), true)
+    s.tick(p, { t: 5, control: { forward: true } })
+    assert.deepStrictEqual([p.pos.x, p.pos.y, p.pos.z, p.vel.x, p.vel.y, p.vel.z], [100, 50, 0, 0, 0, 0])
+    assert.deepStrictEqual([s.dimensionLoading, s.ringOldest, s.rewind.oldest, p.isCollidedVertically, p.immobile], [true, 5, 5, collided, undefined])
+    s.tick(p, { t: 6 })
+    assert.deepStrictEqual([p.pos.y, p.vel.y], [50, 0], 'still loading: no gravity')
+    s.dimensionLoaded()
+    s.tick(p, { t: 7 })
+    assert.ok(p.vel.y < 0, 'loaded: it falls')
+  })
+
   it('takes the restated climbable-block flag as sent with no frame to weigh it against', () => {
     const s = session()
     const p = player(undefined, { bedrock: {} as any })

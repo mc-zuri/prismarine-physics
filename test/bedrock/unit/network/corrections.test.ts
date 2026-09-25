@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 import { Box } from '../../../../lib/bedrock/math/box.ts'
 import {
-  applyCorrection, applyMotion, applySpatialCorrection, applyVelocityCorrection, handleTeleport, MoveMode, respawnAt, setActorFlags
+  applyCorrection, applyMotion, applySpatialCorrection, applyVelocityCorrection, changeDimensionTo, handleTeleport, MoveMode, respawnAt, setActorFlags
 } from '../../../../lib/bedrock/network/corrections.ts'
 import { player } from '../helpers.ts'
 
@@ -15,6 +15,13 @@ describe('bedrock network/corrections', () => {
     assert.deepStrictEqual([p.pos.x, p.pos.y, p.pos.z, p.vel.y], [6.5, f(f(EYE) - f(EYE)), 6.5, 0])
     assert.deepStrictEqual([p.isCollidedVertically, p.elytraFlying, p.bedrock!.sneaking, p.bedrock!.poseHeight, p.bedrock!.aabb, p.bedrock!.fallDistance], [false, false, false, undefined, undefined, 0])
     assert.deepStrictEqual([p.bedrock!.teleported, p.bedrock!.respawned], [true, true])
+  })
+
+  it('moves to the feet position of a dimension change at rest, its box rebuilt and its collision flags kept', () => {
+    const p = player([0, 0, 0], { vel: player().vel.set(1, 1, 1), isCollidedVertically: true, bedrock: { aabb: new Box(0, 0, 0, 1, 1, 1), fallDistance: 3 } })
+    changeDimensionTo(p, { x: 100.25, y: 50, z: -0.1 })
+    assert.deepStrictEqual([p.pos.x, p.pos.y, p.pos.z, p.vel.x, p.vel.y, p.vel.z], [100.25, 50, f(-0.1), 0, 0, 0])
+    assert.deepStrictEqual([p.bedrock!.aabb, p.bedrock!.fallDistance, p.isCollidedVertically, p.bedrock!.teleported], [undefined, 0, true, undefined])
   })
 
   it('teleports to the eye position less the eye height, zeroing the velocity and marking the next tick', () => {

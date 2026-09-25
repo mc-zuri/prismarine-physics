@@ -30,6 +30,7 @@ export interface SessionPhysics {
   movementSpeedAttribute: string
   simulatePlayer (state: Player, world: World): unknown
   handleTeleport (state: Player, teleport: Teleport): void
+  changeDimension (state: Player, at: { x: number, y: number, z: number }): void
   applyCorrection (state: Player, correction: MoveCorrection): void
   applyMotion (state: Player, motion: { x: number, y: number, z: number }): void
   setMovementAttribute (state: Player, attribute: { base: number, current?: number, sprintStartedSince?: boolean }): void
@@ -149,6 +150,8 @@ export class BedrockSession {
   attributesFiled = false
   // the actions ticks simulated again raised that they had not, which the next tick reports
   carried: Set<string> | undefined
+  // a dimension change is loading: the player does not move until the caller says it has loaded
+  dimensionLoading = false
 
   constructor ({ physics, world, history = 16, step }: { physics: SessionPhysics, world: World, history?: number, step?: (state: Player, frame: TickFrame) => void }) {
     this.physics = physics
@@ -180,7 +183,10 @@ export class BedrockSession {
       const level = effectLevel(events, frame.t)
       if (level !== undefined) state[field] = level
     }
+    const immobile = state.immobile
+    if (this.dimensionLoading) state.immobile = true
     this.physics.simulatePlayer(state, this.world)
+    state.immobile = immobile
     if (!again || !this.carried) return
     const had = this.rewind.snapshots.get(frame.t)?.bedrock?.actions
     for (const action of state.bedrock!.actions!) if (!had?.has(action)) this.carried.add(action)
@@ -218,6 +224,20 @@ export class BedrockSession {
     this.scheduled = []
     this.ringOldest = this.rewind.current
     this.rewind.reset(this.rewind.current)
+  }
+
+  // A dimension change: the player moves to the position the server names and holds still there, with nothing before
+  // it to simulate again, until the caller reports the new dimension loaded (`dimensionLoaded`).
+  changeDimension (state: Player, at: { x: number, y: number, z: number }): void {
+    this.physics.changeDimension(state, at)
+    this.dimensionLoading = true
+    this.ringOldest = this.rewind.current
+    this.rewind.reset(this.rewind.current)
+  }
+
+  // The new dimension has loaded (the client's loading screen closed): the player moves again.
+  dimensionLoaded (): void {
+    this.dimensionLoading = false
   }
 
   // A teleport of the local player on tick `t`. A far one clears the client's history; the replay history starts over
@@ -520,6 +540,9 @@ export class BedrockSession {
         })
         return true
       }
+      case 'change_dimension':
+        this.schedule(state => this.changeDimension(state, params.position))
+        return true
       case 'correct_player_move_prediction': {
         const vehicle = params.prediction_type === 'vehicle' || params.prediction_type === 1
         if (!vehicle && params.prediction_type !== undefined && params.prediction_type !== 'player' && params.prediction_type !== 0) return false

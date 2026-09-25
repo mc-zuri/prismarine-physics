@@ -15,7 +15,7 @@ import { collide } from './movement/collision.ts'
 import { boxIsCurrent } from './movement/player-box.ts'
 import { poseHeightOf } from './movement/pose.ts'
 import { setMovementAttribute } from './movement/travel.ts'
-import { applyCorrection, applyMotion, handleTeleport, respawnAt, setActorFlags, type ActorFlags, type MoveCorrection, type Teleport } from './network/corrections.ts'
+import { applyCorrection, applyMotion, changeDimensionTo, handleTeleport, respawnAt, setActorFlags, type ActorFlags, type MoveCorrection, type Teleport } from './network/corrections.ts'
 import { buildPlayerAuthInput } from './network/input-packet.ts'
 import { simulatePlayer } from './tick/index.ts'
 import { dismount } from './tick/vehicle.ts'
@@ -108,6 +108,8 @@ export interface BedrockPhysics extends Settings {
   levitationRewindReach: number | undefined
   // the player placed alive at `at` (the eye position) by the server's respawn
   respawn (entity: Player, at: Vec3Like): void
+  // the player moved to `at` (the feet position) in another dimension, at rest
+  changeDimension (entity: Player, at: Vec3Like): void
   applyCorrection (entity: Player, correction: MoveCorrection): void
   applyMotion (entity: Player, motion: Vec3Like): void
   setActorFlags (entity: Player, flags: ActorFlags): void
@@ -148,6 +150,7 @@ export function Physics (registry: Registry, world: World): BedrockPhysics {
   physics.setMovementAttribute = (entity, attribute) => setMovementAttribute(entity, physics, attribute)
   physics.handleTeleport = (entity, teleport) => handleTeleport(entity, teleport, physics.eyeHeight)
   physics.respawn = (entity, at) => respawnAt(entity, at, physics.eyeHeight)
+  physics.changeDimension = (entity, at) => changeDimensionTo(entity, at)
   physics.applyCorrection = (entity, correction) => applyCorrection(entity, correction, physics.eyeHeight)
   physics.setActorFlags = (entity, flags) => setActorFlags(entity, flags)
   physics.applyMotion = (entity, motion) => applyMotion(entity, motion)

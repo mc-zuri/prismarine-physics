@@ -58,6 +58,16 @@ export function handleTeleport (entity: Player, teleport: Teleport, eyeHeight: n
   if (mode === MoveMode.teleport) st.teleported = true
 }
 
+// A dimension change to `at` (the feet position the server names): the player moves there at rest, its box rebuilt
+// around it; the collision flags stay as its last move left them.
+export function changeDimensionTo (entity: Player, at: Vec3Like): void {
+  const st = stateOf(entity)
+  entity.pos.set(f(at.x), f(at.y), f(at.z))
+  entity.vel.set(0, 0, 0)
+  st.fallDistance = 0
+  dropBox(st)
+}
+
 // A respawn at `at` (the eye position): a new player there, at rest and standing (its pose, the box and the flags a
 // death left dropped); its first tick makes no move, like a teleport's, but reports no handled teleport.
 export function respawnAt (entity: Player, at: Vec3Like, eyeHeight: number): void {
