@@ -148,7 +148,7 @@ tick against the client's packets. Of about 115,000 ticks the client captured on
 | blocks, 1.26.20.4 | 6 of 1838 | walking in powder snow in leather boots (1.26.51.1 exact) |
 | sneakedge, 1.26.51.1 | 6 of 1219 | a wall collision flag at an edge |
 | parity, 1.26.51.1 | 22 of 1385 | a column whose sections the server has not sent yet: the client moves through it as air at altitude, but stands on it at the spawn; the replay's section timing on this client (1.26.20.4 exact) |
-| boat and items, 1.26.51.1 | 34 and 7 | a boat's big waves: this client's captures carry no random state |
+| items, 1.26.51.1 | 7 | a boat's big waves: this capture carries no random state (the boat capture, recorded with `BEDROCK_CAPTURE_RNG=1`, is exact) |
 
 The 1.26.10.4 proxy recording (10109 of 10167) has no client capture to time its packets by.
 
@@ -156,5 +156,5 @@ The 1.26.10.4 proxy recording (10109 of 10167) has no client capture to time its
 
 The recorder (`bedrock-tools-v2/packages/recorder`, `BEDROCK_FIXTURE=<name> node src/main.ts`, with
 `BEDROCK_FIXTURE_VERSION=Flat2651` for 1.26.51.1; `BEDROCK_FIXTURE=list` lists them) has recorded every fixture it
-registers on both clients: 70 recordings, 244,000 ticks, 99.5% of them replayed exactly (242,820 of 243,978). Knockback, push, teleport, ice, soul sand, sneak edges, poses, epsilon moves, multi-system cases,
+registers on both clients: 70 recordings, 244,000 ticks, 99.5% of them replayed exactly (242,867 of 243,991). Knockback, push, teleport, ice, soul sand, sneak edges, poses, epsilon moves, multi-system cases,
 mounts and powder snow are replayed on both; the rows above are what they still show.
