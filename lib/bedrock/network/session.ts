@@ -215,8 +215,11 @@ export class BedrockSession {
   // since, nothing is.
   rewindTo (tick: number, state: Player, install: (state: Player) => void): void {
     const riding = state.vehicle
-    // a teleport not yet run is simulated through by the rewind (it is still reported), unless the player waits there
+    // a teleport not yet run is simulated through by the rewind (it is still reported); a player waiting for the chunks
+    // it was teleported to is not moved by one at all
     const teleported = !!state.bedrock?.teleported
+    const stale = this.staleTeleport
+    if (teleported && stale && this.world.loaded && !this.world.loaded(stale)) return
     // off a vehicle since: the dismount placed the player where no simulation leads, so nothing is simulated again
     if (!riding) {
       for (let t = tick; t < this.rewind.current; t++) if (this.rewind.snapshots.get(t)?.vehicle) return
@@ -239,10 +242,7 @@ export class BedrockSession {
     this.carried = undefined
     if (state.bedrock && carried.size) state.bedrock.carriedActions = carried
     for (const t of this.flagCorrections.keys()) if (t < oldest) this.flagCorrections.delete(t)
-    // a player waiting for the chunks it was teleported to is not moved: the teleport still stands after the rewind
-    const stale = this.staleTeleport
-    if (teleported && stale && this.world.loaded && !this.world.loaded(stale)) this.physics.handleTeleport(state, stale)
-    else if (teleported) state.bedrock!.teleportSimulatedThrough = true
+    if (teleported) state.bedrock!.teleportSimulatedThrough = true
   }
 
   // A movement correction: installed on the frame after its tick, and every tick since simulated again.
