@@ -189,6 +189,8 @@ export interface BedrockState {
   carriedActions?: Set<string> | undefined
   // left a vehicle it steered since the last tick (the tick's input was read in the seat)
   leftSteeredVehicle?: boolean | undefined
+  // the rider jumped in a vehicle that does not take the jump: it asks to leave (the caller dismounts it)
+  leaveVehicle?: boolean | undefined
   // the flying ability as the client holds it (its own toggle), and the server's flag it last saw
   flying?: boolean | undefined
   serverFlying?: boolean | undefined

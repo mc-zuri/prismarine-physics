@@ -4,7 +4,7 @@ import { Vec3 } from 'vec3'
 import { buildPlayerAuthInput } from '../../../../lib/bedrock/network/input-packet.ts'
 import { simulatePlayer } from '../../../../lib/bedrock/tick/index.ts'
 import { MovementType } from '../../../../lib/bedrock/vehicle/buoyancy.ts'
-import { boatBubbleColumns, dismount, moveVehicle, newBoatState, paddle, seatPosition, simulateBoat, simulateHorse, vehicleBox, type Vehicle } from '../../../../lib/bedrock/tick/vehicle.ts'
+import { boatBubbleColumns, dismount, leavesOnJump, moveVehicle, newBoatState, paddle, seatPosition, simulateBoat, simulateHorse, vehicleBox, type Vehicle } from '../../../../lib/bedrock/tick/vehicle.ts'
 import { Box } from '../../../../lib/bedrock/math/box.ts'
 import type { Block, World } from '../../../../lib/bedrock/types.ts'
 import { ctx, EMPTY, FLAT, player, worldOf } from '../helpers.ts'
@@ -200,6 +200,17 @@ describe('bedrock tick/vehicle', () => {
       const packet = buildPlayerAuthInput(p) as Record<string, any>
       assert.ok(packet.input_data.includes('client_predicted_vehicle'))
       assert.ok(!packet.input_data.includes('paddling_left'))
+    })
+
+    it('asks to leave a vehicle it jumps in, unless the client predicts it, it is a boat or it takes the jump', () => {
+      const cart = boat({ kind: 'minecart', predicted: false })
+      assert.deepStrictEqual([leavesOnJump(cart), leavesOnJump({ ...cart, jumpControlled: true }), leavesOnJump({ ...cart, kind: 'boat' }), leavesOnJump(boat())], [true, false, false, false])
+      const p = player([0.5, 0, 0.5], { vehicle: cart, control: { jump: true } })
+      simulatePlayer(ctx(FLAT), p)
+      assert.strictEqual(p.bedrock!.leaveVehicle, true)
+      const still = player([0.5, 0, 0.5], { vehicle: boat({ kind: 'minecart', predicted: false }) })
+      simulatePlayer(ctx(FLAT), still)
+      assert.strictEqual(still.bedrock!.leaveVehicle, false)
     })
 
     it('only sits in a vehicle the server moves', () => {

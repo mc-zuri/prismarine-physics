@@ -20,7 +20,7 @@ import type { TickState } from './state.ts'
 import { spinAttack } from './spin.ts'
 import { takePose } from './take-pose.ts'
 import { flightControls, glideTick, isGliding, jump, travel, useFirework } from './travel.ts'
-import { seatPosition, simulateBoat, simulateHorse } from './vehicle.ts'
+import { leavesOnJump, seatPosition, simulateBoat, simulateHorse } from './vehicle.ts'
 
 // The fall distance after the move, with the water sensed on the moved box.
 function trackFall (ctx: Ctx, entity: Simulated, tick: TickState): void {
@@ -111,6 +111,8 @@ function rideTick (ctx: Ctx, entity: Simulated): void {
     applyLiquidFlow(ctx.world, entity.bedrock.aabb!, entity.vel)
   }
   entity.bedrock.riding = true
+  // jumping in a vehicle that does not take the jump, the rider asks to leave it (the caller takes it off after the tick)
+  entity.bedrock.leaveVehicle = !!entity.bedrock.input!.jumping && leavesOnJump(vehicle)
   // the rider's own ground and collision flags stay as its last move left them: no move of its own changes them
   entity.jumpQueued = false
   // the one-tick inputs are spent riding (they would otherwise act on the first tick after the dismount)

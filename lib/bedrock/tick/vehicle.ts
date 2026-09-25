@@ -48,6 +48,9 @@ export interface Vehicle {
   // the height of the position above the box's floor (a boat's 0.375 when not given)
   heightOffset?: number | undefined
   boat?: BoatState | undefined
+  // the vehicle takes the rider's jump (it jumps or dashes itself, or moves up and down), and the rider is in the seat
+  // that controls it: jumping does not take the rider off
+  jumpControlled?: boolean | undefined
   // a steered horse's state, and the attributes it moves by: its movement speed and jump strength
   horse?: HorseState | undefined
   speed?: number | undefined
@@ -205,6 +208,11 @@ export function boatBubbleColumns (ctx: Ctx, vehicle: Vehicle, box: Box): void {
 // The box a boat finds the blocks it is in over: its own grown by half a block on every side.
 function insideReach (box: Box): Box {
   return new Box(f(box.minX - 0.5), f(box.minY - 0.5), f(box.minZ - 0.5), f(box.maxX + 0.5), f(box.maxY + 0.5), f(box.maxZ + 0.5))
+}
+
+// Whether a jumping rider leaves the vehicle: any the client does not predict, but a boat or one that takes the jump.
+export function leavesOnJump (vehicle: Vehicle): boolean {
+  return !vehicle.predicted && !vehicle.kind.endsWith('boat') && !vehicle.jumpControlled
 }
 
 // The rider leaves the vehicle (the dismount button, or the server taking it off: `byRider` false): it stands at the

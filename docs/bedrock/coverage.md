@@ -59,7 +59,9 @@ or the shared rewind cases (`test/bedrock/rewind-parity.test.js`); see [Testing]
   holding jump (from its second tick held; 0.4 to 1 of the horse's jump strength, with 0.4 of it forward when moving),
   the turn toward the rider's look (wrapped in float32), the walk at the horse's speed on the ground and a tenth of it
   in the air, sideways at half and backward at a quarter; the packet reports the horse
-- sitting in any other vehicle (minecart, pig, strider): the server moves it
+- sitting in any other vehicle (minecart, pig, camel, strider, an untamed horse): the server moves it; jumping in one
+  that does not take the jump (a camel dashes, a tamed horse leaps) asks to leave it, and the rider stands and jumps
+  the next tick
 - boats are solid to a player on foot: it stands on them, and one it is inside is only pushed out 0.1 at most
 - vehicle corrections from the server, installed in the history like the player's
 - the dismount (`physics.dismount`): the rider stands at the first free spot beside its vehicle, the sides of the
@@ -79,12 +81,11 @@ What the client does and the engine does not, found by comparing the engine with
 replaying every recorded session. A server running authoritative movement corrects the player on these; the engine
 then continues from the correction.
 
-**Mounts the player steers**
+**Mounts**
 
 - a horse's rearing (it stands after a jump, and a standing horse takes no move)
-- camels: steered like a horse, plus the dash (the jump key, with a cooldown) and their 1.5625 step, which is 0.5625 while they
-  stand on honey (the block that prevents jumping). A player's own step never changes: 0.5625 everywhere
-- leaving a vehicle the player cannot steer (a minecart, a pig) by jumping
+- where the rider of a vehicle the server moves sits between the server's positions: the seat follows the vehicle as
+  the client shows it (its interpolation, and a rearing horse's lean), not only its last position
 - the rider's yaw clamped to its vehicle's
 
 **Boats**
