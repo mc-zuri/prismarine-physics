@@ -15,6 +15,9 @@ The player is mineflayer's PlayerState shape (feet position, radian yaw/pitch, t
 
 - `function versionOf (registry: Registry): number[]` -- The registry's version as [major, minor, patch].
 - `function versionAtLeast (registry: Registry, major: number, minor: number, patch: number): boolean` -- Whether the registry is at least the given version.
+- `interface Feature` -- A rule that depends on the client's version: its name, what it does, and the first version it holds for. Bedrock's rules change within a major version (1.26.10 and 1.26.20 differ), so a feature is keyed on the full version.
+- `const FEATURES` -- The Bedrock features (features.json beside this file).
+- `function supportFeature (registry: Registry, name: string): boolean` -- Whether the registry's version has the named feature (an unknown name: never).
 - `function defaultSettings (): Settings` -- The default tunables of a Bedrock player.
 - `interface BedrockPhysics` -- The physics object: the tunables, and the methods that simulate a tick and apply the server's packets.
 - `function Physics (registry: Registry, world: World): BedrockPhysics` -- The physics of a Bedrock registry (prismarine-registry / minecraft-data) and world. The tunables are the object's own fields; the methods simulate a tick and apply the server's movement packets.

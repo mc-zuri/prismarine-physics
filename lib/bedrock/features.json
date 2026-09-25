@@ -1,0 +1,12 @@
+[
+  {
+    "name": "scalarTrig",
+    "description": "The move's sine and cosine come from the client's scalar routines; before, from its paired one",
+    "since": "1.26.20"
+  },
+  {
+    "name": "landingBounceCorrection",
+    "description": "A landing bounces off the block the move's collision boxes pick (slime 1, a bed 0.75), only after a fall of at least 0.08, and the landing tick's gravity is corrected; before, only slime under the feet bounced, at any speed",
+    "since": "1.26.20"
+  }
+]

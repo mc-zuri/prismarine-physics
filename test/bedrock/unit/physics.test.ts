@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import { Vec3 } from 'vec3'
-import { defaultSettings, Physics, versionAtLeast, versionOf } from '../../../lib/bedrock/index.ts'
+import { defaultSettings, FEATURES, Physics, supportFeature, versionAtLeast, versionOf } from '../../../lib/bedrock/index.ts'
 import { FLAT, player, worldOf } from './helpers.ts'
 
 const f = Math.fround
@@ -14,6 +14,13 @@ describe('bedrock physics object', () => {
     assert.deepStrictEqual(versionOf(registry('1.x.3')), [1, 0, 3])
     assert.ok(versionAtLeast(registry('1.26.20'), 1, 26, 20))
     assert.ok(versionAtLeast(registry('1.26.51'), 1, 26, 20))
+  })
+
+  it('keys the version-dependent rules on the full version, from features.json', () => {
+    assert.deepStrictEqual(FEATURES.map(feature => feature.name), ['scalarTrig', 'landingBounceCorrection'])
+    assert.ok(supportFeature(registry('1.26.20'), 'landingBounceCorrection'))
+    assert.ok(!supportFeature(registry('1.26.10'), 'landingBounceCorrection'), 'the same major version, before it')
+    assert.ok(!supportFeature(registry('1.26.51'), 'noSuchFeature'), 'an unknown feature: never')
     assert.ok(versionAtLeast(registry('1.27.0'), 1, 26, 20))
     assert.ok(versionAtLeast(registry('2.0.0'), 1, 26, 20))
     assert.ok(!versionAtLeast(registry('1.26.10'), 1, 26, 20))

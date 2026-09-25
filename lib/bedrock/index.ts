@@ -6,6 +6,8 @@
 // The player is mineflayer's PlayerState shape (feet position, radian yaw/pitch, the control booleans as key levels).
 // Optional extensions: `bedrockYaw` / `bedrockPitch` (degrees) override the radian angles; `control.raw` carries the
 // other raw key bits and `control.analogMoveVector` a stick; `control.moveVector` an already cooked move.
+import fs from 'node:fs'
+import path from 'node:path'
 import { Box } from './math/box.ts'
 import { paired, scalar } from './math/crt.ts'
 import { f, VELOCITY_EPSILON } from './math/float.ts'
@@ -35,6 +37,21 @@ export function versionOf (registry: Registry): number[] {
 export function versionAtLeast (registry: Registry, major: number, minor: number, patch: number): boolean {
   const [a = 0, b = 0, c = 0] = versionOf(registry)
   return a !== major ? a > major : (b !== minor ? b > minor : c >= patch)
+}
+
+// A rule that depends on the client's version: its name, what it does, and the first version it holds for. Bedrock's
+// rules change within a major version (1.26.10 and 1.26.20 differ), so a feature is keyed on the full version.
+export interface Feature { name: string, description: string, since: string }
+
+// The Bedrock features (features.json beside this file).
+export const FEATURES: readonly Feature[] = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, 'features.json'), 'utf8'))
+
+// Whether the registry's version has the named feature (an unknown name: never).
+export function supportFeature (registry: Registry, name: string): boolean {
+  const feature = FEATURES.find(entry => entry.name === name)
+  if (!feature) return false
+  const [major, minor, patch] = feature.since.split('.').map(Number) as [number, number, number]
+  return versionAtLeast(registry, major, minor, patch)
 }
 
 // The default tunables of a Bedrock player.
@@ -113,13 +130,11 @@ function sensingBox (entity: Player, settings: Settings): Box {
 // own fields; the methods simulate a tick and apply the server's movement packets.
 export function Physics (registry: Registry, world: World): BedrockPhysics {
   const settings = defaultSettings()
-  // from 1.26.20: the scalar sine / cosine routines, and the slow-landing rule of the slime bounce with its gravity
-  // correction
-  const modernRules = versionAtLeast(registry, 1, 26, 20)
-  const trig = modernRules ? scalar : paired
+  const trig = supportFeature(registry, 'scalarTrig') ? scalar : paired
+  const bounceCorrection = supportFeature(registry, 'landingBounceCorrection')
   // `settings` is the physics object itself, so a caller's change to a tunable reaches the tick
   const physics = settings as BedrockPhysics
-  const ctxFor = (w: World): Ctx => ({ settings: physics, trig, bounceCorrection: modernRules, world: w })
+  const ctxFor = (w: World): Ctx => ({ settings: physics, trig, bounceCorrection, world: w })
 
   physics.simulatePlayer = (entity, w) => simulatePlayer(ctxFor(w), entity)
   physics.dismount = (entity, w = world, byRider = true, alpha, unlinked = false) => dismount(ctxFor(w), entity, byRider, alpha, unlinked)
