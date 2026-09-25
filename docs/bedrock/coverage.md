@@ -9,8 +9,13 @@ or the shared rewind cases (`test/bedrock/rewind-parity.test.js`); see [Testing]
 **Input and pose**
 
 - raw keys and analogue sticks cooked into the move vector; the input flags of `player_auth_input`
-- a gamepad: the stick, the input mode the packet reports, and the toggle sneak, which the client keeps held through
-  an input clear and reports as `persist_sneak`
+- the input device (`control.inputMode`: keyboard and mouse, gamepad or touch), which the packet reports:
+  - a gamepad's stick, and its toggle sneak, which the client keeps held through an input clear and reports as
+    `persist_sneak`;
+  - scaffolding descends on a gamepad only while sneaking with the sneak key and the sneak toggle held, and a sneak
+    toggle held over scaffolding sets the sneak from its sixth tick (cleared when let go after six or more); on touch
+    it descends on the descend key;
+  - on touch a sprint started from the input stops when the sprint key lets go
 - a screen open (a menu, the inventory) clears the tick's input: no move and no want up, want down or jumping, the
   sneaking and sprinting of the tick before standing
 - sprint: the key, the double tap, the hunger and riding limits, stopping on a wall or a slow move, the server's
@@ -131,8 +136,7 @@ then continues from the correction.
 
 **Input**
 
-- touch input, and what a gamepad or touch changes beyond the stick, the toggle sneak and the input mode (the
-  scaffolding descend hold, their sprint trigger and paddles)
+- touch's own paddles (a touch client with the touch interaction model paddles with its buttons, not the move)
 - `missed_swing`: the flag a swing at nothing sets; the caller has no way to ask for it yet
 - the prediction-sync packet a client sends some time after a correction
 
