@@ -189,6 +189,25 @@ describe('bedrock network/session', () => {
     assert.strictEqual(bare.bedrock!.swimming, true, 'a frame without engine state')
   })
 
+  it('weighs a restatement stamped before the history against the oldest frame the history keeps', () => {
+    const s = session()
+    s.rewind.history = 5
+    const p = player(undefined, { bedrock: { sneaking: true } })
+    for (let t = 1; t <= 10; t++) {
+      if (t === 6) p.bedrock!.sneaking = false
+      s.rewind.push({ t })
+      s.rewind.snapshot(t, p)
+    }
+    // the oldest frame kept is tick 5, which still sneaks: the restatement of tick 3 agrees with it
+    s.actorFlags(p, { tick: 3, sneaking: true })
+    assert.strictEqual(p.bedrock!.sneaking, false)
+    // a tick later the oldest is tick 6, which no longer sneaks: it differs, and is filed there
+    s.rewind.push({ t: 11 })
+    s.actorFlags(p, { tick: 3, sneaking: true })
+    assert.strictEqual(p.bedrock!.sneaking, true)
+    assert.deepStrictEqual(s.flagCorrections.get(6), { sneaking: true })
+  })
+
   it('writes a stamped movement attribute into the history from its tick, an unstamped one on the player only', () => {
     const s = session()
     const p = player()

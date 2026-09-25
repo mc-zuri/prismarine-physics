@@ -365,12 +365,15 @@ export class BedrockSession {
     this.attributesFiled = true
   }
 
-  // Restated actor flags: compared with the history frame of their tick (no earlier than the client's history) and
-  // written to the player only where they differ, so the player's own later changes stand. What is written also goes
+  // Restated actor flags: compared with the history frame of their tick (a stamped one older than the history with the
+  // oldest frame the history keeps, no earlier than the client's history) and written to the player only where they
+  // differ, so the player's own later changes stand. What is written also goes
   // into the frame of the tick before the current one: that frame stands for the start of the current tick, after the
   // packets that landed between the ticks, which is what a later restatement is compared with.
   actorFlags (state: Player, flags: StampedFlags): void {
-    const frame = this.rewind.snapshots.get(Math.max(flags.tick, this.ringOldest))
+    const oldest = flags.tick > 0 ? this.rewind.current - this.rewind.history : -Infinity
+    const at = Math.max(flags.tick, this.ringOldest, oldest)
+    const frame = this.rewind.snapshots.get(at)
     const changed: ActorFlags = {}
     for (const name of [...ACTOR_FLAG_NAMES, 'height'] as const) {
       const value = flags[name]
@@ -395,7 +398,6 @@ export class BedrockSession {
     // one that differed from the history is filed on its frame too: the next rewind simulates again from there
     const filed = Object.fromEntries(Object.entries(changed).filter(([name]) => name !== 'pushTowardsClosestSpace')) as ActorFlags
     if (frame && Object.keys(filed).length) {
-      const at = Math.max(flags.tick, this.ringOldest)
       this.flagCorrections.set(at, { ...this.flagCorrections.get(at), ...filed })
       this.flagged.add(at)
     }
