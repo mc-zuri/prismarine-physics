@@ -290,6 +290,34 @@ describe('bedrock network/session', () => {
     assert.strictEqual(s.flagged.size, 0)
   })
 
+  it('files stamped attributes where the movement speed differs, then every one until the next rewind', () => {
+    const s = session()
+    const p = player([0, 0, 0])
+    const movement = (current: number) => ({ name: 'minecraft:movement', current, default: 0.1, modifiers: [] })
+    s.handlePacket('update_attributes', { runtime_entity_id: 7n, attributes: [movement(0.1)], tick: 0n })
+    for (let t = 1; t <= 6; t++) s.tick(p, { t })
+    const exhaustion = { name: 'minecraft:player.exhaustion', current: 1, default: 0, modifiers: [] }
+    assert.strictEqual(s.handlePacket('update_attributes', { runtime_entity_id: 7n, attributes: [exhaustion], tick: 3n }), true)
+    assert.strictEqual(s.handlePacket('update_attributes', { runtime_entity_id: 7n, attributes: [exhaustion], tick: 0n }), false, 'unstamped: nothing to file')
+    s.handlePacket('update_attributes', { runtime_entity_id: 7n, attributes: [movement(0.1)], tick: 4n })
+    s.tick(p, { t: 7 })
+    assert.deepStrictEqual([...s.flagged], [], 'nothing differed')
+    s.handlePacket('update_attributes', { runtime_entity_id: 7n, attributes: [movement(0.13)], tick: 5n })
+    s.handlePacket('update_attributes', { runtime_entity_id: 7n, attributes: [exhaustion], tick: 6n })
+    s.handlePacket('update_attributes', { runtime_entity_id: 7n, attributes: [exhaustion], tick: 99n })
+    s.tick(p, { t: 8 })
+    assert.deepStrictEqual([...s.flagged], [5, 6], 'the speed differed, and after it anything with a frame')
+    s.rewindTo(7, p, () => {})
+    assert.deepStrictEqual([s.flagged.size, s.attributesFiled], [0, false])
+    const bare = session()
+    const q = player([0, 0, 0])
+    for (let t = 1; t <= 3; t++) bare.tick(q, { t })
+    delete bare.rewind.snapshots.get(2)!.attributes
+    bare.handlePacket('update_attributes', { runtime_entity_id: 7n, attributes: [movement(0.1)], tick: 2n })
+    bare.tick(q, { t: 4 })
+    assert.deepStrictEqual([...bare.flagged], [2], 'a frame without the attribute differs')
+  })
+
   it('forgets filed flags that left the history', () => {
     const s = session()
     s.handlePacket('start_game', { runtime_entity_id: 7n, rewind_history_size: 3 })

@@ -47,6 +47,8 @@ export class BedrockRewind<S extends object = Record<string, unknown>> {
   // the frames kept, oldest first, and the state after each tick
   frames: Frame[] = []
   snapshots = new Map<number, S>()
+  // the state one tick older than the history, which a rewind from a correction filed there still starts from
+  edge: { tick: number, state: S } | undefined
   // the history starts over at a teleport; the tick being simulated
   oldest = -Infinity
   current = -Infinity
@@ -60,8 +62,12 @@ export class BedrockRewind<S extends object = Record<string, unknown>> {
   push (frame: Frame): void {
     this.current = frame.t
     this.frames.push(frame)
-    if (this.frames.length > this.history) this.frames.shift()
-    for (const tick of this.snapshots.keys()) if (tick < frame.t - this.history) this.snapshots.delete(tick)
+    if (this.frames.length > this.history + 1) this.frames.shift()
+    for (const [tick, state] of this.snapshots) {
+      if (tick >= frame.t - this.history) continue
+      if (tick === frame.t - this.history - 1) this.edge = { tick, state }
+      this.snapshots.delete(tick)
+    }
   }
 
   // Remembers the state after simulating `tick`.
@@ -79,13 +85,14 @@ export class BedrockRewind<S extends object = Record<string, unknown>> {
   // live state alone: the frames since were simulated into that state already. A state is kept with the rotation the
   // view had at the end of its tick, which is the next tick's; nothing moves the view while the ticks are simulated
   // again, so a frame after the first that had no turn keeps the rotation the one before it ran with.
-  // `from`: an earlier tick to simulate again from (a correction filed there before), the install still made after
-  // `tick`.
+  // `from`: an earlier tick to simulate again from (a correction filed there before; the one just older than the
+  // history too), the install still made after `tick`.
   rewindTo (tick: number, state: S, install: (state: S) => void, from = tick): void {
     const oldest = Math.max(this.oldest, this.current - this.history)
     tick = Math.max(tick, oldest)
-    from = Math.min(Math.max(from, oldest), tick)
-    const saved = this.snapshots.get(from)
+    const edge = this.edge && from < oldest && from === this.edge.tick && from >= this.oldest ? this.edge : undefined
+    from = edge ? edge.tick : Math.min(Math.max(from, oldest), tick)
+    const saved = edge ? edge.state : this.snapshots.get(from)
     if (!saved) {
       install(state)
       return

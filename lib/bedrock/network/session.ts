@@ -131,6 +131,8 @@ export class BedrockSession {
   // last rewind, the oldest of which still in the history the next one simulates again from
   flagCorrections = new Map<number, ActorFlags>()
   flagged = new Set<number>()
+  // an attribute was filed since the last rewind: every stamped one is, until the next
+  attributesFiled = false
   // the actions ticks simulated again raised that they had not, which the next tick reports
   carried: Set<string> | undefined
 
@@ -217,10 +219,12 @@ export class BedrockSession {
     if (!riding) {
       for (let t = tick; t < this.rewind.current; t++) if (this.rewind.snapshots.get(t)?.vehicle) return
     }
-    // flags filed since the last rewind move it back to the oldest of them still in the history
+    // corrections filed since the last rewind move it back to the oldest of them still in the history (or the tick just
+    // older)
     const oldest = Math.max(this.rewind.oldest, this.rewind.current - this.rewind.history)
-    const from = Math.min(tick, ...[...this.flagged].filter(t => t >= oldest))
+    const from = Math.min(tick, ...[...this.flagged].filter(t => t >= oldest - 1))
     this.flagged.clear()
+    this.attributesFiled = false
     // what an earlier rewind since the last tick raised still stands
     this.carried = new Set(state.bedrock?.carriedActions)
     this.rewind.rewindTo(tick, state, s => {
@@ -343,6 +347,19 @@ export class BedrockSession {
     }
   }
 
+  // Stamped attributes are filed on the frame of their tick when the movement speed they carry differs from it, or
+  // whatever they carry once one has been filed since the last rewind: the next rewind simulates again from there.
+  fileAttributes (tick: number, attribute: StampedAttribute | null): void {
+    const frame = this.rewind.snapshots.get(tick)
+    if (!frame || tick < this.rewind.oldest) return
+    if (!this.attributesFiled) {
+      const held = frame.attributes?.[this.physics.movementSpeedAttribute]
+      if (!attribute || (held && held.base === attribute.walk && held.current === attribute.current)) return
+    }
+    this.flagged.add(tick)
+    this.attributesFiled = true
+  }
+
   // Restated actor flags: compared with the history frame of their tick (no earlier than the client's history) and
   // written to the player only where they differ, so the player's own later changes stand. What is written also goes
   // into the frame of the tick before the current one: that frame stands for the start of the current tick, after the
@@ -449,7 +466,9 @@ export class BedrockSession {
       case 'update_attributes': {
         if (!sameId(params.runtime_entity_id, this.localRuntimeId)) return false
         const attribute = movementAttribute(params)
-        if (!attribute) return false
+        const tick = Number(params.tick || 0)
+        if (tick > 0) this.schedule(() => this.fileAttributes(tick, attribute))
+        if (!attribute) return tick > 0
         // attributes received together are read at once: the last is the one that applies
         const entry = { attribute }
         this.pendingAttribute = entry

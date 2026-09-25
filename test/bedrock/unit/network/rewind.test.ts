@@ -18,14 +18,15 @@ describe('bedrock network/rewind', () => {
     assert.deepStrictEqual(cloneState({ a: [1] }), { a: [1] })
   })
 
-  it('keeps the last `history` frames and the snapshots within them', () => {
+  it('keeps the frames and snapshots of the last `history` ticks, and the state and frame just older', () => {
     const rewind = new BedrockRewind<{ n: number }>({ history: 2 })
     for (let t = 1; t <= 5; t++) {
       rewind.push({ t })
       rewind.snapshot(t, { n: t })
     }
-    assert.deepStrictEqual(rewind.frames.map(frame => frame.t), [4, 5])
+    assert.deepStrictEqual(rewind.frames.map(frame => frame.t), [3, 4, 5])
     assert.deepStrictEqual([...rewind.snapshots.keys()], [3, 4, 5])
+    assert.deepStrictEqual(rewind.edge, { tick: 2, state: { n: 2 } })
     assert.strictEqual(rewind.current, 5)
     assert.notStrictEqual(rewind.snapshots.get(5), { n: 5 })
   })
@@ -117,5 +118,25 @@ describe('bedrock network/rewind', () => {
     log.length = 0
     rewind.rewindTo(5, { n: 0 }, () => { log.push('install') }, 3)
     assert.deepStrictEqual(log, ['step 4', 'install'], 'its own tick not simulated again: installed at the end')
+  })
+
+  it('simulates again from the state just older than the history only for a correction filed there', () => {
+    const steps: number[] = []
+    const rewind = new BedrockRewind<{ n: number }>({ history: 2, step: (state, frame: Frame) => { steps.push(frame.t); state.n += 10 } })
+    for (let t = 1; t <= 6; t++) {
+      rewind.push({ t })
+      rewind.snapshot(t, { n: t })
+    }
+    const state = { n: 0 }
+    rewind.rewindTo(5, state, s => { s.n += 100 }, 3)
+    assert.deepStrictEqual(steps, [4, 5], 'from the state after tick 3')
+    assert.strictEqual(state.n, 3 + 10 + 10 + 100)
+    steps.length = 0
+    rewind.rewindTo(5, { n: 0 }, () => {}, 2)
+    assert.deepStrictEqual(steps, [5], 'further back: the oldest state in the history')
+    steps.length = 0
+    rewind.reset(4)
+    rewind.rewindTo(5, { n: 0 }, () => {}, 3)
+    assert.deepStrictEqual(steps, [5], 'not across a reset')
   })
 })
