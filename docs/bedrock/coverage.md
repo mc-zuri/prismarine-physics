@@ -143,14 +143,14 @@ tick against the client's packets. Of about 115,000 ticks the client captured on
 | ground, 1.26.20.4 | 4 | `sprint_10t_to_sneak_10t`; not established |
 | air, 1.26.51.1 | 1 | a sprint start one tick apart |
 | mob effects (202) | 1 | a turn at the pole: the camera's own jitter |
-| mounts, 1.26.20.4 | 222 of 3322 | where the rider sits on a camel, a pig or an untamed horse the server moves: the client seats it where the vehicle is rendered in the frame that runs the tick (its render interpolation at that frame's progress, and a rearing horse's lean); the engine seats it where the vehicle is shown at the tick |
+| mounts, 1.26.20.4 | 222 of 3322 | where the rider sits on a camel, a pig or an untamed horse the server moves: the client seats it where the vehicle is rendered in the frame that runs the tick (its render interpolation at that frame's progress, and a rearing horse's lean); the engine seats it where the vehicle is shown at the tick; the seat is off by the vehicle's turn and move over part of a frame (about 1°, a few hundredths of a block), which a client without render frames cannot reproduce, and the server does not check a passenger's seat on a vehicle it moves |
 | mounts, 1.26.51.1 | 144 of 3355 | the same |
 | teleport, 1.26.20.4 | 5 of 5974 | a sprint stopped at a teleport, and two landings after a long hop |
 | snow, both clients | 1 and 3 of about 700 | a tick of sneaking down through it in leather boots |
 | climbing, 1.26.20.4 | 3 | a landing at the foot of a scaffolding descent, and a landing between scenarios (1.26.51.1 exact) |
 | blocks, 1.26.20.4 | 2 of 1838 | a landing between scenarios and a move vector while swimming down a bubble column (1.26.51.1 exact) |
 | sneakedge, 1.26.51.1 | 2 of 1219 | a float32 unit of a slow slide between scenarios |
-| parity, 1.26.51.1 | 22 of 1385 | a column whose sections the server has not sent yet: the client moves through it as air at altitude, but stands on it at the spawn; the replay's section timing on this client (1.26.20.4 exact) |
+| parity, 1.26.51.1 | 22 of 1385 | a column the client has the level chunk of but has not yet requested the sections of: it moves through it as air at altitude (the level chunk says the content ends 64 blocks above the floor), while over a column whose sections it has requested (a teleport's target) it stands; the replay does not know which the client has requested, and treating everything above a column's content as air breaks the teleports (1.26.20.4 exact) |
 | items, both clients | 2 of 3335 and 3 of 3319 | one tick of a sprint swim toward a dolphin held 10 blocks ahead (the swim is a little faster for that tick, and even again after it; the dolphin held 4 ahead and the free one are exact), a crawl start between scenarios (1.26.20.4), and one float32 unit (one ULP) in the height of a landing on the boat just left (1.26.51.1) |
 | boat, both clients | 11 of 1529 and 1 of 1561 | the first strokes of a boat on the ground whose click mount took three tries, a tick apart (1.26.20.4), and the landing on the boat just left (1.26.51.1) |
 
