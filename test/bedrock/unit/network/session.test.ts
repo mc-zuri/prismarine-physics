@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 import { Vec3 } from 'vec3'
 import { Physics } from '../../../../lib/bedrock/index.ts'
-import { agedDuration, BedrockSession, effectLevel, flagValue, movementAttribute, restatedFlags } from '../../../../lib/bedrock/network/session.ts'
+import { agedDuration, BedrockSession, effectLevel, flagValue, liquidAttributes, movementAttribute, restatedFlags } from '../../../../lib/bedrock/network/session.ts'
 import { FLAT, player } from '../helpers.ts'
 
 const f = Math.fround
@@ -357,6 +357,26 @@ describe('bedrock network/session', () => {
     s.actorFlags(p, { tick: 6, gliding: false })
     s.actorFlags(p, { tick: 99, sneaking: true })
     assert.strictEqual(s.flagged.size, 0)
+  })
+
+  it('installs the liquid movement attributes on the player and the frames from their tick', () => {
+    const s = session()
+    const p = player([0, 0, 0])
+    for (let t = 1; t <= 4; t++) s.tick(p, { t })
+    const water = (current: number) => ({ name: 'minecraft:underwater_movement', current, default: 0.02, modifiers: [] })
+    const lava = { name: 'minecraft:lava_movement', current: 0.05, default: 0.02, modifiers: [] }
+    assert.strictEqual(s.handlePacket('update_attributes', { runtime_entity_id: 7n, attributes: [water(0.04), lava], tick: 3n }), true)
+    s.tick(p, { t: 5 })
+    assert.deepStrictEqual(p.attributes!['minecraft:underwater_movement'], { base: f(0.04), current: f(0.04) })
+    assert.strictEqual(p.attributes!['minecraft:lava_movement']!.current, f(0.05))
+    assert.strictEqual(s.rewind.snapshots.get(3)!.attributes!['minecraft:underwater_movement']!.current, f(0.04))
+    assert.strictEqual(s.rewind.snapshots.get(2)!.attributes?.['minecraft:underwater_movement'], undefined, 'not before its tick')
+    // an unstamped one is the player's only
+    assert.strictEqual(s.handlePacket('update_attributes', { runtime_entity_id: 7n, attributes: [water(0.03)] }), true)
+    s.tick(p, { t: 6 })
+    assert.strictEqual(p.attributes!['minecraft:underwater_movement']!.current, f(0.03))
+    assert.strictEqual(s.rewind.snapshots.get(3)!.attributes!['minecraft:underwater_movement']!.current, f(0.04))
+    assert.strictEqual(liquidAttributes({}), null)
   })
 
   it('files stamped attributes where the movement speed differs, then every one until the next rewind', () => {

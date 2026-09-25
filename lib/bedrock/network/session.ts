@@ -13,6 +13,7 @@
 // itself which tick a packet takes effect on.
 import { f } from '../math/float.ts'
 import { GLIDE_BOOST_RATE } from '../movement/movement-effects.ts'
+import { LAVA_MOVEMENT_ATTRIBUTE, UNDERWATER_MOVEMENT_ATTRIBUTE } from '../movement/travel.ts'
 import type { Control, Player, World } from '../types.ts'
 import { ACTOR_FLAG_NAMES, MoveMode, type ActorFlags, type MoveCorrection, type Teleport } from './corrections.ts'
 import { sanitizeHistorySize } from './history.ts'
@@ -53,6 +54,8 @@ export interface TickFrame extends Frame {
 export interface StampedCorrection extends MoveCorrection { tick: number, dx: number, dy: number, dz: number }
 // A movement attribute with its tick: the value without the sprint boost, and the current one.
 export interface StampedAttribute { tick: number, walk: number, current: number }
+// The liquid movement attributes of an update_attributes packet (their values by name), with its tick.
+export interface StampedLiquidAttributes { tick: number, values: Record<string, number> }
 // Restated actor flags with their tick.
 // `inAscendable`: the climbable-block flag, where the raw word carries it
 export type StampedFlags = ActorFlags & { tick: number, inAscendable?: boolean }
@@ -352,6 +355,18 @@ export class BedrockSession {
     }
   }
 
+  // The liquid movement attributes: installed on the player and on the history frames from their tick, like the
+  // movement attribute.
+  liquidAttributes (state: Player, liquids: StampedLiquidAttributes): void {
+    const install = (target: Player): void => {
+      const attributes = target.attributes = { ...(target.attributes || {}) }
+      for (const [name, value] of Object.entries(liquids.values)) attributes[name] = { base: value, current: value }
+    }
+    install(state)
+    if (!(liquids.tick > 0)) return
+    for (const [tick, frame] of this.rewind.snapshots) if (tick >= liquids.tick) install(frame)
+  }
+
   // Stamped attributes are filed on the frame of their tick when the movement speed they carry differs from it, or
   // whatever they carry once one has been filed since the last rewind: the next rewind simulates again from there.
   fileAttributes (tick: number, attribute: StampedAttribute | null): void {
@@ -481,9 +496,11 @@ export class BedrockSession {
       case 'update_attributes': {
         if (!sameId(params.runtime_entity_id, this.localRuntimeId)) return false
         const attribute = movementAttribute(params)
+        const liquids = liquidAttributes(params)
         const tick = Number(params.tick || 0)
         if (tick > 0) this.schedule(() => this.fileAttributes(tick, attribute))
-        if (!attribute) return tick > 0
+        if (liquids) this.schedule(state => this.liquidAttributes(state, liquids))
+        if (!attribute) return tick > 0 || !!liquids
         // attributes received together are read at once: the last is the one that applies
         const entry = { attribute }
         this.pendingAttribute = entry
@@ -534,6 +551,15 @@ export function movementAttribute (params: Record<string, any>): StampedAttribut
     if (operation === 0 && (modifier.operand === undefined || modifier.operand === 2)) additive = f(additive + f(modifier.amount))
   }
   return { tick: Number(params.tick), walk: f(f(entry.default) + additive), current: f(entry.current) }
+}
+
+// The liquid movement attributes of an update_attributes packet, by name: their current values (vanilla keeps 0.02).
+export function liquidAttributes (params: Record<string, any>): StampedLiquidAttributes | null {
+  const values: Record<string, number> = {}
+  for (const entry of params.attributes || []) {
+    if (entry.name === UNDERWATER_MOVEMENT_ATTRIBUTE || entry.name === LAVA_MOVEMENT_ATTRIBUTE) values[entry.name] = f(entry.current)
+  }
+  return Object.keys(values).length ? { tick: Number(params.tick || 0), values } : null
 }
 
 // The game modes the engine tells apart; any other (the world's default) is left to the caller.

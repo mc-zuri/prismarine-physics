@@ -152,7 +152,7 @@ The travel of the tick: gliding, or the fly controls, the jump and the input's p
 - `function flightControls (ctx: Ctx, entity: Simulated): void` -- The vertical fly controls on the fly intent: up is the jump / ascend key, down the sneak / descend key. The hover is creative's in creative (and in an unknown game mode).
 - `function jumpFromGround (ctx: Ctx, entity: Simulated, tick: TickState): void` -- A jump from the ground, when the cooldown allows: the cooldown restarts, then -- unless the player stands on powder snow -- the impulse (only ever raising the vertical velocity), the start-jumping action, and, while sprinting, the push along the facing.
 - `function jump (ctx: Ctx, entity: Simulated, tick: TickState): void` -- The jump of the tick, in the client's order: a held jump in the swim pose holds still; on a ladder or vine it climbs at 0.2 (in water too: the sink on the sneak key runs first and the climb replaces it), and a fresh press in scaffolding climbs; in a liquid it rises (and the sneak key sinks in water); on the ground it jumps.
-- `function travelSpeed (ctx: Ctx, entity: Simulated, tick: TickState): number` -- The travel speed for the travel type: flying, or on foot (the ground's friction -- soul sand's only without Soul Speed --, the air, a liquid), with Depth Strider in water, or a dolphin's boost swimming.
+- `function travelSpeed (ctx: Ctx, entity: Simulated, tick: TickState): number` -- The travel speed for the travel type: flying, or on foot (the ground's friction -- soul sand's only without Soul Speed --, the air, a liquid: water's movement attribute, else lava's), with Depth Strider in water, or a dolphin's boost swimming.
 - `function swimSteering (entity: Simulated): void` -- A swimmer's vertical velocity follows the look (faster when looking steeply down), unless jump is held; with the head out of the water and looking up it stops.
 - `function travel (ctx: Ctx, entity: Simulated, tick: TickState): void` -- The input pushed along the yaw at the travel speed, then the swim steering.
 
@@ -385,11 +385,14 @@ The travel: the speed the input moves the player at for its travel type, and the
 - `function walkSpeed (entity: Player, settings: Settings): number` -- The walking speed the travel reads (the sprint boost included).
 - `function walkSpeedBase (entity: Player, settings: Settings): number` -- The walking speed without the sprint boost.
 - `function walkSpeedParts (entity: Player, settings: Settings): { walk: number, boost: boolean }` -- The walking speed as the travel takes it: the value without the sprint boost and whether the boost is on, when the attribute holds exactly the boosted base; else the attribute's value as it is.
+- `const UNDERWATER_MOVEMENT_ATTRIBUTE` -- The attributes the speed in water and in lava reads: 0.02 each unless the server sets them.
+- `const LAVA_MOVEMENT_ATTRIBUTE`
+- `function liquidSpeed (entity: Player, name: string): number` -- The speed a liquid attribute gives: its current value, else the 0.02 every liquid travel moves at.
 - `function setSprintBoost (entity: Player & { bedrock: { sprintBoost?: boolean | undefined } }, settings: Settings, boost: boolean): void` -- Adds or removes the sprint boost on the movement attribute.
 - `function setMovementAttribute (entity: Player, settings: Settings, attribute: { base: number, current?: number, sprintStartedSince?: boolean }): void` -- Installs a server movement attribute: `base` the value without the boost, `current` the server's value (with the Speed and Slowness effects, and with the boost when the server thinks the player sprints). The travel applies the effects itself, so the attribute keeps the base, boosted or not: the server's value carries the boost when it is clearly above the base with the player's effects. With `sprintStartedSince` (the player started sprinting after the tick the packet is stamped for) a player still sprinting keeps its boost: the start re-applies it over the packet.
 - `function movementSpeed (value: number, speedLevel: number, slownessLevel: number): number` -- The walking speed with the speed and slowness effects: each multiplies the running value (x1.4 then x0.7 is not x1.1), speed first.
 - `interface SpeedFacts` -- The facts the travel speed on foot reads.
-- `function frictionInfluencedSpeed (facts: SpeedFacts): number` -- The travel speed on foot: 0.02 in a liquid; 0.02 in the air (0.026 sprinting); on the ground the walking speed scaled by (0.546 / friction)^3, where the friction is the block's slipperiness x 0.91 (soul sand's x1.225).
+- `function frictionInfluencedSpeed (facts: SpeedFacts): number` -- The travel speed on foot: the liquid's speed in a liquid (0.02); 0.02 in the air (0.026 sprinting); on the ground the walking speed scaled by (0.546 / friction)^3, where the friction is the block's slipperiness x 0.91 (soul sand's x1.225).
 - `function depthStriderLevel (level: number | undefined, onGround: boolean): number` -- The Depth Strider level the water travel uses: 0..3, halved off the ground.
 - `function depthStriderSpeed (speed: number, walk: number, level: number): number` -- Depth Strider lerps the underwater speed toward the walking speed by level / 3.
 - `function moveRelative (vel: Vec3Like, yawDeg: number, strafe: number, forward: number, speed: number, trig: Trig): void` -- Adds the input (strafe = left, forward), rotated by the yaw and scaled to the speed, to the velocity. An input shorter than 1 keeps its length; a negligible one does nothing.
@@ -636,6 +639,7 @@ The actions (teleport, correct, movementAttribute, actorFlags) are callable dire
 - `interface TickFrame` -- One tick's inputs: the tick number, the control state, the rotation, and a riptide launch and the mobs the spin hit.
 - `interface StampedCorrection` -- A movement correction with the tick it is stamped for.
 - `interface StampedAttribute` -- A movement attribute with its tick: the value without the sprint boost, and the current one.
+- `interface StampedLiquidAttributes` -- The liquid movement attributes of an update_attributes packet (their values by name), with its tick.
 - `type StampedFlags` -- Restated actor flags with their tick. `inAscendable`: the climbable-block flag, where the raw word carries it
 - `const EFFECT_FIELDS` -- The effect levels the engine reads, by the effect's id on the wire.
 - `interface StampedEffect` -- A mob effect's level (0: removed) on the player field it sets, with the tick it is stamped for (0: not stamped) and its ticks (none, or a negative count: it lasts until removed).
@@ -647,5 +651,6 @@ The actions (teleport, correct, movementAttribute, actorFlags) are callable dire
 - `interface StampedMotion` -- A motion with the tick it is stamped for (0: not stamped).
 - `class BedrockSession` -- A local player's session: its ticks, their history, and the server's movement packets applied on the tick they take effect.
 - `function movementAttribute (params: Record<string, any>): StampedAttribute | null` -- The movement attribute of an update_attributes packet: `walk` the value without the sprint boost (the default plus the additive modifiers, e.g. the powder snow freeze), `current` the server's value.
+- `function liquidAttributes (params: Record<string, any>): StampedLiquidAttributes | null` -- The liquid movement attributes of an update_attributes packet, by name: their current values (vanilla keeps 0.02).
 - `function flagValue (value: unknown, name: string): boolean | undefined` -- A named flag of a decoded flags word: an object of booleans or a list of set names.
 - `function restatedFlags (params: Record<string, any>): StampedFlags | null` -- The actor flags a set_entity_data packet restates, and the box height it sends with a pose; null when neither.

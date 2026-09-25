@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 import { scalar } from '../../../../lib/bedrock/math/crt.ts'
 import {
-  depthStriderLevel, depthStriderSpeed, frictionInfluencedSpeed, GROUND_FRICTION, moveRelative, movementAttributeOf,
+  depthStriderLevel, depthStriderSpeed, frictionInfluencedSpeed, GROUND_FRICTION, LAVA_MOVEMENT_ATTRIBUTE, liquidSpeed, UNDERWATER_MOVEMENT_ATTRIBUTE, moveRelative, movementAttributeOf,
   movementSpeed, setMovementAttribute, setSprintBoost, walkSpeed, walkSpeedBase, walkSpeedParts
 } from '../../../../lib/bedrock/movement/travel.ts'
 import type { Player } from '../../../../lib/bedrock/types.ts'
@@ -89,6 +89,12 @@ describe('bedrock movement/travel', () => {
     assert.strictEqual(movementSpeed(0.1, 0, 7), 0, 'never negative')
   })
 
+  it("reads a liquid's speed from its movement attribute, 0.02 without one", () => {
+    assert.strictEqual(liquidSpeed(player(), UNDERWATER_MOVEMENT_ATTRIBUTE), f(0.02))
+    assert.strictEqual(liquidSpeed(player(undefined, { attributes: { [LAVA_MOVEMENT_ATTRIBUTE]: { base: 0.02, current: 0.04 } } }), LAVA_MOVEMENT_ATTRIBUTE), f(0.04))
+    assert.strictEqual(liquidSpeed(player(undefined, { attributes: { [LAVA_MOVEMENT_ATTRIBUTE]: {} } }), LAVA_MOVEMENT_ATTRIBUTE), f(0.02))
+  })
+
   describe('the travel speed on foot', () => {
     const base = { walkSpeed: 0.1, slipperiness: 0.6, onGround: true }
     it('is the walking speed on normal ground', () => {
@@ -118,6 +124,7 @@ describe('bedrock movement/travel', () => {
       assert.strictEqual(frictionInfluencedSpeed({ ...base, onGround: false }), f(0.02))
       assert.strictEqual(frictionInfluencedSpeed({ ...base, onGround: false, sprinting: true }), f(0.025999999))
       assert.strictEqual(frictionInfluencedSpeed({ ...base, inWater: true }), f(0.02))
+      assert.strictEqual(frictionInfluencedSpeed({ ...base, inLava: true, liquidSpeed: f(0.05) }), f(0.05), "the liquid's own speed")
       assert.strictEqual(frictionInfluencedSpeed({ ...base, inLava: true }), f(0.02))
     })
     it('is slowed by using an item and by the effects', () => {

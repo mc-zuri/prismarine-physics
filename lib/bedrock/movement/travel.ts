@@ -59,6 +59,17 @@ export function walkSpeedParts (entity: Player, settings: Settings): { walk: num
   return { walk: boost ? base : walk, boost }
 }
 
+// The attributes the speed in water and in lava reads: 0.02 each unless the server sets them.
+export const UNDERWATER_MOVEMENT_ATTRIBUTE = 'minecraft:underwater_movement'
+export const LAVA_MOVEMENT_ATTRIBUTE = 'minecraft:lava_movement'
+
+// The speed a liquid attribute gives: its current value, else the 0.02 every liquid travel moves at.
+export function liquidSpeed (entity: Player, name: string): number {
+  const attr = entity.attributes && entity.attributes[name]
+  const value = attr && numberOr(attr.current, attr.value, attr.base, attr.default)
+  return typeof value === 'number' ? f(value) : AIR_ACCEL_WALK
+}
+
 // Adds or removes the sprint boost on the movement attribute.
 export function setSprintBoost (entity: Player & { bedrock: { sprintBoost?: boolean | undefined } }, settings: Settings, boost: boolean): void {
   entity.bedrock.sprintBoost = boost
@@ -107,17 +118,19 @@ export interface SpeedFacts {
   sprinting?: boolean | undefined
   inWater?: boolean | undefined
   inLava?: boolean | undefined
+  // the speed of the liquid the player travels in (its movement attribute): 0.02 when not given
+  liquidSpeed?: number | undefined
   onGround?: boolean | undefined
   slipperiness: number
   soulSand?: boolean | undefined
 }
 
-// The travel speed on foot: 0.02 in a liquid; 0.02 in the air (0.026 sprinting); on the ground the walking speed
+// The travel speed on foot: the liquid's speed in a liquid (0.02); 0.02 in the air (0.026 sprinting); on the ground the walking speed
 // scaled by (0.546 / friction)^3, where the friction is the block's slipperiness x 0.91 (soul sand's x1.225).
 export function frictionInfluencedSpeed (facts: SpeedFacts): number {
   const affected = movementSpeed(facts.walkSpeed, facts.speedLevel! | 0, facts.slownessLevel! | 0)
   const base = facts.sprintBoost ? f(affected * SPRINT_BOOST) : affected
-  if (facts.inWater || facts.inLava) return AIR_ACCEL_WALK
+  if (facts.inWater || facts.inLava) return facts.liquidSpeed ?? AIR_ACCEL_WALK
   if (!facts.onGround) return facts.sprinting ? AIR_ACCEL_SPRINT : AIR_ACCEL_WALK
   let slip = f(facts.slipperiness)
   if (facts.soulSand) slip = f(slip * SOUL_SAND_FRICTION_MUL)

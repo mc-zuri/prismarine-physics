@@ -166,6 +166,17 @@ describe('bedrock tick/travel', () => {
       assert.strictEqual(travelSpeed(fast.c, fast.entity, fast.tick), travelSpeed(ground.c, ground.entity, ground.tick))
     })
 
+    it("moves at water's movement attribute in water and lava's in lava", () => {
+      const attributes = { 'minecraft:underwater_movement': { base: 0.03, current: 0.03 }, 'minecraft:lava_movement': { base: 0.01, current: 0.01 } }
+      const water = start(FLAT, player(undefined, { attributes }))
+      water.entity.isInWater = true
+      water.entity.isInLava = true
+      assert.strictEqual(travelSpeed(water.c, water.entity, water.tick), f(0.03))
+      const lava = start(FLAT, player(undefined, { attributes }))
+      lava.entity.isInLava = true
+      assert.strictEqual(travelSpeed(lava.c, lava.entity, lava.tick), f(0.01))
+    })
+
     it('swims at 0.02, lerped toward the walking speed by Depth Strider', () => {
       const s = start(FLAT, player(undefined, { depthStrider: 3 }))
       s.entity.isInWater = true
