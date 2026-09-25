@@ -69,6 +69,9 @@ or the shared rewind cases (`test/bedrock/rewind-parity.test.js`); see [Testing]
 
 **Server packets**
 
+- the game type the client holds: its own from `start_game` and `set_player_game_type`, the world's (`start_game`,
+  `set_default_game_type`) where its own is the default; a `/gamemode`'s `update_player_game_type` changes nothing for
+  the local player (a player switched to creative that way hovers as a survival player)
 - movement corrections and teleports, installed in the tick history and simulated forward
 - the respawn: a new player at the spawn, at rest, standing and full size, whose first tick falls without moving
 - movement attributes, with effect modifiers
@@ -140,8 +143,7 @@ tick against the client's packets. Of about 115,000 ticks the client captured on
 | effects, 1.26.20.4 | 12 of 1638 | the end of a Levitation cleared by `effect clear` acts a tick later than the model (1.26.51.1 exact) |
 | blocks, 1.26.20.4 | 11 of 1838 | walking in powder snow in leather boots (1.26.51.1 exact) |
 | sneakedge, 1.26.51.1 | 6 of 1219 | a wall collision flag at an edge |
-| flight, both clients | 2757 and 3369 of about 9900 | creative flight hovers at the non-creative drag (0.75, and no vertical damping) although the server put the player in creative before its first flight; the parity session, switched to creative later, hovers at creative's 0.375. What the client takes as its game type then is open |
-| parity, 1.26.51.1 | 219 of 1385 | a column whose sections the server has not sent yet: the client moves through it as air at altitude, but stands on it at the spawn; the replay's section timing on this client (1.26.20.4 exact) |
+| parity, 1.26.51.1 | 22 of 1385 | a column whose sections the server has not sent yet: the client moves through it as air at altitude, but stands on it at the spawn; the replay's section timing on this client (1.26.20.4 exact) |
 | boat and items, 1.26.51.1 | 34 and 7 | a boat's big waves: this client's captures carry no random state |
 
 The 1.26.10.4 proxy recording (10109 of 10167) has no client capture to time its packets by.
@@ -150,5 +152,5 @@ The 1.26.10.4 proxy recording (10109 of 10167) has no client capture to time its
 
 The recorder (`bedrock-tools-v2/packages/recorder`, `BEDROCK_FIXTURE=<name> node src/main.ts`, with
 `BEDROCK_FIXTURE_VERSION=Flat2651` for 1.26.51.1; `BEDROCK_FIXTURE=list` lists them) has recorded every fixture it
-registers on both clients: 70 recordings, 244,000 ticks, 96.9% of them replayed exactly. Knockback, push, teleport, ice, soul sand, sneak edges, poses, epsilon moves, multi-system cases,
+registers on both clients: 70 recordings, 244,000 ticks, 99.5% of them replayed exactly. Knockback, push, teleport, ice, soul sand, sneak edges, poses, epsilon moves, multi-system cases,
 mounts and powder snow are replayed on both; the rows above are what they still show.
