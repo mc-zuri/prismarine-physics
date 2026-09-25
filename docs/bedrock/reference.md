@@ -656,5 +656,6 @@ The actions (teleport, correct, movementAttribute, actorFlags) are callable dire
 - `class BedrockSession` -- A local player's session: its ticks, their history, and the server's movement packets applied on the tick they take effect.
 - `function movementAttribute (params: Record<string, any>): StampedAttribute | null` -- The movement attribute of an update_attributes packet: `walk` the value without the sprint boost (the default plus the additive modifiers, e.g. the powder snow freeze), `current` the server's value.
 - `function liquidAttributes (params: Record<string, any>): StampedLiquidAttributes | null` -- The liquid movement attributes of an update_attributes packet, by name: their current values (vanilla keeps 0.02).
+- `function gameTypeName (value: unknown): string | undefined` -- A game type's name, as a packet carries it (a name or its number; the fallback is the default).
 - `function flagValue (value: unknown, name: string): boolean | undefined` -- A named flag of a decoded flags word: an object of booleans or a list of set names.
 - `function restatedFlags (params: Record<string, any>): StampedFlags | null` -- The actor flags a set_entity_data packet restates, and the box height it sends with a pose; null when neither.

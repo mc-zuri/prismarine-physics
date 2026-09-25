@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 import { Vec3 } from 'vec3'
 import { Physics } from '../../../../lib/bedrock/index.ts'
-import { agedDuration, BedrockSession, effectLevel, flagValue, liquidAttributes, movementAttribute, restatedFlags } from '../../../../lib/bedrock/network/session.ts'
+import { agedDuration, BedrockSession, effectLevel, flagValue, gameTypeName, liquidAttributes, movementAttribute, restatedFlags } from '../../../../lib/bedrock/network/session.ts'
 import { FLAT, player } from '../helpers.ts'
 
 const f = Math.fround
@@ -16,24 +16,31 @@ function session () {
 }
 
 describe('bedrock network/session', () => {
-  it('takes the local game mode for the simulation, refusing one stamped before the history', () => {
+  it('simulates with the game type the client holds: its own from start_game and set_player_game_type, else the world\'s', () => {
     const s = session()
-    s.handlePacket('start_game', { runtime_entity_id: 7n, entity_id: -5n, rewind_history_size: 5 })
-    const p = player(undefined, { gameMode: 'survival' })
+    s.handlePacket('start_game', { runtime_entity_id: 7n, entity_id: -5n, rewind_history_size: 5, player_gamemode: 'fallback', world_gamemode: 'survival' })
+    const p = player(undefined, { gameMode: 'creative' })
+    s.tick(p, { t: 1 })
+    assert.strictEqual(p.gameMode, 'survival', 'its own is the default: the world\'s')
+    // a /gamemode's update changes nothing for the local player; another player's is not the session's
+    assert.strictEqual(s.handlePacket('update_player_game_type', { gamemode: 'creative', player_unique_id: -5n, tick: 0n }), true)
     assert.strictEqual(s.handlePacket('update_player_game_type', { gamemode: 'creative', player_unique_id: -6n, tick: 0n }), false, 'another player')
-    for (let t = 1; t <= 10; t++) s.tick(p, { t })
-    s.handlePacket('update_player_game_type', { gamemode: 'creative', player_unique_id: -5n, tick: 4n })
-    s.tick(p, { t: 11 })
-    assert.strictEqual(p.gameMode, 'survival', 'older than the history: refused')
-    s.handlePacket('update_player_game_type', { gamemode: 'creative', player_unique_id: -5n, tick: 9n })
-    s.tick(p, { t: 12 })
-    assert.strictEqual(p.gameMode, 'creative')
-    s.handlePacket('update_player_game_type', { gamemode: 'default', player_unique_id: -5n, tick: 0n })
+    s.tick(p, { t: 2 })
+    assert.strictEqual(p.gameMode, 'survival')
+    s.handlePacket('set_default_game_type', { gamemode: 1 })
+    s.tick(p, { t: 3 })
+    assert.strictEqual(p.gameMode, 'creative', 'the world\'s changed')
+    s.handlePacket('set_player_game_type', { gamemode: 'spectator' })
+    s.tick(p, { t: 4 })
+    assert.strictEqual(p.gameMode, 'spectator', 'its own set')
+    s.handlePacket('set_player_game_type', { gamemode: 'survival_spectator' })
     p.gameMode = 'adventure'
-    s.tick(p, { t: 13 })
-    assert.strictEqual(p.gameMode, 'adventure', 'the world default is left to the caller')
+    s.tick(p, { t: 5 })
+    assert.strictEqual(p.gameMode, 'adventure', 'one the engine does not tell apart is left to the caller')
+    assert.deepStrictEqual([gameTypeName(0), gameTypeName(5), gameTypeName(3), gameTypeName('fallback'), gameTypeName(null)], ['survival', 'default', undefined, 'default', undefined])
     const unknown = session()
     assert.strictEqual(unknown.handlePacket('update_player_game_type', { gamemode: 'creative', player_unique_id: -5n, tick: 0n }), false, 'before start_game')
+    assert.strictEqual(unknown.gameMode, undefined, 'nothing known: the caller\'s')
   })
 
   it('takes the history size from start_game', () => {

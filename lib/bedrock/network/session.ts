@@ -125,8 +125,15 @@ export class BedrockSession {
   localUniqueId: Id = null
   // the flags the server last restated, by name
   serverFlags: Record<string, unknown> = {}
-  // the game mode the client holds (unset: the caller's)
-  gameMode: string | undefined
+  // the player's own game type as the client holds it ('default': the world's) and the world's (unset: not yet known)
+  ownGameType: string | undefined
+  worldGameType: string | undefined
+  // the game mode the client simulates with: its own, the world's where its own is the default (unset: the caller's)
+  get gameMode (): string | undefined {
+    const mode = this.ownGameType === 'default' ? this.worldGameType : this.ownGameType
+    return mode !== undefined && GAME_MODES.has(mode) ? mode : undefined
+  }
+
   // the mob effects the server sent, by the level field they set
   effects = new Map<EffectField, EffectEvent[]>()
   pendingAttribute: { attribute: StampedAttribute } | null = null
@@ -460,15 +467,21 @@ export class BedrockSession {
         this.localRuntimeId = params.runtime_entity_id
         this.localUniqueId = params.entity_id ?? null
         if (Number.isSafeInteger(params.rewind_history_size)) this.rewind.history = sanitizeHistorySize(params.rewind_history_size)
+        this.ownGameType = gameTypeName(params.player_gamemode)
+        this.worldGameType = gameTypeName(params.world_gamemode)
         return true
-      case 'update_player_game_type': {
-        if (this.localUniqueId === null || !sameId(params.player_unique_id, this.localUniqueId)) return false
-        // one stamped before the history is refused: the client keeps the game mode it has
-        const tick = Number(params.tick || 0)
-        if (tick > 0 && tick < Math.max(this.rewind.oldest, this.rewind.current - this.rewind.history + 1)) return true
-        this.gameMode = GAME_MODES.has(params.gamemode) ? params.gamemode as string : undefined
+      // the player's own game type changes only by this packet; the world's by the next
+      case 'set_player_game_type':
+        this.ownGameType = gameTypeName(params.gamemode)
         return true
-      }
+      case 'set_default_game_type':
+        this.worldGameType = gameTypeName(params.gamemode)
+        return true
+      // the one the server sends a /gamemode with changes nothing for the local player: the client does not find its
+      // own entity by the unique id it names, and keeps the game type it had (a player switched to creative this way
+      // still hovers as the world's survival player does)
+      case 'update_player_game_type':
+        return this.localUniqueId !== null && sameId(params.player_unique_id, this.localUniqueId)
       case 'move_player': {
         if (!sameId(params.runtime_id, this.localRuntimeId)) return false
         const mode = typeof params.mode === 'number' ? params.mode : MoveMode[params.mode as keyof typeof MoveMode]
@@ -570,8 +583,17 @@ export function liquidAttributes (params: Record<string, any>): StampedLiquidAtt
   return Object.keys(values).length ? { tick: Number(params.tick || 0), values } : null
 }
 
-// The game modes the engine tells apart; any other (the world's default) is left to the caller.
+// The game modes the engine tells apart; any other is left to the caller.
 const GAME_MODES = new Set(['survival', 'creative', 'adventure', 'spectator'])
+// The game types by their number on the wire.
+const GAME_TYPE_NAMES: Readonly<Record<number, string>> = { 0: 'survival', 1: 'creative', 2: 'adventure', 5: 'default', 6: 'spectator' }
+
+// A game type's name, as a packet carries it (a name or its number; the fallback is the default).
+export function gameTypeName (value: unknown): string | undefined {
+  if (typeof value === 'number') return GAME_TYPE_NAMES[value]
+  if (value === 'fallback') return 'default'
+  return typeof value === 'string' ? value : undefined
+}
 
 const FLAGS_WORD = ['sneaking', 'sprinting', 'gliding', 'swimming', 'spinning'] as const
 const EXTENDED_FLAGS_WORD = ['crawling', 'pushTowardsClosestSpace'] as const
