@@ -4,7 +4,7 @@ import { Vec3 } from 'vec3'
 import { buildPlayerAuthInput } from '../../../../lib/bedrock/network/input-packet.ts'
 import { simulatePlayer } from '../../../../lib/bedrock/tick/index.ts'
 import { MovementType } from '../../../../lib/bedrock/vehicle/buoyancy.ts'
-import { boatBubbleColumns, dismount, moveVehicle, newBoatState, paddle, seatPosition, simulateBoat, vehicleBox, type Vehicle } from '../../../../lib/bedrock/tick/vehicle.ts'
+import { boatBubbleColumns, dismount, moveVehicle, newBoatState, paddle, seatPosition, simulateBoat, simulateHorse, vehicleBox, type Vehicle } from '../../../../lib/bedrock/tick/vehicle.ts'
 import { Box } from '../../../../lib/bedrock/math/box.ts'
 import type { Block, World } from '../../../../lib/bedrock/types.ts'
 import { ctx, EMPTY, FLAT, player, worldOf } from '../helpers.ts'
@@ -164,6 +164,42 @@ describe('bedrock tick/vehicle', () => {
       }
       const plain = run(FLAT)
       assert.strictEqual(run(worldOf({ '1,0,0': 'honey_block' })), f(plain * f(0.40000001)))
+    })
+
+    it('steers a predicted horse: the walk at its speed, the turn, the charged jump and the landing', () => {
+      const horse = (fields: Partial<Vehicle> = {}): Vehicle => boat({ kind: 'horse', pos: new Vec3(0.5, 0, 0.5), heightOffset: 0, width: 1.4, height: 1.6, speed: 0.25, jumpStrength: 0.7, ...fields })
+      const v = horse()
+      simulateHorse(ctx(FLAT), v, { move: { x: 0, z: 1 }, jump: false, yaw: 0, pitch: 10 })
+      assert.deepStrictEqual([v.vel.z, v.pitch], [f(f(0.25) * f(f(0.6) * f(0.91))), 5], 'its speed on the ground, the pitch halved')
+      const air = horse({ onGround: false, pos: new Vec3(0.5, 5, 0.5) })
+      simulateHorse(ctx(FLAT), air, { move: { x: 0, z: 1 }, jump: false, yaw: 0, pitch: 0 })
+      assert.strictEqual(air.vel.z, f(f(f(0.25) * f(0.1)) * f(0.91)), 'a tenth of it in the air')
+      const j = horse()
+      for (const held of [true, true, true, false]) simulateHorse(ctx(FLAT), j, { move: { x: 0, z: 0 }, jump: held, yaw: 0, pitch: 0 })
+      assert.ok(j.pos.y > 0 && j.horse!.jumping, 'released: it jumps')
+      for (let i = 0; i < 40; i++) simulateHorse(ctx(FLAT), j, { move: { x: 0, z: 0 }, jump: false, yaw: 0, pitch: 0 })
+      assert.deepStrictEqual([j.pos.y, j.horse!.jumping, j.onGround], [0, false, true], 'landed')
+      const tiny = horse({ vel: new Vec3(1e-8, 0, 0) })
+      simulateHorse(ctx(FLAT), tiny, { move: { x: 0, z: 0 }, jump: false, yaw: 0, pitch: 0 })
+      assert.strictEqual(tiny.vel.x, 0, 'a velocity of at most 2^-23 stops')
+      const slow = horse({ speed: undefined, jumpStrength: undefined })
+      simulateHorse(ctx(FLAT), slow, { move: { x: 0, z: 1 }, jump: false, yaw: 0, pitch: 0, jumpBoost: 1 })
+      assert.ok(slow.vel.z > 0, 'without its speed, the player\'s')
+      simulateHorse(ctx(FLAT), slow, { move: { x: 0, z: 0 }, jump: false, yaw: 0, pitch: 0 })
+      slow.horse!.pendingJump = 0.5
+      simulateHorse(ctx(FLAT), slow, { move: { x: 0, z: 0 }, jump: false, yaw: 0, pitch: 0, jumpBoost: 1 })
+      assert.ok(slow.vel.y > 0, 'without its strength, the Jump Boost alone')
+    })
+
+    it('rides a predicted horse from the rider tick and reports it without the paddles', () => {
+      const v = boat({ kind: 'horse', pos: new Vec3(0.5, 0, 0.5), heightOffset: 0, speed: 0.25 })
+      const p = player([0.5, 0, 0.5], { vehicle: v, control: { forward: true, left: true } })
+      simulatePlayer(ctx(FLAT), p)
+      simulatePlayer(ctx(FLAT), p)
+      assert.ok(v.pos.z > 0.5)
+      const packet = buildPlayerAuthInput(p) as Record<string, any>
+      assert.ok(packet.input_data.includes('client_predicted_vehicle'))
+      assert.ok(!packet.input_data.includes('paddling_left'))
     })
 
     it('only sits in a vehicle the server moves', () => {

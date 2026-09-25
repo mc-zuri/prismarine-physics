@@ -93,7 +93,7 @@ export function buildPlayerAuthInput (entity: Player, eyeHeight = 1.620010018348
     const packet = buildPlayerAuthInput({ ...entity, vehicle: undefined }, eyeHeight)
     ;(packet.input_data as string[]).push('client_predicted_vehicle')
     // the driver's left and right keys are the paddle buttons (forward paddles nothing)
-    const keys = entity.bedrock?.keys
+    const keys = vehicle.kind.endsWith('boat') ? entity.bedrock?.keys : undefined
     if (keys?.left) (packet.input_data as string[]).push('paddling_left')
     if (keys?.right) (packet.input_data as string[]).push('paddling_right')
     return {

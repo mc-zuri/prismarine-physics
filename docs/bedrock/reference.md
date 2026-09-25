@@ -158,7 +158,7 @@ The travel of the tick: gliding, or the fly controls, the jump and the input's p
 
 ### `tick/vehicle.ts`
 
-One tick of a vehicle the player rides. A boat the player steers is simulated as the client predicts it: the paddles, the friction, the turn and thrust, the move through the blocks and the buoyancy. Any other vehicle is the server's; the player sits in it.
+One tick of a vehicle the player rides. A boat the player steers is simulated as the client predicts it: the paddles, the friction, the turn and thrust, the move through the blocks and the buoyancy; so is a horse it steers: the charged jump, the turn, the walk and the fall. Any other vehicle is the server's; the player sits in it.
 
 - `interface Vehicle` -- A vehicle the player rides: the server's entity, and when the player steers a boat, the boat's own state.
 - `interface BoatState` -- A predicted boat's state between ticks.
@@ -166,8 +166,10 @@ One tick of a vehicle the player rides. A boat the player steers is simulated as
 - `interface PaddleInput` -- The rider's paddling this tick: the move vector and the up key (the force the paddles are given), or the two paddle buttons of a touch or classic control scheme.
 - `function vehicleBox (vehicle: Vehicle): Box` -- The vehicle's box around its position.
 - `function paddle (boat: BoatState, input: PaddleInput): void` -- The paddles take the rider's input: a force from the move vector, or the rowing buttons.
-- `function moveVehicle (ctx: Ctx, vehicle: Vehicle): void` -- The move through the blocks: capped, clamped to 16, swept without stepping up; a blocked axis stops.
+- `function moveVehicle (ctx: Ctx, vehicle: Vehicle, stepHeight = 0): void` -- The move through the blocks: capped, clamped to 16, swept (stepping up `stepHeight`: a boat none); a blocked axis stops.
 - `function simulateBoat (ctx: Ctx, vehicle: Vehicle, input: PaddleInput, roll: () => number = Math.random): void` -- One tick of a boat the player steers. `roll` draws the big-wave chance (uniform in [0, 1)).
+- `interface HorseInput` -- The rider's input to a horse it steers: its move vector, its jump key now and last tick, and its look.
+- `function simulateHorse (ctx: Ctx, vehicle: Vehicle, input: HorseInput): void` -- One tick of a horse the player steers: the jump the rider charged, the turn toward its look, the walk (at the horse's speed on the ground, a tenth of it in the air), the move, and the fall and friction.
 - `function boatBubbleColumns (ctx: Ctx, vehicle: Vehicle, box: Box): void` -- Bubble columns the moved boat is in (the cells of `box`), each with water (not air) above it: a downward one pulls it down 0.03 (to -0.3 at most), an upward one lifts it 0.06 (to 0.7 at most).
 - `function dismount (ctx: Ctx, entity: Player, byRider = true, alpha?: number, unlinked = false): void` -- The rider leaves the vehicle (the dismount button, or the server taking it off: `byRider` false): it stands at the dismount spot, keeping the velocity it had riding, its ground flag as riding left it, with its box rebuilt; with no spot it stays where it sat. `alpha`: the frame's progress into the next tick when the rider left; given, the rider is first seated where the vehicle is shown then (between its last two positions). `unlinked`: the server's link removal took it off, after the tick's input was read in the seat.
 - `function seatPosition (vehicle: Vehicle): Vec3` -- Where the rider sits: the vehicle's position plus the seat, turned by the vehicle's yaw.

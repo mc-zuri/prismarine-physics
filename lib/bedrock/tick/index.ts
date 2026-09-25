@@ -2,6 +2,7 @@
 // file only fixes their order.
 import { mt19937NextFloat } from '../math/mt19937.ts'
 import { f } from '../math/float.ts'
+import { pitchOf, yawOf } from '../math/rotation.ts'
 import { closestSpaceReach, pushTowardsClosestSpace } from '../movement/closest-space.ts'
 import { nextFallDistance } from '../movement/fall-distance.ts'
 import { storePreviousInput } from '../movement/sprint.ts'
@@ -19,7 +20,7 @@ import type { TickState } from './state.ts'
 import { spinAttack } from './spin.ts'
 import { takePose } from './take-pose.ts'
 import { flightControls, glideTick, isGliding, jump, travel, useFirework } from './travel.ts'
-import { seatPosition, simulateBoat } from './vehicle.ts'
+import { seatPosition, simulateBoat, simulateHorse } from './vehicle.ts'
 
 // The fall distance after the move, with the water sensed on the moved box.
 function trackFall (ctx: Ctx, entity: Simulated, tick: TickState): void {
@@ -99,7 +100,8 @@ function rideTick (ctx: Ctx, entity: Simulated): void {
   // on the first tick ridden the rider's input has not reached the boat yet: its paddles row with nothing pressed (each
   // still pulling half its last force)
   const input = entity.bedrock.riding ? { move: entity.bedrock.input!.move, up: !!entity.bedrock.keys!.up } : { move: entity.bedrock.input!.move, up: false, rowing: [false, false] as [boolean, boolean] }
-  if (vehicle.predicted) simulateBoat(ctx, vehicle, input, bigWaveRoll(entity))
+  if (vehicle.predicted && vehicle.kind.endsWith('boat')) simulateBoat(ctx, vehicle, input, bigWaveRoll(entity))
+  else if (vehicle.predicted) simulateHorse(ctx, vehicle, { move: entity.bedrock.input!.move, jump: !!entity.bedrock.input!.jumping, yaw: yawOf(entity), pitch: pitchOf(entity), jumpBoost: entity.jumpBoost })
   const seat = seatPosition(vehicle)
   entity.pos.set(seat.x, f(seat.y - f(ctx.settings.eyeHeight)), seat.z)
   // the first tick ridden still reports the velocity the rider had; from the next it stops, and flowing water around

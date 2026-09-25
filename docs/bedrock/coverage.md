@@ -55,6 +55,10 @@ or the shared rewind cases (`test/bedrock/rewind-parity.test.js`); see [Testing]
 
 - a boat the player steers, as the client predicts it: the paddles from the move vector, the friction of what it is
   in or on, the turn and thrust, the move, and the buoyancy on water; the packet reports the boat
+- a tamed, saddled horse, donkey or mule the player steers, as the client predicts it: the jump the rider charges by
+  holding jump (from its second tick held; 0.4 to 1 of the horse's jump strength, with 0.4 of it forward when moving),
+  the turn toward the rider's look (wrapped in float32), the walk at the horse's speed on the ground and a tenth of it
+  in the air, sideways at half and backward at a quarter; the packet reports the horse
 - sitting in any other vehicle (minecart, pig, strider): the server moves it
 - boats are solid to a player on foot: it stands on them, and one it is inside is only pushed out 0.1 at most
 - vehicle corrections from the server, installed in the history like the player's
@@ -77,10 +81,8 @@ then continues from the correction.
 
 **Mounts the player steers**
 
-- horses, donkeys and mules: the client predicts a tamed, saddled one (its speed and the `horse.jump_strength` jump,
-  charged by holding jump, the rearing, the landing that ends the jump), and reports it in the packet as a
-  client-predicted vehicle. The engine seats the player and leaves the mount to the server
-- camels: the same, plus the dash (the jump key, with a cooldown) and their 1.5625 step, which is 0.5625 while they
+- a horse's rearing (it stands after a jump, and a standing horse takes no move)
+- camels: steered like a horse, plus the dash (the jump key, with a cooldown) and their 1.5625 step, which is 0.5625 while they
   stand on honey (the block that prevents jumping). A player's own step never changes: 0.5625 everywhere
 - leaving a vehicle the player cannot steer (a minecart, a pig) by jumping
 - the rider's yaw clamped to its vehicle's
