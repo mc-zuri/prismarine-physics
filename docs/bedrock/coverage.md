@@ -90,6 +90,10 @@ or the shared rewind cases (`test/bedrock/rewind-parity.test.js`); see [Testing]
   `set_default_game_type`) where its own is the default; a `/gamemode`'s `update_player_game_type` changes nothing for
   the local player (a player switched to creative that way hovers as a survival player)
 - movement corrections and teleports, installed in the tick history and simulated forward
+- a dimension change (`change_dimension`): the player moves to the position named, at rest, and holds still there
+  (its collision flags as they were) until the new dimension has loaded, which the caller reports
+  (`session.dimensionLoaded()`; mineflayer does once the server has acknowledged the change and the column under the
+  player has arrived); the history starts over
 - the respawn: a new player at the spawn, at rest, standing and full size, whose first tick falls without moving;
   what the server sent the player that died and the session has not run yet (a knockback stamped before the death) is
   dropped, and the history starts over
@@ -132,7 +136,8 @@ then continues from the correction.
   the client's own state (a chunk is not loaded until its sub-chunks are built), not something the packets tell, so
   a bot's world cannot follow it tick for tick; the engine collides with the blocks it has and nothing else
 - a dead player sends no input until the server's respawn marks it ready (the caller's to hold back)
-- the loading screen of a dimension change: its ability layer and the ticks that send no input
+- the ability layer of a dimension change's loading screen, and exactly when the client's loading screen closes (its
+  own chunk loading, which a bot's world does not follow)
 
 **Input**
 
