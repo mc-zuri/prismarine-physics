@@ -78,10 +78,10 @@ describe('bedrock tick/travel', () => {
       assert.strictEqual(s.entity.vel.y, f(0.42))
     })
 
-    it('does not jump from powder snow, but restarts the cooldown', () => {
-      const s = start(worldOf({ '0,0,0': 'powder_snow' }, null), player([0.5, 0, 0.5], { control: { jump: true } }))
+    it('jumps from inside powder snow, and restarts the cooldown', () => {
+      const s = start(worldOf({ '0,0,0': 'powder_snow' }, null), player([0.5, f(0.9), 0.5], { control: { jump: true } }))
       jumpFromGround(s.c, s.entity, s.tick)
-      assert.deepStrictEqual([s.entity.vel.y, s.entity.jumpTicks], [0, 10])
+      assert.deepStrictEqual([s.entity.vel.y, s.entity.jumpTicks], [f(0.42), 10])
     })
 
     it('jumps lower from honey, higher with Jump Boost, and never lowers a rising velocity', () => {

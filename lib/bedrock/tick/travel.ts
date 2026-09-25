@@ -8,7 +8,7 @@ import { boostedWaterSpeed } from '../movement/dolphin.ts'
 import { fireworkBoost, GLIDE_BOOST_RATE } from '../movement/movement-effects.ts'
 import { depthStriderLevel, depthStriderSpeed, frictionInfluencedSpeed, LAVA_MOVEMENT_ATTRIBUTE, liquidSpeed, movementSpeed, moveRelative, UNDERWATER_MOVEMENT_ATTRIBUTE, walkSpeed, walkSpeedParts } from '../movement/travel.ts'
 import type { Ctx, Simulated } from '../types.ts'
-import { blockAt, blockName, standingOnBlock } from '../world/blocks.ts'
+import { blockAt, blockName } from '../world/blocks.ts'
 import type { TickState } from './state.ts'
 
 const SWIM_STEER_STEEP = f(-0.2)
@@ -52,9 +52,9 @@ export function flightControls (ctx: Ctx, entity: Simulated): void {
   st.flightFrictionOverride = control.override
 }
 
-// A jump from the ground, when the cooldown allows: the cooldown restarts, then -- unless the player stands on powder
-// snow -- the impulse (only ever raising the vertical velocity), the start-jumping action, and, while sprinting, the
-// push along the facing.
+// A jump from the ground, when the cooldown allows: the cooldown restarts, then the impulse (only ever raising the
+// vertical velocity), the start-jumping action, and, while sprinting, the push along the facing. Powder snow does not
+// stop it: a player on top of it in leather boots jumps, and so does one on the box it lands on after a long fall.
 export function jumpFromGround (ctx: Ctx, entity: Simulated, tick: TickState): void {
   const st = entity.bedrock
   const vel = entity.vel
@@ -62,7 +62,6 @@ export function jumpFromGround (ctx: Ctx, entity: Simulated, tick: TickState): v
   const feet = blockAt(ctx.world, entity.pos.x, aabb.minY, entity.pos.z)
   const below = blockAt(ctx.world, entity.pos.x, aabb.minY - 1, entity.pos.z)
   entity.jumpTicks = ctx.settings.autojumpCooldown
-  if (blockName(standingOnBlock(ctx.world, aabb, entity.pos)) === 'powder_snow') return
   const jumpY = jumpVelocity(ctx.settings.jumpVelocity, entity.jumpBoost, jumpReduced(feet, below))
   if (jumpY > vel.y) vel.y = jumpY
   st.actions!.add('startJumping')

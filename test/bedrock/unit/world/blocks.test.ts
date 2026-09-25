@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 import { Vec3 } from 'vec3'
 import { Box } from '../../../../lib/bedrock/math/box.ts'
-import { blockAt, blockBounds, blockFriction, blockName, blockShapes, collisionBoxes, isAir, landedOnCell, restitutionOf, someCell, standingOnBlock, standingOnCell, worldShapes } from '../../../../lib/bedrock/world/blocks.ts'
+import { blockAt, blockBounds, blockFriction, blockName, blockShapes, collisionBoxes, isAir, landedOnCell, restitutionOf, someCell, standingOnCell, worldShapes } from '../../../../lib/bedrock/world/blocks.ts'
 import { block, EMPTY, f, worldOf } from '../helpers.ts'
 
 describe('bedrock world/blocks', () => {
@@ -64,13 +64,6 @@ describe('bedrock world/blocks', () => {
     assert.deepStrictEqual(collisionBoxes(world, query, { aabb: new Box(1.2, 1, 0.2, 1.8, 2.8, 0.8), descend: false }), [], 'not over it')
     assert.deepStrictEqual(collisionBoxes(world, new Box(0.2, 1.5, 0.2, 0.8, 2, 0.8), above), [], 'a supporting cube outside the query')
     assert.deepStrictEqual(collisionBoxes(world, query), [], 'no mover: scaffolding never collides')
-  })
-
-  it('stands on the block with the tallest shape under the feet, else the block at the feet', () => {
-    const world = worldOf({ '0,-1,0': 'bottom_slab', '1,-1,0': 'stone' }, null)
-    const box = new Box(0.7, 0, 0.2, 1.3, 1.8, 0.8)
-    assert.strictEqual(standingOnBlock(world, box, { x: 1, z: 0.5 })!.name, 'stone')
-    assert.strictEqual(standingOnBlock(worldOf({ '0,0,0': 'powder_snow' }, null), new Box(0.2, 0, 0.2, 0.8, 1.8, 0.8), { x: 0.5, z: 0.5 })!.name, 'powder_snow')
   })
 
   it('visits the cells of a shrunk box until one answers true', () => {

@@ -110,7 +110,7 @@ export function landingBounce (ctx: Ctx, entity: Simulated, tick: TickState): nu
 }
 
 // The collisions of the move: a blocked axis stops, a vertical collision lands (or bounces); the ground flag is set
-// by a landing and kept by a move with no vertical part; a slowed move drops the velocity.
+// by a landing and kept by a move with no vertical part, except with the feet in powder snow; a slowed move drops the velocity.
 export function settleCollisions (ctx: Ctx, entity: Simulated, tick: TickState): void {
   const st = entity.bedrock
   const vel = entity.vel
@@ -131,7 +131,7 @@ export function settleCollisions (ctx: Ctx, entity: Simulated, tick: TickState):
   if (yCollided) vel.y = landingBounce(ctx, entity, tick)
   entity.isCollidedHorizontally = xCollided || zCollided
   entity.isCollidedVertically = yCollided
-  entity.onGround = yCollided ? requested.y < 0 : (tick.startedOnGround && requested.y === 0)
+  entity.onGround = yCollided ? requested.y < 0 : (tick.startedOnGround && requested.y === 0 && blockName(blockAt(ctx.world, entity.pos.x, entity.pos.y, entity.pos.z)) !== 'powder_snow')
   if (tick.slowed) vel.set(0, 0, 0)
   entity.isInWeb = tick.slowdowns.has('web')
 }

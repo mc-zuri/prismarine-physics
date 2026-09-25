@@ -158,29 +158,6 @@ export function collisionBoxes (world: World, query: BoxLike, mover?: Mover): Bo
   return boxes
 }
 
-// The block the box stands on: the one whose collision shape reaches highest in the thin slab under the feet, or the
-// cell at the feet when nothing collides there.
-export function standingOnBlock (world: World, aabb: BoxLike, pos: { x: number, z: number }): Block | null | undefined {
-  const probe = new Box(aabb.minX, aabb.minY - 0.01, aabb.minZ, aabb.maxX, aabb.minY, aabb.maxZ)
-  let tallest: Block | null | undefined = null
-  let top = -Infinity
-  for (let y = Math.floor(probe.minY) - 1; y <= Math.floor(probe.maxY); y++) {
-    for (let z = Math.floor(probe.minZ); z <= Math.floor(probe.maxZ); z++) {
-      for (let x = Math.floor(probe.minX); x <= Math.floor(probe.maxX); x++) {
-        const block = blockAt(world, x, y, z)
-        for (const shape of blockShapes(block)) {
-          const box = new Box(shape[0], shape[1], shape[2], shape[3], shape[4], shape[5]).offset(x, y, z)
-          if (box.intersects(probe) && box.maxY > top) {
-            top = box.maxY
-            tallest = block
-          }
-        }
-      }
-    }
-  }
-  return tallest || blockAt(world, pos.x, aabb.minY, pos.z)
-}
-
 // The union of a block's collision boxes in world coordinates, or null when it has none.
 export function blockBounds (block: Block | null | undefined, x: number, y: number, z: number): Box | null {
   const shapes = blockShapes(block)
