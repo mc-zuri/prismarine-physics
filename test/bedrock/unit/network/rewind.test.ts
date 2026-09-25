@@ -130,6 +130,39 @@ describe('bedrock network/rewind', () => {
     assert.strictEqual(live.bedrockYaw, f(0 + f(30 - f(0.0001))))
   })
 
+  it('replays known turns: none keeps the rotation, the set yaw while on the recording, else each turn added', () => {
+    const deg = (yaw: number): number => Math.PI - yaw * Math.PI / 180
+    const pit = (pitch: number): number => -pitch * Math.PI / 180
+    const ran: number[][] = []
+    const rewind = new BedrockRewind<{ yaw: number, pitch: number }>({
+      step: (state, frame: Frame) => {
+        if (typeof frame.yaw === 'number') state.yaw = frame.yaw
+        if (typeof frame.pitch === 'number') state.pitch = frame.pitch
+        ran.push([f((Math.PI - state.yaw) * 180 / Math.PI), f(-state.pitch * 180 / Math.PI)])
+      }
+    })
+    const frames: Frame[] = [
+      { t: 1, yaw: deg(10), pitch: pit(5) },
+      { t: 2, yaw: deg(10), pitch: pit(5) },
+      { t: 3, yaw: deg(f(10.001)), pitch: pit(5), turns: { deltas: [] } },
+      { t: 4, yaw: deg(f(20.002)), pitch: pit(6), turns: { deltas: [[1, 10]], yaw: f(20.003) } },
+      { t: 5, yaw: deg(179), pitch: pit(6), turns: { deltas: [[0, 160], [0, 10]], yaw: 179 } },
+      { t: 6 }
+    ]
+    for (const frame of frames) {
+      rewind.push(frame)
+      rewind.snapshot(frame.t, { yaw: frame.yaw as number ?? 0, pitch: frame.pitch as number ?? 0 })
+    }
+    rewind.rewindTo(1, { yaw: 0, pitch: 0 }, () => {})
+    assert.deepStrictEqual(ran[1], [10, 5], 'no turn: the rotation the tick before ran with')
+    assert.deepStrictEqual(ran[2], [10 + 10, 6], 'off the recording: the turn added, the pitch recorded')
+    const wrap = (v: number): number => { let r = f(f(v + 180) % 360); if (r < 0) r = f(r + 360); return f(r + -180) }
+    assert.deepStrictEqual(ran[3], [wrap(f(wrap(f(20 + 160)) + 10)), 6], 'each turn added, the yaw wrapped')
+    ran.length = 0
+    rewind.rewindTo(3, { yaw: 0, pitch: 0 }, () => {})
+    assert.deepStrictEqual(ran, [[f(20.002), 6], [179, 6]], 'on the recording: the yaw the turns set')
+  })
+
   it('simulates again from an earlier tick, the install still made after its own', () => {
     const log: string[] = []
     const rewind = new BedrockRewind<{ n: number }>({ step: (state, frame: Frame) => { log.push(`step ${frame.t}`); state.n += 10 } })

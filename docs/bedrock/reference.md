@@ -618,6 +618,7 @@ const rewind = new BedrockRewind({ step: (state, frame) => { ...apply frame's in
 - `function cloneValue<T> (value: T): T` -- A deep copy: vectors, anything with clone(), sets, maps, arrays and plain objects.
 - `function cloneState<T> (state: T): T` -- A deep copy of a player state.
 - `interface Frame` -- One tick's inputs, by tick.
+- `interface Turns` -- The turns a tick's input made, where the caller knows them apart from the view's jitter: each [pitch, yaw] change the history kept (in degrees, as the view moved it), and the yaw the last of them set.
 - `type Step` -- Simulates one past tick again from its frame.
 - `class BedrockRewind` -- The history of the last ticks: their frames and the state after each, and the re-simulation from a corrected tick.
 

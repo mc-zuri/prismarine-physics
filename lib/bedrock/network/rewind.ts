@@ -53,10 +53,28 @@ function withRotation (frame: Frame, yaw: number, pitch: number): Frame {
 // A change of the view smaller than this (pitch and yaw squared, degrees) is no turn: the client does not keep it.
 const TURN_THRESHOLD = f(0.001)
 
+// The turns a tick's input made, where the caller knows them apart from the view's jitter: each [pitch, yaw] change
+// the history kept (in degrees, as the view moved it), and the yaw the last of them set.
+export interface Turns { deltas: Array<[number, number]>, yaw?: number | undefined }
+
+// A tick simulated again with its known turns: none keeps the rotation the tick before ran with; while that is still
+// the recorded one, the yaw the turns set is taken, else each turn is added to it (the yaw wrapped every time). The
+// pitch is the recorded one.
+function turnedFrame (frame: Frame, before: Frame | undefined, state: Rotated, turns: Turns): Frame {
+  if (!turns.deltas.length) return withoutRotation(frame)
+  let yaw = yawOf(state)
+  const recorded = !!before && rotated(before) && yaw === yawOf(before as Rotated) && pitchOf(state) === pitchOf(before as Rotated)
+  if (recorded && typeof turns.yaw === 'number') yaw = turns.yaw
+  else for (const [, turn] of turns.deltas) yaw = wrapDegrees(f(yaw + turn))
+  return withRotation(frame, yaw, pitchOf(frame as Rotated))
+}
+
 // The frame a tick after the first simulated again runs with: its turn (the change from the frame before) added to the
 // rotation the tick before ran with, the yaw wrapped and the pitch within +-90, or that rotation as it is when the turn
 // is below the threshold. While that rotation is still the one recorded, the recorded one is taken as it is.
 function replayedFrame (frame: Frame, before: Frame | undefined, state: Rotated): Frame {
+  const turns = frame.turns as Turns | undefined
+  if (turns && rotated(frame)) return turnedFrame(frame, before, state, turns)
   if (!before || !rotated(frame) || !rotated(before)) return frame
   const turnYaw = f(yawOf(frame as Rotated) - yawOf(before as Rotated))
   const turnPitch = f(pitchOf(frame as Rotated) - pitchOf(before as Rotated))
