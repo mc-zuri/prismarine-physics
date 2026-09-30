@@ -9,7 +9,7 @@ describe('vanilla recordings: sneak', () => {
     steps: [press(['forward', 'sneak'], 40), ticks(5)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'top speed 1.96 b/s': { tick: 1, pos: [-6.4019999966323375, 101.0625, 1669.5], vel: [0.053508008053839436, -0.0784000015258789, 0] },
@@ -24,7 +24,7 @@ describe('vanilla recordings: sneak', () => {
     steps: [press(['forward', 'sneak'], 40), ticks(5)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'top speed 1.96 b/s': { tick: 1, pos: [0.5, 104, 1676.5980000033676], vel: [0, -0.0784000015258789, 0.053508008053839436] },
@@ -40,7 +40,7 @@ describe('vanilla recordings: sneak', () => {
     steps: [hold('forward', 'sneak'), ticks(10), press('jump', 1), until('onGround', 40), ticks(10), release()],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'top speed 1.96 b/s': { tick: 1, pos: [0.5980000033676625, 102, 1669.5], vel: [0.053508008053839436, -0.0784000015258789, 0] },
@@ -58,7 +58,7 @@ describe('vanilla recordings: sneak', () => {
     steps: [press(['forward', 'sneak'], 40), ticks(5)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'top speed 1.96 b/s': { tick: 1, pos: [7.5980000033676625, 101.5, 1669.5], vel: [0.053508008053839436, -0.0784000015258789, 0] },
@@ -75,7 +75,7 @@ describe('vanilla recordings: sneak', () => {
     steps: [press(['forward', 'sneak'], 40), ticks(5)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [-0.026752522585079725, -0.0784000015258789, 0.04634014818813671] },
           'top speed 1.96 b/s': { tick: 1, pos: [0.45100271157929683, 102, 1669.5848720564206], vel: [-0.026752522585079725, -0.0784000015258789, 0.04634014818813671] },
@@ -91,7 +91,7 @@ describe('vanilla recordings: sneak', () => {
     steps: [press(['forward', 'sneak'], 40), ticks(5)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [-0.03783587469512084, -0.0784000015258789, 0.03783587469512084] },
           'top speed 1.96 b/s': { tick: 1, pos: [0.4307035342483799, 102, 1669.5692964657517], vel: [-0.03783587469512084, -0.0784000015258789, 0.03783587469512084] },

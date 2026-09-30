@@ -9,7 +9,7 @@ describe('vanilla recordings: collision', () => {
     steps: [press('forward', 20), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'top speed 4.312 b/s': { tick: 11, pos: [15.615182005643897, 101, 1717.5], vel: [0.11770754062540936, -0.0784000015258789, 0] },
@@ -25,7 +25,7 @@ describe('vanilla recordings: collision', () => {
     steps: [press('forward', 30), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'top speed 4.314 b/s': { tick: 12, pos: [0.5, 101, 1722.8308895496373], vel: [0, -0.0784000015258789, 0.11777633270024773] },
@@ -41,7 +41,7 @@ describe('vanilla recordings: collision', () => {
     steps: [press('forward', 30), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'top speed 4.317 b/s': { tick: 30, pos: [6.5, 101, 1726.7161705545234], vel: [0, -0.0784000015258789, 0.11785906350182895] },
@@ -56,7 +56,7 @@ describe('vanilla recordings: collision', () => {
     steps: [press('forward', 30), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'top speed 4.316 b/s': { tick: 13, pos: [3.5, 101, 1723.0466658857051], vel: [0, -0.0784000015258789, 0.11781389317747222] },
@@ -72,7 +72,7 @@ describe('vanilla recordings: collision', () => {
     steps: [press('forward', 30), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'top speed 4.317 b/s': { tick: 30, pos: [-6.5, 101, 1726.7161705545234], vel: [0, -0.0784000015258789, 0.11785906350182895] },
@@ -87,7 +87,7 @@ describe('vanilla recordings: collision', () => {
     steps: [press('forward', 30), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'top speed 4.317 b/s': { tick: 30, pos: [-5.9, 101, 1726.7161705545234], vel: [0, -0.0784000015258789, 0.11785906350182895] },
@@ -102,7 +102,7 @@ describe('vanilla recordings: collision', () => {
     steps: [press('forward', 30), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'top speed 4.317 b/s': { tick: 20, pos: [15.557581306384694, 101, 1717.5], vel: [0.11785841158373374, -0.0784000015258789, 0] },
@@ -118,7 +118,7 @@ describe('vanilla recordings: collision', () => {
     steps: [press('forward', 40), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [-0.03783587469512084, -0.0784000015258789, 0.03783587469512084] },
           'top speed 4.317 b/s': { tick: 15, pos: [6.394013878039246, 101, 1710.6059861219605], vel: [-0.08332942046437326, -0.0784000015258789, 0.08332942046437326] },
@@ -134,7 +134,7 @@ describe('vanilla recordings: collision', () => {
     steps: [press(['forward', 'sprint'], 40), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [-0.04918664020454862, -0.0784000015258789, 0.04918664020454862] },
           'top speed 5.608 b/s': { tick: 12, pos: [6.357355752821574, 101, 1710.6426442471784], vel: [-0.10826458154281121, -0.0784000015258789, 0.10826458154281121] },
@@ -150,7 +150,7 @@ describe('vanilla recordings: collision', () => {
     steps: [press('forward', 30), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'top speed 4.317 b/s': { tick: 30, pos: [-3.5, 101, 1726.7161705545234], vel: [0, -0.0784000015258789, 0.11785906350182895] },
@@ -165,7 +165,19 @@ describe('vanilla recordings: collision', () => {
     steps: [hold('forward', 'sprint'), ticks(5), press('jump', 1), until('onGround', 40), ticks(5), release(), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.0695604148553142] },
+          'leaves the ground (1)': { tick: 6, pos: [3.5, 101.41999998688698, 1722.0551602949881], vel: [0, 0.33319999363422365, 0.2583574021410579], onGround: false },
+          'top speed 9.464 b/s': { tick: 6, pos: [3.5, 101.41999998688698, 1722.0551602949881], vel: [0, 0.33319999363422365, 0.2583574021410579] },
+          'touches a wall': { tick: 10, pos: [3.5, 102.24918707874468, 1723.074999988079], isCollidedHorizontally: true },
+          'peak height 1.252': { tick: 11, pos: [3.5, 102.25220334025373, 1723.074999988079] },
+          'lands (1)': { tick: 17, pos: [3.5, 101, 1723.074999988079], onGround: true },
+          'final state': { tick: 25, pos: [3.5, 101, 1723.074999988079], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.0695604148553142] },
           'leaves the ground (1)': { tick: 6, pos: [3.5, 101.41999998688698, 1722.055160292008], vel: [0, 0.33319999363422365, 0.2583574005138509], onGround: false },
@@ -184,7 +196,7 @@ describe('vanilla recordings: collision', () => {
     steps: [hold('forward'), ticks(5), press('jump', 1), until('onGround', 40), ticks(5), release(), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'leaves the ground (1)': { tick: 6, pos: [0.5, 101.41999998688698, 1721.5424309281339], vel: [0, 0.33319999363422365, 0.11473644494353707], onGround: false },
@@ -203,7 +215,7 @@ describe('vanilla recordings: collision', () => {
     steps: [press(['forward', 'sprint'], 40), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.06850415249759495, -0.0784000015258789, 0.012076120469547445] },
           'top speed 5.612 b/s': { tick: 27, pos: [15.629246314080603, 101, 1718.756765235493], vel: [0.15089021271489275, -0.0784000015258789, 0.026599385876420526] },
@@ -219,7 +231,16 @@ describe('vanilla recordings: collision', () => {
     steps: [press(['forward', 'sprint'], 40), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.06954982565508333, -0.0784000015258789, 0.001213700266995467] },
+          'top speed 5.612 b/s': { tick: 26, pos: [15.45749574635376, 101, 1717.557795244099], vel: [0.15319344747559152, -0.0784000015258789, 0.001213700266995467] },
+          'touches a wall': { tick: 27, pos: [15.699999988079071, 101, 1717.5600181381028], isCollidedHorizontally: true },
+          'final state': { tick: 43, pos: [15.699999988079071, 101, 1717.5827600523844], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.06954982565508333, -0.0784000015258789, 0.001213700266995467] },
           'top speed 5.612 b/s': { tick: 26, pos: [15.45749574635376, 101, 1717.6214138837222], vel: [0.15319344747559152, -0.0784000015258789, 0.002673348586453171] },
@@ -234,6 +255,15 @@ describe('vanilla recordings: collision', () => {
     description: 'walls: forward+sprint 40 ticks, until still',
     steps: [press(['forward', 'sprint'], 40), stopped(3)],
     groups: [
+      {
+        versions: ['1.20.4', '1.21.10'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.049191358493453366, -0.0784000015258789, 0.04918664020454862] },
+          'top speed 5.613 b/s': { tick: 37, pos: [15.60380919775831, 101, 1724.6031278214934], vel: [0.10835102501258596, -0.0784000015258789, 0.10834063230429751] },
+          'touches a wall': { tick: 38, pos: [15.699999988079071, 101, 1724.801553864954], isCollidedHorizontally: true },
+          'final state': { tick: 49, pos: [15.699999988079071, 101, 1725.3401620097138], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
       {
         versions: ['1.21.11'],
         milestones: {
@@ -251,7 +281,7 @@ describe('vanilla recordings: collision', () => {
     steps: [press(['forward', 'sprint'], 40), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.06929584654837147, -0.0784000015258789, 0.0060611132014666115] },
           'top speed 5.612 b/s': { tick: 26, pos: [15.432088658155235, 101, 1718.1063303382882], vel: [0.15263402213444235, -0.0784000015258789, 0.01335046951055333] },
@@ -267,7 +297,7 @@ describe('vanilla recordings: collision', () => {
     steps: [press(['forward', 'sprint'], 40), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.0688837881788553, -0.0784000015258789, 0.00967859016633695] },
           'top speed 5.612 b/s': { tick: 27, pos: [15.668755105630344, 101, 1718.5072535861425], vel: [0.15172641470573628, -0.0784000015258789, 0.021318481810721237] },
@@ -283,7 +313,7 @@ describe('vanilla recordings: collision', () => {
     steps: [press(['forward', 'sprint'], 30), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.0695604148553142, -0.0784000015258789, 0] },
           'top speed 5.612 b/s': { tick: 26, pos: [15.458555049017278, 101, 1717.5], vel: [0.1532167717050069, -0.0784000015258789, 0] },
@@ -299,7 +329,7 @@ describe('vanilla recordings: collision', () => {
     steps: [press('forward', 30), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'top speed 4.312 b/s': { tick: 11, pos: [12.5, 101, 1724.615182005644], vel: [0, -0.0784000015258789, 0.11770754062540936] },
@@ -315,7 +345,7 @@ describe('vanilla recordings: collision', () => {
     steps: [press('forward', 30), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'top speed 4.203 b/s': { tick: 6, pos: [12.5, 101, 1726.5424309281339], vel: [0, -0.0784000015258789, 0.11473644494353707] },
@@ -331,7 +361,7 @@ describe('vanilla recordings: collision', () => {
     steps: [press('forward', 30), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'top speed 4.317 b/s': { tick: 30, pos: [9.5, 101, 1726.7161705545234], vel: [0, -0.0784000015258789, 0.11785906350182895] },
@@ -346,7 +376,15 @@ describe('vanilla recordings: collision', () => {
     steps: [press('forward', 40), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.0009387447643764958, -0.0784000015258789, 0.053499773214591075] },
+          'top speed 4.317 b/s': { tick: 40, pos: [15.5687725022226, 101, 1714.8734723662294], vel: [0.0009387447643764958, -0.0784000015258789, 0.1178409266218954] },
+          'final state': { tick: 50, pos: [15.5687725022226, 101, 1715.1292790941252], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.0009387447643764958, -0.0784000015258789, 0.053499773214591075] },
           'top speed 4.317 b/s': { tick: 40, pos: [15.64692685353861, 101, 1714.8734723662294], vel: [0.002067720034099301, -0.0784000015258789, 0.1178409266218954] },
@@ -436,7 +474,7 @@ describe('vanilla recordings: collision', () => {
         }
       },
       {
-        versions: ['1.20'],
+        versions: ['1.20', '1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'leaves the ground (1)': { tick: 11, pos: [-7.5, 101.41999998688698, 116.61518200564387], vel: [0, 0.33319999363422365, 0.11770754062540936], onGround: false },
@@ -448,7 +486,7 @@ describe('vanilla recordings: collision', () => {
         }
       },
       {
-        versions: ['1.20.4', '1.20.5', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10'],
+        versions: ['1.20.5', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'leaves the ground (1)': { tick: 1, pos: [-7.5, 101, 114.59800000336766], vel: [0, -0.0784000015258789, 0.053508008053839436], onGround: false },
@@ -461,7 +499,7 @@ describe('vanilla recordings: collision', () => {
         }
       },
       {
-        versions: ['1.21.11'],
+        versions: ['1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'leaves the ground (1)': { tick: 11, pos: [-7.5, 101.41999998688698, 116.61518200564387], vel: [0, 0.33319999363422365, 0.11770754062540936], onGround: false },
@@ -483,6 +521,18 @@ describe('vanilla recordings: collision', () => {
           'touches a wall': { tick: 13, pos: [-7.5, 102.00133597911214, 116.69999998807907], isCollidedHorizontally: true },
           'peak height 1.252': { tick: 16, pos: [-7.5, 102.25220334025373, 116.69999998807907] },
           'lands (2)': { tick: 22, pos: [-7.5, 101, 116.69999998807907], onGround: true }
+        }
+      },
+      {
+        versions: ['26.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
+          'leaves the ground (1)': { tick: 11, pos: [-7.5, 101.41999998688698, 116.61518200564387], vel: [0, 0.33319999363422365, 0.11770754062540936], onGround: false },
+          'top speed 4.312 b/s': { tick: 11, pos: [-7.5, 101.41999998688698, 116.61518200564387], vel: [0, 0.33319999363422365, 0.11770754062540936] },
+          'touches a wall': { tick: 12, pos: [-7.5, 101.7531999805212, 116.69999998807907], isCollidedHorizontally: true },
+          'peak height 1.252': { tick: 16, pos: [-7.5, 102.25220334025373, 116.69999998807907] },
+          'lands (1)': { tick: 22, pos: [-7.5, 101, 116.69999998807907], onGround: true },
+          'final state': { tick: 46, pos: [-7.5, 101, 116.69999998807907], vel: [0, -0.0784000015258789, 0], onGround: true }
         }
       }
     ]
@@ -589,7 +639,7 @@ describe('vanilla recordings: collision', () => {
         }
       },
       {
-        versions: ['1.20'],
+        versions: ['1.20', '1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [0.1787604291663896, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [-2.1725999846100805, 101.41999998688698, 114.5], vel: [0.1787604291663896, 0.33319999363422365, 0], onGround: false },
@@ -601,19 +651,7 @@ describe('vanilla recordings: collision', () => {
         }
       },
       {
-        versions: ['1.20.4'],
-        milestones: {
-          'first tick': { tick: 1, vel: [0.1787604291663896, 0.33319999363422365, 0] },
-          'leaves the ground (1)': { tick: 1, pos: [-2.1725999846100805, 101.41999998688698, 114.5], vel: [0.1787604291663896, 0.33319999363422365, 0], onGround: false },
-          'top speed 6.548 b/s': { tick: 1, pos: [-2.1725999846100805, 101.41999998688698, 114.5], vel: [0.1787604291663896, 0.33319999363422365, 0] },
-          'peak height 1.252': { tick: 6, pos: [-1.0865204013840648, 102.25220334025373, 114.5] },
-          'touches a wall': { tick: 10, pos: [-0.30000001192092896, 101.49520087700593, 114.5], isCollidedHorizontally: true },
-          'lands (1)': { tick: 12, pos: [-0.30000001192092896, 101, 114.5], onGround: true },
-          'final state': { tick: 36, pos: [-0.30000001192092896, 101, 114.5], vel: [0, -0.0784000015258789, 0], onGround: true }
-        }
-      },
-      {
-        versions: ['1.20.5', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10'],
+        versions: ['1.20.5', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9'],
         milestones: {
           'first tick': { tick: 1, vel: [0.17876042753918261, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [-2.1725999875903126, 101.41999998688698, 114.5], vel: [0.17876042753918261, 0.33319999363422365, 0], onGround: false },
@@ -625,7 +663,7 @@ describe('vanilla recordings: collision', () => {
         }
       },
       {
-        versions: ['1.21.11'],
+        versions: ['1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.17876042753918261, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [-2.1725999875903126, 101.41999998688698, 114.5], vel: [0.17876042753918261, 0.33319999363422365, 0], onGround: false },
@@ -638,6 +676,18 @@ describe('vanilla recordings: collision', () => {
       },
       {
         versions: ['26.1'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.17876042753918261, 0.33319999363422365, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [-2.1725999875903126, 101.41999998688698, 114.5], vel: [0.17876042753918261, 0.33319999363422365, 0], onGround: false },
+          'top speed 6.548 b/s': { tick: 1, pos: [-2.1725999875903126, 101.41999998688698, 114.5], vel: [0.17876042753918261, 0.33319999363422365, 0] },
+          'peak height 1.252': { tick: 6, pos: [-1.0865204111618252, 102.25220334025373, 114.5] },
+          'touches a wall': { tick: 10, pos: [-0.30000001192092896, 101.49520087700593, 114.5], isCollidedHorizontally: true },
+          'lands (1)': { tick: 12, pos: [-0.30000001192092896, 101, 114.5], onGround: true },
+          'final state': { tick: 36, pos: [-0.30000001192092896, 101, 114.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['26.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.17876042753918261, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [-2.1725999875903126, 101.41999998688698, 114.5], vel: [0.17876042753918261, 0.33319999363422365, 0], onGround: false },
@@ -707,7 +757,7 @@ describe('vanilla recordings: collision', () => {
         }
       },
       {
-        versions: ['1.20'],
+        versions: ['1.20', '1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [0.04633758397018331, -0.0784000015258789, -0.026756966910599703] },
           'top speed 4.314 b/s': { tick: 12, pos: [-0.4814649402973674, 101, 113.3344261574988], vel: [0.1019935315234815, -0.0784000015258789, -0.058894687945427786] },
@@ -716,7 +766,7 @@ describe('vanilla recordings: collision', () => {
         }
       },
       {
-        versions: ['1.20.4', '1.20.5', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10'],
+        versions: ['1.20.5', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9'],
         milestones: {
           'first tick': { tick: 1, vel: [0.04633758397018331, -0.0784000015258789, -0.026756966910599703] },
           'leaves the ground (1)': { tick: 1, pos: [-2.4151326399488076, 101, 114.4509945717899], vel: [0.04633758397018331, -0.0784000015258789, -0.026756966910599703], onGround: false },
@@ -727,7 +777,7 @@ describe('vanilla recordings: collision', () => {
         }
       },
       {
-        versions: ['1.21.11'],
+        versions: ['1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.04633758397018331, -0.0784000015258789, -0.026756966910599703] },
           'top speed 4.314 b/s': { tick: 12, pos: [-0.4814649402973674, 101, 113.3344261574988], vel: [0.1019935315234815, -0.0784000015258789, -0.058894687945427786] },
@@ -744,6 +794,15 @@ describe('vanilla recordings: collision', () => {
           'top speed 4.315 b/s': { tick: 13, pos: [-0.39334995671987216, 101, 113.28354543610794], vel: [0.10200802773738571, -0.0784000015258789, -0.058903058574246346] },
           'touches a wall': { tick: 14, pos: [-0.30000001192092896, 101, 113.1756369493236], isCollidedHorizontally: true },
           'final state': { tick: 40, pos: [-0.30000001192092896, 101, 111.86480440167489], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['26.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.04633758397018331, -0.0784000015258789, -0.026756966910599703] },
+          'top speed 4.314 b/s': { tick: 12, pos: [-0.4814649402973674, 101, 113.3344261574988], vel: [0.1019935315234815, -0.0784000015258789, -0.058894687945427786] },
+          'touches a wall': { tick: 13, pos: [-0.30000001192092896, 101, 113.22652604134328], isCollidedHorizontally: true },
+          'final state': { tick: 40, pos: [-0.30000001192092896, 101, 111.80776207445113], vel: [0, -0.0784000015258789, 0], onGround: true }
         }
       }
     ]
@@ -816,7 +875,7 @@ describe('vanilla recordings: collision', () => {
         }
       },
       {
-        versions: ['1.20'],
+        versions: ['1.20', '1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [0.03783224843167181, -0.0784000015258789, -0.03783950414789568] },
           'top speed 4.299 b/s': { tick: 9, pos: [8.690830192482872, 101, 98.3089414223086], vel: [0.08297158633263226, -0.0784000015258789, -0.08298749916652479] },
@@ -825,7 +884,7 @@ describe('vanilla recordings: collision', () => {
         }
       },
       {
-        versions: ['1.20.4', '1.20.5', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10'],
+        versions: ['1.20.5', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9'],
         milestones: {
           'first tick': { tick: 1, vel: [0.03783224843167181, -0.0784000015258789, -0.03783950414789568] },
           'leaves the ground (1)': { tick: 1, pos: [7.569289824244243, 101, 99.43069688689975], vel: [0.03783224843167181, -0.0784000015258789, -0.03783950414789568], onGround: false },
@@ -836,7 +895,7 @@ describe('vanilla recordings: collision', () => {
         }
       },
       {
-        versions: ['1.21.11'],
+        versions: ['1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.03783224843167181, -0.0784000015258789, -0.03783950414789568] },
           'top speed 4.299 b/s': { tick: 9, pos: [8.690830192482872, 101, 98.3089414223086], vel: [0.08297158633263226, -0.0784000015258789, -0.08298749916652479] },
@@ -852,6 +911,15 @@ describe('vanilla recordings: collision', () => {
           'lands (1)': { tick: 2, pos: [7.620980037008514, 101, 99.37899676064815], onGround: true },
           'top speed 4.29 b/s': { tick: 9, pos: [8.610541678212071, 101, 98.38924533483615], vel: [0.08280594233175097, -0.0784000015258789, -0.0828218233973528] },
           'touches a wall': { tick: 10, pos: [8.762637444788066, 101, 98.30000001192093], isCollidedHorizontally: true },
+          'final state': { tick: 40, pos: [9.699999988079071, 101, 98.30000001192093], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['26.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.03783224843167181, -0.0784000015258789, -0.03783950414789568] },
+          'top speed 4.299 b/s': { tick: 9, pos: [8.690830192482872, 101, 98.3089414223086], vel: [0.08297158633263226, -0.0784000015258789, -0.08298749916652479] },
+          'touches a wall': { tick: 10, pos: [8.843091603059747, 101, 98.30000001192093], isCollidedHorizontally: true },
           'final state': { tick: 40, pos: [9.699999988079071, 101, 98.30000001192093], vel: [0, -0.0784000015258789, 0], onGround: true }
         }
       }
@@ -914,7 +982,7 @@ describe('vanilla recordings: collision', () => {
         }
       },
       {
-        versions: ['1.20'],
+        versions: ['1.20', '1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'top speed 4.312 b/s': { tick: 11, pos: [-0.3848179943561044, 101, 114.5], vel: [0.11770754062540936, -0.0784000015258789, 0] },
@@ -923,7 +991,7 @@ describe('vanilla recordings: collision', () => {
         }
       },
       {
-        versions: ['1.20.4', '1.20.5', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10'],
+        versions: ['1.20.5', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [-2.4019999966323375, 101, 114.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -934,7 +1002,7 @@ describe('vanilla recordings: collision', () => {
         }
       },
       {
-        versions: ['1.21.11'],
+        versions: ['1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'top speed 4.312 b/s': { tick: 11, pos: [-0.3848179943561044, 101, 114.5], vel: [0.11770754062540936, -0.0784000015258789, 0] },
@@ -949,6 +1017,15 @@ describe('vanilla recordings: collision', () => {
           'leaves the ground (1)': { tick: 1, pos: [-2.4019999966323375, 101, 114.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
           'lands (1)': { tick: 2, pos: [-2.3288919886351227, 101, 114.5], onGround: true },
           'top speed 4.309 b/s': { tick: 11, pos: [-0.4987361800088269, 101, 114.5], vel: [0.11763769845470062, -0.0784000015258789, 0] },
+          'touches a wall': { tick: 12, pos: [-0.30000001192092896, 101, 114.5], isCollidedHorizontally: true },
+          'final state': { tick: 40, pos: [-0.30000001192092896, 101, 114.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['26.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
+          'top speed 4.312 b/s': { tick: 11, pos: [-0.3848179943561044, 101, 114.5], vel: [0.11770754062540936, -0.0784000015258789, 0] },
           'touches a wall': { tick: 12, pos: [-0.30000001192092896, 101, 114.5], isCollidedHorizontally: true },
           'final state': { tick: 40, pos: [-0.30000001192092896, 101, 114.5], vel: [0, -0.0784000015258789, 0], onGround: true }
         }
@@ -1015,7 +1092,7 @@ describe('vanilla recordings: collision', () => {
         }
       },
       {
-        versions: ['1.20'],
+        versions: ['1.20', '1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'top speed 4.317 b/s': { tick: 30, pos: [-11.5, 101, 105.71617055452312], vel: [0, -0.0784000015258789, 0.11785906350182895] },
@@ -1023,7 +1100,7 @@ describe('vanilla recordings: collision', () => {
         }
       },
       {
-        versions: ['1.20.4', '1.20.5', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10'],
+        versions: ['1.20.5', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'leaves the ground (1)': { tick: 1, pos: [-11.5, 101, 99.59800000336766], vel: [0, -0.0784000015258789, 0.053508008053839436], onGround: false },
@@ -1033,7 +1110,7 @@ describe('vanilla recordings: collision', () => {
         }
       },
       {
-        versions: ['1.21.11'],
+        versions: ['1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'top speed 4.317 b/s': { tick: 30, pos: [-11.5, 101, 105.71617055452312], vel: [0, -0.0784000015258789, 0.11785906350182895] },
@@ -1048,6 +1125,14 @@ describe('vanilla recordings: collision', () => {
           'lands (1)': { tick: 2, pos: [-11.5, 101, 99.67110801136488], onGround: true },
           'top speed 4.317 b/s': { tick: 30, pos: [-11.5, 101, 105.60209853303066], vel: [0, -0.0784000015258789, 0.11785906279261237] },
           'final state': { tick: 45, pos: [-11.5, 101, 105.85794463056315], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['26.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
+          'top speed 4.317 b/s': { tick: 30, pos: [-11.5, 101, 105.71617055452312], vel: [0, -0.0784000015258789, 0.11785906350182895] },
+          'final state': { tick: 45, pos: [-11.5, 101, 105.97201665359516], vel: [0, -0.0784000015258789, 0], onGround: true }
         }
       }
     ]

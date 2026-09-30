@@ -9,7 +9,7 @@ describe('vanilla recordings: ceiling', () => {
     steps: [press('jump', 1), stable(5), ticks(5)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [8.5, 101.39999997615814, 1493.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -26,7 +26,7 @@ describe('vanilla recordings: ceiling', () => {
     steps: [press('jump', 1), stable(5), ticks(5)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [8.5, 101, 1489.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -41,6 +41,16 @@ describe('vanilla recordings: ceiling', () => {
     description: 'ceilings: jump 1 ticks, until steady, wait 5',
     steps: [press('jump', 1), stable(5), ticks(5)],
     groups: [
+      {
+        versions: ['1.20.4', '1.21.10'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [8.5, 101.41999998688698, 1485.5], vel: [0, 0.33319999363422365, 0], onGround: false },
+          'peak height 0.5': { tick: 2, pos: [8.5, 101.5, 1485.5] },
+          'lands (1)': { tick: 5, pos: [8.5, 101.25, 1485.5], onGround: true },
+          'final state': { tick: 11, pos: [8.5, 101.25, 1485.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
       {
         versions: ['1.21.11'],
         milestones: {
@@ -59,7 +69,7 @@ describe('vanilla recordings: ceiling', () => {
     steps: [press('jump', 1), stable(5), ticks(5)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [8.5, 101.20000004768372, 1481.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -76,7 +86,7 @@ describe('vanilla recordings: ceiling', () => {
     steps: [press('jump', 1), stable(5), ticks(5)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [8.5, 101.20000004768372, 1477.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -93,7 +103,7 @@ describe('vanilla recordings: ceiling', () => {
     steps: [press('jump', 1), stable(5), ticks(5)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [8.5, 101.20000004768372, 1473.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -110,7 +120,7 @@ describe('vanilla recordings: ceiling', () => {
     steps: [press('jump', 1), stable(5), ticks(5)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [8.5, 101.41999998688698, 1497.5], vel: [0, 0.33319999363422365, 0], onGround: false },
@@ -127,7 +137,7 @@ describe('vanilla recordings: ceiling', () => {
     steps: [press(['forward', 'sneak'], 60), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'top speed 1.96 b/s': { tick: 1, pos: [0.5980000033676625, 101, 1493.5], vel: [0.053508008053839436, -0.0784000015258789, 0] },
@@ -143,7 +153,7 @@ describe('vanilla recordings: ceiling', () => {
     steps: [press(['forward', 'sneak'], 60), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'top speed 1.96 b/s': { tick: 1, pos: [0.5980000033676625, 101, 1489.5], vel: [0.053508008053839436, -0.0784000015258789, 0] },
@@ -158,7 +168,7 @@ describe('vanilla recordings: ceiling', () => {
     steps: [press(['forward', 'sneak'], 60), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'top speed 1.96 b/s': { tick: 1, pos: [0.5980000033676625, 101, 1485.5], vel: [0.053508008053839436, -0.0784000015258789, 0] },
@@ -174,7 +184,7 @@ describe('vanilla recordings: ceiling', () => {
     steps: [press(['forward', 'sneak'], 60), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'top speed 1.96 b/s': { tick: 1, pos: [0.5980000033676625, 101, 1481.5], vel: [0.053508008053839436, -0.0784000015258789, 0] },
@@ -190,7 +200,7 @@ describe('vanilla recordings: ceiling', () => {
     steps: [press(['forward', 'sneak'], 60), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'top speed 1.96 b/s': { tick: 1, pos: [0.5980000033676625, 101, 1477.5], vel: [0.053508008053839436, -0.0784000015258789, 0] },
@@ -206,7 +216,7 @@ describe('vanilla recordings: ceiling', () => {
     steps: [press(['forward', 'sneak'], 60), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'top speed 1.96 b/s': { tick: 1, pos: [0.5980000033676625, 101, 1473.5], vel: [0.053508008053839436, -0.0784000015258789, 0] },
@@ -221,7 +231,7 @@ describe('vanilla recordings: ceiling', () => {
     steps: [press(['forward', 'sneak'], 60), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'top speed 1.96 b/s': { tick: 1, pos: [0.5980000033676625, 101, 1497.5], vel: [0.053508008053839436, -0.0784000015258789, 0] },
@@ -236,7 +246,7 @@ describe('vanilla recordings: ceiling', () => {
     steps: [hold('forward', 'sprint'), ticks(12), press('jump', 1), until('onGround', 40), release(), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.0695604148553142, -0.0784000015258789, 0] },
           'top speed 5.608 b/s': { tick: 12, pos: [3.5301566055593403, 101, 1493.5], vel: [0.15310924216284458, -0.0784000015258789, 0] },
@@ -255,7 +265,7 @@ describe('vanilla recordings: ceiling', () => {
     steps: [hold('forward', 'sprint'), ticks(12), press('jump', 1), until('onGround', 40), release(), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.0695604148553142, -0.0784000015258789, 0] },
           'top speed 5.608 b/s': { tick: 12, pos: [3.5301566055593403, 101, 1489.5], vel: [0.15310924216284458, -0.0784000015258789, 0] },
@@ -274,7 +284,7 @@ describe('vanilla recordings: ceiling', () => {
     steps: [hold('forward', 'sprint'), ticks(12), press('jump', 1), until('onGround', 40), release(), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.0695604148553142, -0.0784000015258789, 0] },
           'top speed 5.608 b/s': { tick: 12, pos: [3.5301566055593403, 101, 1485.5], vel: [0.15310924216284458, -0.0784000015258789, 0] },
@@ -293,7 +303,18 @@ describe('vanilla recordings: ceiling', () => {
     steps: [hold('forward', 'sprint'), ticks(12), press('jump', 1), until('onGround', 40), release(), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.0695604148553142, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 13, pos: [4.010665863112104, 101.20000004768372, 1481.5], vel: [0.26235808509739017, -0.0784000015258789, 0], onGround: false },
+          'peak height 0.2': { tick: 13, pos: [4.010665863112104, 101.20000004768372, 1481.5] },
+          'top speed 9.61 b/s': { tick: 13, pos: [4.010665863112104, 101.20000004768372, 1481.5], vel: [0.26235808509739017, -0.0784000015258789, 0] },
+          'lands (1)': { tick: 14, pos: [4.298503947405726, 101.125, 1481.5], onGround: true },
+          'final state': { tick: 25, pos: [4.870891260329232, 101.125, 1481.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.0695604148553142, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 13, pos: [4.010665860131872, 101.125, 1481.5], vel: [0.26235808347018313, -0.0784000015258789, 0], onGround: false },
@@ -311,7 +332,18 @@ describe('vanilla recordings: ceiling', () => {
     steps: [hold('forward', 'sprint'), ticks(12), press('jump', 1), until('onGround', 40), release(), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.0695604148553142, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 13, pos: [4.010665863112104, 101.20000004768372, 1477.5], vel: [0.26235808509739017, -0.0784000015258789, 0], onGround: false },
+          'peak height 0.2': { tick: 13, pos: [4.010665863112104, 101.20000004768372, 1477.5] },
+          'top speed 9.61 b/s': { tick: 13, pos: [4.010665863112104, 101.20000004768372, 1477.5], vel: [0.26235808509739017, -0.0784000015258789, 0] },
+          'lands (1)': { tick: 15, pos: [4.585916610858007, 101.0625, 1477.5], onGround: true },
+          'final state': { tick: 26, pos: [5.157457942983544, 101.0625, 1477.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.0695604148553142, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 13, pos: [4.010665860131872, 101.0625, 1477.5], vel: [0.26235808347018313, -0.0784000015258789, 0], onGround: false },
@@ -329,7 +361,18 @@ describe('vanilla recordings: ceiling', () => {
     steps: [hold('forward', 'sprint'), ticks(12), press('jump', 1), until('onGround', 40), release(), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.0695604148553142, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 13, pos: [4.010665863112104, 101.20000004768372, 1473.5], vel: [0.26235808509739017, -0.0784000015258789, 0], onGround: false },
+          'peak height 0.2': { tick: 13, pos: [4.010665863112104, 101.20000004768372, 1473.5] },
+          'top speed 9.61 b/s': { tick: 13, pos: [4.010665863112104, 101.20000004768372, 1473.5], vel: [0.26235808509739017, -0.0784000015258789, 0] },
+          'lands (1)': { tick: 15, pos: [4.585916610858007, 101, 1473.5], onGround: true },
+          'final state': { tick: 26, pos: [5.157457942983544, 101, 1473.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.0695604148553142, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 13, pos: [4.010665860131872, 101, 1473.5], vel: [0.26235808347018313, -0.0784000015258789, 0], onGround: false },
@@ -346,7 +389,18 @@ describe('vanilla recordings: ceiling', () => {
     steps: [hold('forward', 'sprint'), ticks(12), press('jump', 1), until('onGround', 40), release(), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.0695604148553142, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 13, pos: [4.010665863112104, 101.41999998688698, 1497.5], vel: [0.26235808509739017, 0.33319999363422365, 0], onGround: false },
+          'top speed 9.61 b/s': { tick: 13, pos: [4.010665863112104, 101.41999998688698, 1497.5], vel: [0.26235808509739017, 0.33319999363422365, 0] },
+          'peak height 0.7': { tick: 14, pos: [4.298503947405726, 101.70000004768372, 1497.5] },
+          'lands (1)': { tick: 18, pos: [5.4459680354099325, 101, 1497.5], onGround: true },
+          'final state': { tick: 29, pos: [6.0154014615969285, 101, 1497.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.0695604148553142, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 13, pos: [4.010665860131872, 101.41999998688698, 1497.5], vel: [0.26235808347018313, 0.33319999363422365, 0], onGround: false },
@@ -364,7 +418,7 @@ describe('vanilla recordings: ceiling', () => {
     steps: [press('forward', 40), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'top speed 4.317 b/s': { tick: 16, pos: [3.694159788768005, 101, 1493.5], vel: [0.11785171235343735, -0.0784000015258789, 0] },
@@ -380,7 +434,7 @@ describe('vanilla recordings: ceiling', () => {
     steps: [press('forward', 40), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'top speed 4.317 b/s': { tick: 16, pos: [3.694159788768005, 101, 1489.5], vel: [0.11785171235343735, -0.0784000015258789, 0] },
@@ -396,7 +450,7 @@ describe('vanilla recordings: ceiling', () => {
     steps: [press('forward', 40), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'top speed 4.317 b/s': { tick: 16, pos: [3.694159788768005, 101, 1485.5], vel: [0.11785171235343735, -0.0784000015258789, 0] },
@@ -412,7 +466,7 @@ describe('vanilla recordings: ceiling', () => {
     steps: [press('forward', 40), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'peak height 0.125': { tick: 17, pos: [3.910011504489105, 101.125, 1481.5] },
@@ -428,7 +482,7 @@ describe('vanilla recordings: ceiling', () => {
     steps: [press('forward', 40), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'peak height 0.063': { tick: 17, pos: [3.910011504489105, 101.0625, 1477.5] },
@@ -444,7 +498,7 @@ describe('vanilla recordings: ceiling', () => {
     steps: [press('forward', 40), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'top speed 4.317 b/s': { tick: 40, pos: [8.874761235223515, 101, 1473.5], vel: [0.11785906503686992, -0.0784000015258789, 0] },
@@ -459,7 +513,7 @@ describe('vanilla recordings: ceiling', () => {
     steps: [press('forward', 40), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'top speed 4.317 b/s': { tick: 40, pos: [8.874761235223515, 101, 1497.5], vel: [0.11785906503686992, -0.0784000015258789, 0] },

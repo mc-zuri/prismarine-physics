@@ -9,7 +9,7 @@ describe('vanilla recordings: enchant', () => {
     steps: [press('use', 15), ticks(60), stable(5, 200)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 101, 1833.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -29,7 +29,7 @@ describe('vanilla recordings: enchant', () => {
     steps: [press('use', 15), ticks(60), stable(5, 200)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.005, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 99, 1833.5], vel: [0, -0.005, 0], onGround: false },
@@ -46,7 +46,7 @@ describe('vanilla recordings: enchant', () => {
     steps: [press('use', 15), ticks(60), stable(5, 200)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 101, 1833.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -65,7 +65,7 @@ describe('vanilla recordings: enchant', () => {
     steps: [press('use', 15), ticks(60), stable(5, 200)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.005, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 99, 1833.5], vel: [0, -0.005, 0], onGround: false },
@@ -82,7 +82,7 @@ describe('vanilla recordings: enchant', () => {
     steps: [press('use', 5), ticks(30)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 101, 1833.5], vel: [0, -0.0784000015258789, 0], onGround: false },

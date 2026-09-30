@@ -9,7 +9,7 @@ describe('vanilla recordings: explosion', () => {
     steps: [press('jump', 1), ticks(3), server({ explode: { at: [0.5, -0.5, 2.5], power: 3 } }), until('onGround', 80), ticks(10)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 101.41999998688698, 38.5], vel: [0, 0.33319999363422365, 0], onGround: false },
@@ -26,7 +26,15 @@ describe('vanilla recordings: explosion', () => {
     steps: [hold('forward', 'sprint'), ticks(10), server({ explode: { at: [0.5, 0, 0.5], power: 1 } }), ticks(30), release(), stopped(3)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.0695604148553142, -0.0784000015258789, 0] },
+          'top speed 5.612 b/s': { tick: 40, pos: [11.387190292155722, 101, 38.5], vel: [0.15321679420723386, -0.0784000015258789, 0] },
+          'final state': { tick: 50, pos: [11.719790246249504, 101, 38.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.0695604148553142, -0.0784000015258789, 0] },
           'top speed 6.291 b/s': { tick: 11, pos: [3.284010930575322, 101, 38.5], vel: [0.17173350047109037, -0.0784000015258789, 0] },
@@ -41,7 +49,18 @@ describe('vanilla recordings: explosion', () => {
     steps: [server({ explode: { at: [3.5, 0, 0.5], power: 2 } }), ticks(40)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 2, pos: [0.28002364933490753, 101.04038722753525, 38.5], vel: [-0.12010710141389591, -0.03882051777101083, 0], onGround: false },
+          'peak height 0.04': { tick: 2, pos: [0.28002364933490753, 101.04038722753525, 38.5] },
+          'top speed 4.4 b/s': { tick: 2, pos: [0.28002364933490753, 101.04038722753525, 38.5], vel: [-0.12010710141389591, -0.03882051777101083, 0] },
+          'lands (1)': { tick: 4, pos: [0.050619082484432254, 101, 38.5], onGround: true },
+          'final state': { tick: 40, pos: [-0.16265304505649641, 101, 38.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 3, pos: [0.28002365073188273, 101.04038722742855, 38.5], vel: [-0.12010710065114735, -0.038820517875577235, 0], onGround: false },
@@ -58,6 +77,17 @@ describe('vanilla recordings: explosion', () => {
     description: 'flat: hold forward+sprint, wait 6, jump 1 ticks, wait 2, use 1 ticks, until onGround, release all, until still',
     steps: [hold('forward', 'sprint'), ticks(6), press('jump', 1), ticks(2), press('use', 1), until('onGround', 120), release(), stopped(3)],
     groups: [
+      {
+        versions: ['1.21.10'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.0695604148553142, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 7, pos: [2.331717692247412, 101.41999998688698, 38.5], vel: [0.26020037075381647, 0.33319999363422365, 0], onGround: false },
+          'top speed 9.531 b/s': { tick: 7, pos: [2.331717692247412, 101.41999998688698, 38.5], vel: [0.26020037075381647, 0.33319999363422365, 0] },
+          'peak height 1.338': { tick: 14, pos: [4.124226287693834, 102.33828407997741, 38.49615026747691] },
+          'lands (1)': { tick: 20, pos: [5.406544862501304, 101, 38.48813620580365], onGround: true },
+          'final state': { tick: 31, pos: [5.861927220766557, 101, 38.48606497374211], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
       {
         versions: ['1.21.11'],
         milestones: {
@@ -76,6 +106,17 @@ describe('vanilla recordings: explosion', () => {
     description: 'flat: jump 1 ticks, wait 1, use 1 ticks, until onGround, wait 10',
     steps: [press('jump', 1), ticks(1), press('use', 1), until('onGround', 120), ticks(10)],
     groups: [
+      {
+        versions: ['1.21.10'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [0.5, 101.41999998688698, 38.5], vel: [0, 0.33319999363422365, 0], onGround: false },
+          'top speed 0.227 b/s': { tick: 7, pos: [0.5105292068969873, 102.88676851782685, 38.504274342777656], vel: [0.009581578552397932, 0.5434738845991512, 0.0038896520397629732] },
+          'peak height 3.878': { tick: 14, pos: [0.5619757913743452, 104.87768056008504, 38.52515913865516] },
+          'lands (1)': { tick: 25, pos: [0.5885613861746617, 101, 38.53595158923916], onGround: true },
+          'final state': { tick: 35, pos: [0.5885613861746617, 101, 38.53595158923916], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
       {
         versions: ['1.21.11'],
         milestones: {

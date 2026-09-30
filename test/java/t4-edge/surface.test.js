@@ -9,7 +9,7 @@ describe('vanilla recordings: surface', () => {
     steps: [press(['forward', 'sprint'], 20), stopped(3, 600)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.026074288584128563, -0.0784000015258789, 0] },
           'top speed 4.857 b/s': { tick: 20, pos: [3.902689800831424, 101, 2747], vel: [0.21658550570192212, -0.0784000015258789, 0] },
@@ -24,7 +24,15 @@ describe('vanilla recordings: surface', () => {
     steps: [press(['forward', 'right'], 30), stopped(3, 600)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.03860803531251473, -0.0784000015258789, 0.03860803531251473] },
+          'top speed 4.151 b/s': { tick: 30, pos: [4.358245052390332, 101, 2750.5082450523905], vel: [0.13088648323862018, -0.0784000015258789, 0.13088648323862018] },
+          'final state': { tick: 66, pos: [5.5402800602624085, 101, 2751.6902800602625], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.03860803139735231, -0.0784000015258789, 0.03860803139735231] },
           'top speed 4.151 b/s': { tick: 30, pos: [4.358244661133539, 101, 2750.5082446611323], vel: [0.13088646996568784, -0.0784000015258789, 0.13088646996568784] },
@@ -39,7 +47,7 @@ describe('vanilla recordings: surface', () => {
     steps: [press('forward', 30), stopped(3, 600)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.02005714406293894, -0.0784000015258789, 0] },
           'top speed 4.023 b/s': { tick: 30, pos: [5.077811993226893, 101, 2747.1], vel: [0.17939982568523546, -0.0784000015258789, 0] },
@@ -54,7 +62,7 @@ describe('vanilla recordings: surface', () => {
     steps: [press('forward', 30), stopped(3, 600)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.20.4', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'top speed 4.317 b/s': { tick: 30, pos: [6.716170554523109, 101, 2746.9], vel: [0.11785906350182895, -0.0784000015258789, 0] },
