@@ -130,6 +130,6 @@
   {
     "name": "collisionEpsilonVelocityReset",
     "description": "The velocity is reset on the axes that collided by more than 1e-5 (Mth.equal); before, on any difference, the z reset restoring x",
-    "since": "1.19"
+    "since": "22w19a"
   }
 ]

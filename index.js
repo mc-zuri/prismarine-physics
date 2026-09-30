@@ -143,6 +143,10 @@ function Physics (mcData, world) {
     positionFromBoxCenter: supportFeature('positionFromBoxCenter'),
     moveWhenBlocked: supportFeature('moveWhenFullyBlocked'),
     collisionEpsilonVelocity: supportFeature('collisionEpsilonVelocityReset'),
+    waterSprintSlowdown: supportFeature('proportionalLiquidGravity'),
+    proportionalLiquidGravity: supportFeature('proportionalLiquidGravity'),
+    fluidFallingBeforeMove: supportFeature('modernMove'),
+    climbFloatVertical: supportFeature('modernMove'),
     webSpeed: f32(0.05) // a cobweb scales the move by (0.25, 0.05F, 0.25)
   }
 
@@ -729,6 +733,32 @@ function Physics (mcData, world) {
     return !getSurroundingBBs(world, pBB).some(x => pBB.intersects(x)) && getWaterInBB(world, pBB).length === 0
   }
 
+  // The movement speed attribute as a float (getSpeed), with the client's own sprint modifier.
+  function landSpeed (entity) {
+    let playerSpeedAttribute
+    if (entity.attributes && entity.attributes[physics.movementSpeedAttribute]) {
+      // Use server-side player attributes
+      playerSpeedAttribute = entity.attributes[physics.movementSpeedAttribute]
+    } else {
+      // Create an attribute if the player does not have it
+      playerSpeedAttribute = attribute.createAttributeValue(physics.playerSpeed)
+    }
+    // Client-side sprinting (don't rely on server-side sprinting)
+    // setSprinting in LivingEntity.java
+    playerSpeedAttribute = attribute.deleteAttributeModifier(playerSpeedAttribute, physics.sprintingUUID) // always delete sprinting (if it exists)
+    if (entity.control.sprint) {
+      if (!attribute.checkAttributeModifier(playerSpeedAttribute, physics.sprintingUUID)) {
+        playerSpeedAttribute = attribute.addAttributeModifier(playerSpeedAttribute, {
+          uuid: physics.sprintingUUID,
+          amount: physics.sprintSpeed,
+          operation: 2
+        })
+      }
+    }
+    // Calculate what the speed is (0.1 if no modification)
+    return f32(attribute.getAttributeValue(playerSpeedAttribute))
+  }
+
   function moveEntityWithHeading (entity, world, strafe, forward) {
     const vel = entity.vel
     const pos = entity.pos
@@ -738,32 +768,49 @@ function Physics (mcData, world) {
     if (entity.isInWater || entity.isInLava) {
       // Water / Lava movement
       const lastY = pos.y
-      let acceleration = physics.liquidAcceleration
-      const inertia = entity.isInWater ? physics.waterInertia : physics.lavaInertia
-      let horizontalInertia = inertia
-
+      // Falling when the tick started (1.14+), for the fluid falling adjustment
+      const falling = vel.y <= 0
+      const sprinting = !!entity.control.sprint
       if (entity.isInWater) {
-        let strider = Math.min(entity.depthStrider, 3)
-        if (!entity.onGround) {
-          strider *= 0.5
-        }
+        // The water slowdown and acceleration are floats (0.8F, 0.9F sprinting since 1.13, 0.02F); depth strider
+        // moves them toward 0.54600006F and the speed in float.
+        let inertia = f32(vanilla.waterSprintSlowdown && sprinting ? 0.9 : physics.waterInertia)
+        let acceleration = f32(physics.liquidAcceleration)
+        let strider = f32(Math.min(entity.depthStrider, 3))
+        if (!entity.onGround) strider = f32(strider * f32(0.5))
         if (strider > 0) {
-          horizontalInertia += (0.546 - horizontalInertia) * strider / 3
-          acceleration += (0.7 - acceleration) * strider / 3
+          inertia = f32(inertia + f32(f32(f32(f32(0.54600006) - inertia) * strider) / 3))
+          acceleration = f32(acceleration + f32(f32(f32(landSpeed(entity) - acceleration) * strider) / 3))
         }
+        if (entity.dolphinsGrace > 0) inertia = f32(0.96)
 
-        if (entity.dolphinsGrace > 0) horizontalInertia = 0.96
+        applyHeading(entity, strafe, forward, acceleration)
+        moveEntity(entity, world, vel.x, vel.y, vel.z)
+        vel.x *= inertia
+        vel.y *= f32(physics.waterInertia)
+        vel.z *= inertia
+        if (vanilla.proportionalLiquidGravity) {
+          // getFluidFallingAdjustedMovement: gravity / 16, or -0.003 when that is about where it would settle
+          if (!sprinting) {
+            const gravity = physics.gravity * gravityMultiplier
+            const isFalling = vanilla.fluidFallingBeforeMove ? falling : vel.y <= 0
+            if (isFalling && Math.abs(vel.y - 0.005) >= 0.003 && Math.abs(vel.y - gravity / 16) < 0.003) vel.y = -0.003
+            else vel.y -= gravity / 16
+          }
+        } else {
+          vel.y -= physics.waterGravity
+        }
+      } else {
+        applyHeading(entity, strafe, forward, f32(physics.liquidAcceleration))
+        moveEntity(entity, world, vel.x, vel.y, vel.z)
+        vel.x *= physics.lavaInertia
+        vel.y *= physics.lavaInertia
+        vel.z *= physics.lavaInertia
+        vel.y -= vanilla.proportionalLiquidGravity ? physics.gravity * gravityMultiplier / 4 : physics.lavaGravity
       }
 
-      applyHeading(entity, strafe, forward, acceleration)
-      moveEntity(entity, world, vel.x, vel.y, vel.z)
-      vel.y *= inertia
-      vel.y -= (entity.isInWater ? physics.waterGravity : physics.lavaGravity) * gravityMultiplier
-      vel.x *= horizontalInertia
-      vel.z *= horizontalInertia
-
-      if (entity.isCollidedHorizontally && doesNotCollide(world, pos.offset(vel.x, vel.y + 0.6 - pos.y + lastY, vel.z))) {
-        vel.y = physics.outOfLiquidImpulse // jump out of liquid
+      if (entity.isCollidedHorizontally && doesNotCollide(world, pos.offset(vel.x, vel.y + f32(0.6) - pos.y + lastY, vel.z))) {
+        vel.y = f32(physics.outOfLiquidImpulse) // jump out of liquid
       }
     } else if (entity.elytraFlying) {
       const {
@@ -811,28 +858,7 @@ function Physics (mcData, world) {
       const blockUnder = world.getBlock(pos.offset(0, -1, 0))
       const slipperiness = f32(blockUnder ? (blockSlipperiness[blockUnder.type] || physics.defaultSlipperiness) : physics.defaultSlipperiness)
       if (entity.onGround) {
-        let playerSpeedAttribute
-        if (entity.attributes && entity.attributes[physics.movementSpeedAttribute]) {
-          // Use server-side player attributes
-          playerSpeedAttribute = entity.attributes[physics.movementSpeedAttribute]
-        } else {
-          // Create an attribute if the player does not have it
-          playerSpeedAttribute = attribute.createAttributeValue(physics.playerSpeed)
-        }
-        // Client-side sprinting (don't rely on server-side sprinting)
-        // setSprinting in LivingEntity.java
-        playerSpeedAttribute = attribute.deleteAttributeModifier(playerSpeedAttribute, physics.sprintingUUID) // always delete sprinting (if it exists)
-        if (entity.control.sprint) {
-          if (!attribute.checkAttributeModifier(playerSpeedAttribute, physics.sprintingUUID)) {
-            playerSpeedAttribute = attribute.addAttributeModifier(playerSpeedAttribute, {
-              uuid: physics.sprintingUUID,
-              amount: physics.sprintSpeed,
-              operation: 2
-            })
-          }
-        }
-        // Calculate what the speed is (0.1 if no modification)
-        const attributeSpeed = f32(attribute.getAttributeValue(playerSpeedAttribute))
+        const attributeSpeed = landSpeed(entity)
         inertia = f32(slipperiness * f32(0.91))
         // 1.14+: getFrictionInfluencedSpeed, speed * (0.21600002F / f^3) of the slipperiness; before, of it times 0.91
         const f = vanilla.floatMoveRelative ? inertia : slipperiness
@@ -846,9 +872,11 @@ function Physics (mcData, world) {
       applyHeading(entity, strafe, forward, acceleration)
 
       if (isOnLadder(world, pos)) {
-        vel.x = math.clamp(-physics.ladderMaxSpeed, vel.x, physics.ladderMaxSpeed)
-        vel.z = math.clamp(-physics.ladderMaxSpeed, vel.z, physics.ladderMaxSpeed)
-        vel.y = Math.max(vel.y, entity.control.sneak ? 0 : -physics.ladderMaxSpeed)
+        // clamped to 0.15F; vertically to -0.15F since 1.14, -0.15 before
+        const max = f32(physics.ladderMaxSpeed)
+        vel.x = math.clamp(-max, vel.x, max)
+        vel.z = math.clamp(-max, vel.z, max)
+        vel.y = Math.max(vel.y, entity.control.sneak ? 0 : vanilla.climbFloatVertical ? -max : -physics.ladderMaxSpeed)
       }
 
       moveEntity(entity, world, vel.x, vel.y, vel.z)
@@ -992,7 +1020,7 @@ function Physics (mcData, world) {
     if (entity.control.jump || entity.jumpQueued) {
       if (entity.jumpTicks > 0) entity.jumpTicks--
       if (entity.isInWater || entity.isInLava) {
-        vel.y += 0.04
+        vel.y += f32(0.04)
       } else if (entity.onGround && entity.jumpTicks === 0) {
         const blockBelow = world.getBlock(entity.pos.floored().offset(0, -0.5, 0))
         const power = f32(f32(0.42) * ((blockBelow && blockBelow.type === honeyblockId) ? f32(physics.honeyblockJumpSpeed) : 1))
