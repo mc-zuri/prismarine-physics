@@ -544,7 +544,8 @@ function recorded (name, spec) {
           for (const { version, rec } of runs) {
             if (!rec.start.netState || !packetsSupported(version)) this.skip()
             const bad = checkServerPackets(version, rec)
-            expectation(group.packetKnownFailure ? { knownFailure: group.packetKnownFailure } : {}, bad.length === 0, () => `${name} on ${version}: ${bad.length} packets handled differently; first at tick ${bad[0].t} (${bad[0].type}):\n` +
+            // (packet known failures are about the packets the client sends: the server side must always match)
+            expectation({}, bad.length === 0, () => `${name} on ${version}: ${bad.length} packets handled differently; first at tick ${bad[0].t} (${bad[0].type}):\n` +
               bad[0].diffs.map(d => `  ${d.field} vanilla ${d.expected} harness ${d.actual}`).join('\n'))
           }
         })
