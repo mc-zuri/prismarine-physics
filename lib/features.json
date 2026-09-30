@@ -257,5 +257,10 @@
     "name": "swiftSneak",
     "description": "Swift sneak adds 0.15F per level to the 0.3F sneak factor (the sneaking_speed attribute from 1.21)",
     "since": "1.19"
+  },
+  {
+    "name": "insideBlocksInset1e7",
+    "description": "The blocks inside the player are those of the box shrunk by 1e-7 (0.001 before)",
+    "since": "1.19.3"
   }
 ]

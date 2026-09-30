@@ -165,6 +165,7 @@ function Physics (mcData, world) {
     fluidFallingBeforeMove: supportFeature('modernMove'),
     climbFloatVertical: supportFeature('modernMove'),
     crouchLag: supportFeature('crouchLag'),
+    insideBlocksInset1e7: supportFeature('insideBlocksInset1e7'),
     swiftSneak: supportFeature('swiftSneak'),
     restitution: supportFeature('restitutionBounce'),
     backOffThinBox: supportFeature('playerPhysicsAttributes'),
@@ -811,7 +812,9 @@ function Physics (mcData, world) {
   // The blocks inside the box (web, bubble columns, soul sand before 1.15), then the block speed factor. Since 1.21.2
   // the blocks act after the whole travel (applyEffectsFromBlocks), not here.
   function applyBlockCollisions (entity, world, playerBB) {
-    if (!vanilla.effectsAfterTravel) insideBlocks(entity, world, cellsInBox(playerBB.clone().contract(0.001, 0.001, 0.001)))
+    // the cells of the box shrunk by 0.001 (1e-7 from 1.19.3)
+    const inset = vanilla.insideBlocksInset1e7 ? 1.0e-7 : 0.001
+    if (!vanilla.effectsAfterTravel) insideBlocks(entity, world, cellsInBox(playerBB.clone().contract(inset, inset, inset)))
     speedFactor(entity, world)
   }
 
