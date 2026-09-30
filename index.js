@@ -76,7 +76,7 @@ function Physics (mcData, world) {
     yawSpeed: 3.0,
     pitchSpeed: 3.0,
     playerSpeed: 0.1,
-    sprintSpeed: 0.3,
+    sprintSpeed: Math.fround(0.3), // the sprint modifier amount is (double) 0.3F
     sneakSpeed: 0.3,
     stepHeight: 0.6, // how much height can the bot step on without jump
     negligeableVelocity: 0.003, // actually 0.005 for 1.8, but seems fine
