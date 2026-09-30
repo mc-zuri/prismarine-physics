@@ -234,9 +234,14 @@ function Physics (mcData, world) {
   const mthSin = radians => math.mthSin(radians, vanilla.mthSinDouble)
   const mthCos = radians => math.mthCos(radians, vanilla.mthSinDouble)
 
-  function getPlayerBB (pos) {
+  // The player's pose (1.14+) sets its height: 1.8F standing, 1.5F crouching, 0.6F swimming, crawling or gliding.
+  const POSE_HEIGHT = { standing: Math.fround(1.8), crouching: Math.fround(1.5), swimming: Math.fround(0.6), fall_flying: Math.fround(0.6), spin_attack: Math.fround(0.6) }
+  const POSE_EYE_HEIGHT = { standing: Math.fround(1.62), crouching: Math.fround(1.27), swimming: Math.fround(0.4), fall_flying: Math.fround(0.4), spin_attack: Math.fround(0.4) }
+  let boxHeight = physics.playerHeight
+
+  function getPlayerBB (pos, height = boxHeight) {
     const w = physics.playerHalfWidth
-    return new AABB(-w, 0, -w, w, physics.playerHeight, w).offset(pos.x, pos.y, pos.z)
+    return new AABB(-w, 0, -w, w, height, w).offset(pos.x, pos.y, pos.z)
   }
 
   // The moving player, for blocks whose collision depends on it (EntityCollisionContext): where its feet are when the
@@ -1024,7 +1029,7 @@ function Physics (mcData, world) {
     let zza = (control.forward ? 1 : 0) - (control.back ? 1 : 0)
     // Since 1.15 the slowdown comes from the crouching state, which the tick takes from the sneak key of the tick
     // before (LocalPlayer.aiStep reads it before the input updates); before, from the key itself.
-    const slow = (vanilla.crouchLag ? entity.isCrouching : control.sneak) ? sneakFactor(entity) : 1
+    const slow = isMovingSlowly(entity) ? sneakFactor(entity) : 1
     if (vanilla.squareMovementInput) {
       // KeyboardInput normalizes the impulse; LocalPlayer.modifyInput scales it and stretches it to the unit square.
       if (xxa === 0 && zza === 0) return { xxa: 0, zza: 0 }
@@ -1536,7 +1541,7 @@ function Physics (mcData, world) {
   // Whether the eyes are in water (Entity.updateFluidOnEyes / isEyeInFluid).
   function eyeInWater (entity, world) {
     const pos = entity.pos
-    const eyeHeight = vanilla.crouchPose && entity.isCrouching ? f32(1.27) : f32(1.62)
+    const eyeHeight = vanilla.crouchPose ? POSE_EYE_HEIGHT[entity.pose || 'standing'] || f32(1.62) : f32(1.62)
     let eyeY = pos.y + eyeHeight
     if (vanilla.eyeFluidOffset) eyeY -= 0.1111111119389534 // 1.16-1.20
     const cell = new Vec3(Math.floor(pos.x), Math.floor(eyeY), Math.floor(pos.z))
@@ -1571,7 +1576,7 @@ function Physics (mcData, world) {
     const inWater = entity.isInWater
     const underWater = vanilla.fluidHeights && inWater && eyeInWater(entity, world)
     const collided = entity.isCollidedHorizontally && !(vanilla.minorCollision && entity.minorHorizontalCollision)
-    const slow = vanilla.crouchLag ? entity.isCrouching : control.sneak
+    const slow = isMovingSlowly(entity)
     let sprinting = !!entity.sprinting
 
     if (!vanilla.fluidHeights) {
@@ -1605,6 +1610,43 @@ function Physics (mcData, world) {
     entity.sprinting = sprinting
   }
 
+  // ---- pose (1.14+) ----
+
+  // LocalPlayer.isMovingSlowly: crouching (1.15+ the flag set at the tick start; the key before), or crawling
+  function isMovingSlowly (entity) {
+    const crawling = vanilla.crouchPose && entity.pose === 'swimming' && !entity.isInWater
+    if (!vanilla.crouchLag) return !!entity.control.sneak || crawling
+    return !!entity.crouching || crawling
+  }
+
+  // Player.canPlayerFitWithinBlocksAndEntitiesWhen: the pose's box, deflated by 1e-7, touches no block
+  function fitsPose (entity, world, pose) {
+    const box = getPlayerBB(entity.pos, POSE_HEIGHT[pose]).contract(1.0e-7, 1.0e-7, 1.0e-7)
+    const saved = collisionContext
+    collisionContext = { bottom: entity.pos.y, descending: !!entity.control.sneak }
+    try {
+      return !getSurroundingBBs(world, box).some(shape => shape.intersects(box))
+    } finally {
+      collisionContext = saved
+    }
+  }
+
+  // LocalPlayer.aiStep: crouching from the sneak key of the tick before, or forced where standing does not fit
+  function updateCrouching (entity, world) {
+    const shift = !!entity.isCrouching // the sneak key the last tick ended with
+    entity.crouching = !(entity.pose === 'swimming' && entity.isInWater) && fitsPose(entity, world, 'crouching') &&
+      (shift || !fitsPose(entity, world, 'standing'))
+  }
+
+  // Player.updatePlayerPose at the end of the tick
+  function updatePose (entity, world) {
+    if (!fitsPose(entity, world, 'swimming')) return
+    const desired = entity.elytraFlying ? 'fall_flying' : entity.control.sneak ? 'crouching' : 'standing'
+    const pose = fitsPose(entity, world, desired) ? desired : fitsPose(entity, world, 'crouching') ? 'crouching' : 'swimming'
+    if (pose !== entity.pose) entity.javaBox = null // the box is rebuilt for the new size
+    entity.pose = pose
+  }
+
   // Which jump the jump key makes: true swims up (jumpInLiquid), false jumps from the ground, null neither.
   function fluidJump (entity) {
     const threshold = 0.4 // getFluidJumpThreshold: the player's eyes are above 0.4
@@ -1631,6 +1673,7 @@ function Physics (mcData, world) {
     const vel = entity.vel
     const pos = entity.pos
     const startPos = pos.clone()
+    boxHeight = vanilla.crouchPose ? POSE_HEIGHT[entity.pose] || physics.playerHeight : physics.playerHeight
     entity.movementsThisTick = vanilla.effectsAfterTravel ? [] : undefined
 
     if (vanilla.fluidHeights) {
@@ -1654,6 +1697,7 @@ function Physics (mcData, world) {
       entity.isInLava = isMaterialInBB(world, lavaBB, lavaIds)
     }
 
+    if (vanilla.crouchLag) updateCrouching(entity, world)
     if (vanilla.sprintState) updateSprinting(entity, world)
 
     // 1.15+: pressing jump in the air with an elytra starts gliding at once (LocalPlayer.aiStep, tryToStartFallFlying);
@@ -1749,8 +1793,9 @@ function Physics (mcData, world) {
     // The jump key the next tick compares with
     entity.jumpHeld = !!entity.control.jump
 
-    // The crouching state the next tick starts with: the sneak key held, unless gliding
+    // The sneak key the next tick's crouching comes from
     entity.isCrouching = !!entity.control.sneak && !entity.elytraFlying
+    if (vanilla.crouchPose) updatePose(entity, world)
 
     return entity
   }
@@ -1814,6 +1859,8 @@ class PlayerState {
     this.stuckSpeedMultiplier = bot.entity.stuckSpeedMultiplier
     this.isCrouching = bot.entity.isCrouching ?? false
     this.jumpHeld = bot.entity.jumpHeld ?? false
+    this.pose = bot.entity.javaPose
+    this.crouching = bot.entity.crouching ?? false
     // The sprint state (vanilla's isSprinting): the sprint key starts it, the game's conditions stop it
     this.sprinting = bot.entity.sprinting ?? false
     this.minorHorizontalCollision = bot.entity.minorHorizontalCollision ?? false
@@ -1927,6 +1974,8 @@ class PlayerState {
     bot.entity.stuckSpeedMultiplier = this.stuckSpeedMultiplier
     bot.entity.isCrouching = this.isCrouching
     bot.entity.jumpHeld = this.jumpHeld
+    bot.entity.javaPose = this.pose
+    bot.entity.crouching = this.crouching
     bot.entity.sprinting = this.sprinting
     bot.entity.minorHorizontalCollision = this.minorHorizontalCollision
     bot.entity.supportingBlockPos = this.supportingBlockPos
