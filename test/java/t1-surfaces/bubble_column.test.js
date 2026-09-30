@@ -121,7 +121,27 @@ describe('vanilla recordings: bubble_column', () => {
     steps: [ticks(4), ticks(50), stable(15), ticks(5)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.13.2', '1.14.4', '1.15', '1.16', '1.17', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.20.5', '1.21'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [5.5, 101, 1003.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'enters water': { tick: 3, pos: [5.5, 100.73696799338532, 1003.5], isInWater: true },
+          'lands (1)': { tick: 35, pos: [5.5, 93, 1003.5], onGround: true },
+          'final state': { tick: 74, pos: [5.5, 93, 1003.5], vel: [0, -0.053000000715255735, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [5.5, 101, 1003.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'enters water': { tick: 3, pos: [5.5, 100.73636799395751, 1003.5], isInWater: true },
+          'lands (1)': { tick: 30, pos: [5.5, 93, 1003.5], onGround: true },
+          'final state': { tick: 74, pos: [5.5, 93, 1003.5], vel: [0, -0.065, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.21.9', '1.21.10', '1.21.11', '26.1'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [5.5, 101, 1003.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -138,7 +158,111 @@ describe('vanilla recordings: bubble_column', () => {
     steps: [ticks(4), ticks(50), hold('forward'), until('on:stone && !in:water && !in:bubble_column', 200), release('forward'), stable(15), ticks(5)],
     groups: [
       {
-        versions: ['1.21.11'],
+        versions: ['1.13.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, 0.09100000143051147, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [5.5, 94, 959.5], vel: [0, 0.09100000143051147, 0], onGround: false },
+          'enters water': { tick: 1, pos: [5.5, 94, 959.5], isInWater: true },
+          'enters water (tick 30)': { tick: 30, pos: [5.5, 100.85067818995871, 959.5], isInWater: true },
+          'enters water (tick 48)': { tick: 48, pos: [5.5, 100.72298245853369, 959.5], isInWater: true },
+          'enters water (tick 61)': { tick: 61, pos: [5.0499877649495675, 100.84450838992848, 959.5], isInWater: true },
+          'enters water (tick 70)': { tick: 70, pos: [3.945354837920573, 100.84289917255407, 959.5], isInWater: true },
+          'enters water (tick 79)': { tick: 79, pos: [2.643268167130368, 100.83336031535109, 959.5], isInWater: true }
+        }
+      },
+      {
+        versions: ['1.14.4', '1.15', '1.16'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, 0.09100000143051147, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [5.5, 94, 959.5], vel: [0, 0.09100000143051147, 0], onGround: false },
+          'enters water': { tick: 1, pos: [5.5, 94, 959.5], isInWater: true },
+          'enters water (tick 30)': { tick: 30, pos: [5.5, 100.85067818995871, 959.5], isInWater: true },
+          'enters water (tick 48)': { tick: 48, pos: [5.5, 100.72298245853369, 959.5], isInWater: true },
+          'enters water (tick 61)': { tick: 61, pos: [5.0499877715868475, 100.84450838992848, 959.5], isInWater: true },
+          'enters water (tick 70)': { tick: 70, pos: [3.9453548608502045, 100.84289917255407, 959.5], isInWater: true },
+          'enters water (tick 79)': { tick: 79, pos: [2.643268209264618, 100.83336031535109, 959.5], isInWater: true }
+        }
+      },
+      {
+        versions: ['1.17'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, 0.09100000143051147, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [5.5, 94, 959.5], vel: [0, 0.09100000143051147, 0], onGround: false },
+          'enters water': { tick: 1, pos: [5.5, 94, 959.5], isInWater: true },
+          'enters water (tick 30)': { tick: 30, pos: [5.5, 100.85067818995871, 959.5], isInWater: true },
+          'enters water (tick 48)': { tick: 48, pos: [5.5, 100.72298245853369, 959.5], isInWater: true },
+          'enters water (tick 61)': { tick: 61, pos: [5.0499877715868475, 100.84450838992848, 959.5], isInWater: true },
+          'enters water (tick 70)': { tick: 70, pos: [3.9453548608502045, 100.84289917255407, 959.5], isInWater: true },
+          'enters water (tick 79)': { tick: 79, pos: [2.643268209264618, 100.83336031535109, 959.5], isInWater: true }
+        }
+      },
+      {
+        versions: ['1.18'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, 0.09100000143051147, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [5.5, 94, 959.5], vel: [0, 0.09100000143051147, 0], onGround: false },
+          'enters water': { tick: 1, pos: [5.5, 94, 959.5], isInWater: true },
+          'enters water (tick 30)': { tick: 30, pos: [5.5, 100.85067818995871, 959.5], isInWater: true },
+          'enters water (tick 48)': { tick: 48, pos: [5.5, 100.72298245853369, 959.5], isInWater: true },
+          'enters water (tick 61)': { tick: 61, pos: [5.0499877715868475, 100.84450838992848, 959.5], isInWater: true },
+          'enters water (tick 70)': { tick: 70, pos: [3.9453548608502045, 100.84289917255407, 959.5], isInWater: true },
+          'enters water (tick 79)': { tick: 79, pos: [2.643268209264618, 100.83336031535109, 959.5], isInWater: true }
+        }
+      },
+      {
+        versions: ['22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.20.5', '1.21'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, 0.09100000143051147, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [5.5, 94, 959.5], vel: [0, 0.09100000143051147, 0], onGround: false },
+          'enters water': { tick: 1, pos: [5.5, 94, 959.5], isInWater: true },
+          'enters water (tick 30)': { tick: 30, pos: [5.5, 100.85067818995871, 959.5], isInWater: true },
+          'enters water (tick 48)': { tick: 48, pos: [5.5, 100.72298245853369, 959.5], isInWater: true },
+          'enters water (tick 61)': { tick: 61, pos: [5.0499877715868475, 100.84450838992848, 959.5], isInWater: true },
+          'enters water (tick 70)': { tick: 70, pos: [3.9453548608502045, 100.84289917255407, 959.5], isInWater: true },
+          'enters water (tick 79)': { tick: 79, pos: [2.643268209264618, 100.83336031535109, 959.5], isInWater: true }
+        }
+      },
+      {
+        versions: ['1.21.3'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, 0.11499999999999999, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [5.5, 94, 959.5], vel: [0, 0.11499999999999999, 0], onGround: false },
+          'enters water': { tick: 1, pos: [5.5, 94, 959.5], isInWater: true },
+          'enters water (tick 32)': { tick: 32, pos: [5.5, 100.41297573949218, 959.5], isInWater: true },
+          'enters water (tick 49)': { tick: 49, pos: [5.5, 100.87522017143274, 959.5], isInWater: true },
+          'enters water (tick 63)': { tick: 63, pos: [4.812374809561129, 100.81870706079172, 959.5], isInWater: true },
+          'enters water (tick 75)': { tick: 75, pos: [3.2671574307047617, 100.70908402086611, 959.5], isInWater: true },
+          'enters water (tick 86)': { tick: 86, pos: [1.5889317917921144, 100.75352880345652, 959.5], isInWater: true }
+        }
+      },
+      {
+        versions: ['1.21.5', '1.21.6', '1.21.7', '1.21.8'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, 0.11499999999999999, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [5.5, 94, 959.5], vel: [0, 0.11499999999999999, 0], onGround: false },
+          'enters water': { tick: 1, pos: [5.5, 94, 959.5], isInWater: true },
+          'enters water (tick 32)': { tick: 32, pos: [5.5, 100.41297573949218, 959.5], isInWater: true },
+          'enters water (tick 49)': { tick: 49, pos: [5.5, 100.87522017143274, 959.5], isInWater: true },
+          'enters water (tick 63)': { tick: 63, pos: [4.812374809561129, 100.81870706079172, 959.5], isInWater: true },
+          'enters water (tick 82)': { tick: 82, pos: [1.8371712740175279, 100.78756131609583, 959.5], isInWater: true },
+          'lands (1)': { tick: 92, pos: [0.15780838530169278, 101, 959.5], onGround: true }
+        }
+      },
+      {
+        versions: ['1.21.9'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, 0.11499999999999999, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [5.5, 94, 959.5], vel: [0, 0.11499999999999999, 0], onGround: false },
+          'enters water': { tick: 1, pos: [5.5, 94, 959.5], isInWater: true },
+          'enters water (tick 34)': { tick: 34, pos: [5.5, 100.37503547226571, 959.5], isInWater: true },
+          'enters water (tick 59)': { tick: 59, pos: [5.238983036231905, 100.72225115214398, 959.5], isInWater: true },
+          'enters water (tick 82)': { tick: 82, pos: [2.0352188907202455, 100.49210568165965, 959.5], isInWater: true },
+          'touches a wall': { tick: 87, pos: [1.300000011920929, 100.8491883217684, 959.5], isCollidedHorizontally: true },
+          'lands (1)': { tick: 100, pos: [0.04091899239345187, 101, 959.5], onGround: true }
+        }
+      },
+      {
+        versions: ['1.21.10', '1.21.11', '26.1'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.11499999999999999, 0] },
           'leaves the ground (1)': { tick: 1, pos: [5.5, 94, 959.5], vel: [0, 0.11499999999999999, 0], onGround: false },

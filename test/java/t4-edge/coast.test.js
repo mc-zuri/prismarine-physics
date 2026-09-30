@@ -30,10 +30,8 @@ describe('vanilla recordings: coast', () => {
         versions: ['1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.02005714406293894] },
-          'leaves the ground (1)': { tick: 1, pos: [0.5, 101, 336.52249062909743], vel: [0, -0.0784000015258789, 0.02005714406293894], onGround: false },
           'top speed 0.45 b/s': { tick: 1, pos: [0.5, 101, 336.52249062909743], vel: [0, -0.0784000015258789, 0.02005714406293894] },
-          'lands (1)': { tick: 2, pos: [0.5, 101, 336.5425477731604], onGround: true },
-          'final state': { tick: 121, pos: [0.5, 101, 336.684235506148], vel: [0, -0.0784000015258789, 0], onGround: true }
+          'final state': { tick: 121, pos: [0.5, 101, 336.6814017546436], vel: [0, -0.0784000015258789, 0], onGround: true }
         }
       }
     ]
@@ -47,10 +45,8 @@ describe('vanilla recordings: coast', () => {
         versions: ['1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
-          'leaves the ground (1)': { tick: 1, pos: [0.5, 101, 38.59800000336766], vel: [0, -0.0784000015258789, 0.053508008053839436], onGround: false },
           'top speed 1.96 b/s': { tick: 1, pos: [0.5, 101, 38.59800000336766], vel: [0, -0.0784000015258789, 0.053508008053839436] },
-          'lands (1)': { tick: 2, pos: [0.5, 101, 38.6515080114215], onGround: true },
-          'final state': { tick: 41, pos: [0.5, 101, 38.75355539732558], vel: [0, -0.0784000015258789, 0], onGround: true }
+          'final state': { tick: 41, pos: [0.5, 101, 38.71013998464578], vel: [0, -0.0784000015258789, 0], onGround: true }
         }
       }
     ]

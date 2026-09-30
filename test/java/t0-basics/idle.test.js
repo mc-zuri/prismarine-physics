@@ -12,8 +12,6 @@ describe('vanilla recordings: idle', () => {
         versions: ['1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
-          'leaves the ground (1)': { tick: 1, pos: [0.5, 101, 38.5], vel: [0, -0.0784000015258789, 0], onGround: false },
-          'lands (1)': { tick: 2, pos: [0.5, 101, 38.5], onGround: true },
           'final state': { tick: 40, pos: [0.5, 101, 38.5], vel: [0, -0.0784000015258789, 0], onGround: true }
         }
       }

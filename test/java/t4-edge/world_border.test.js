@@ -31,11 +31,9 @@ describe('vanilla recordings: world_border', () => {
         versions: ['1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.060238862958899186, -0.0784000015258789, -0.03478405917668391] },
-          'leaves the ground (1)': { tick: 1, pos: [29999976.610327575, 101, 0.43629293931057866], vel: [0.060238862958899186, -0.0784000015258789, -0.03478405917668391], onGround: false },
-          'lands (1)': { tick: 2, pos: [29999976.69263195, 101, 0.3887674696390455], onGround: true },
-          'top speed 5.612 b/s': { tick: 31, pos: [29999983.61270323, 101, -3.607127490096105], vel: [0.13268473732680955, -0.0784000015258789, -0.0766168803379891] },
-          'touches a wall': { tick: 32, pos: [29999983.699999988, 101, -3.7474514311235154], isCollidedHorizontally: true },
-          'final state': { tick: 48, pos: [29999983.699999988, 101, -4.773428823973345], vel: [0, -0.0784000015258789, 0], onGround: true }
+          'top speed 5.612 b/s': { tick: 30, pos: [29999983.498112243, 101, -3.540958583308295], vel: [0.13268473697632702, -0.0784000015258789, -0.07661688013560802] },
+          'touches a wall': { tick: 31, pos: [29999983.699999988, 101, -3.6812825241333242], isCollidedHorizontally: true },
+          'final state': { tick: 48, pos: [29999983.699999988, 101, -4.847583858564917], vel: [0, -0.0784000015258789, 0], onGround: true }
         }
       }
     ]
@@ -49,10 +47,8 @@ describe('vanilla recordings: world_border', () => {
         versions: ['1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
-          'leaves the ground (1)': { tick: 1, pos: [29999976.598000005, 101, 0.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
-          'lands (1)': { tick: 2, pos: [29999976.67110801, 101, 0.5], onGround: true },
-          'top speed 4.317 b/s': { tick: 31, pos: [29999982.8179576, 101, 0.5], vel: [0.11785906381315, -0.0784000015258789, 0] },
-          'touches a wall': { tick: 36, pos: [29999983.699999988, 101, 0.5], isCollidedHorizontally: true },
+          'top speed 4.317 b/s': { tick: 30, pos: [29999982.716170564, 101, 0.5], vel: [0.11785906350182895, -0.0784000015258789, 0] },
+          'touches a wall': { tick: 35, pos: [29999983.699999988, 101, 0.5], isCollidedHorizontally: true },
           'final state': { tick: 43, pos: [29999983.699999988, 101, 0.5], vel: [0, -0.0784000015258789, 0], onGround: true }
         }
       }

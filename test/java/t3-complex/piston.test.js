@@ -13,11 +13,9 @@ describe('vanilla recordings: piston', () => {
         packetKnownFailure: 'pistons push the player after its own tick: vanilla sends the position from before the push',
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
-          'leaves the ground (1)': { tick: 1, pos: [0.5, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: false },
-          'lands (1)': { tick: 2, pos: [0.5, 101, 2707.5], onGround: true },
-          'leaves the ground (2)': { tick: 3, pos: [0.810000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'leaves the ground (1)': { tick: 3, pos: [0.810000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: false },
           'top speed 10 b/s': { tick: 4, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0] },
-          'lands (2)': { tick: 5, pos: [1.310000011920929, 101, 2707.5], onGround: true },
+          'lands (1)': { tick: 6, pos: [1.310000011920929, 101, 2707.5], onGround: true },
           'final state': { tick: 30, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
         }
       }

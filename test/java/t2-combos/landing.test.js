@@ -2016,8 +2016,8 @@ describe('vanilla recordings: landing', () => {
           'top speed 3.33 b/s': { tick: 13, pos: [3.1222521989613163, 101.31161120717262, 1597.5], vel: [0.15152534974602222, -0.9054323524772837, 0] },
           'enters a slowing block': { tick: 14, pos: [3.137932199149667, 101.31161120717262, 1597.5], isInWeb: true },
           'lands (1)': { tick: 20, pos: [3.232012200279772, 101, 1597.5], onGround: true },
-          'leaves the ground (2)': { tick: 24, pos: [3.5456122157292955, 101, 1597.5], vel: [0, -0.0784000015258789, 0], onGround: false },
-          'lands (2)': { tick: 25, pos: [3.5612922159176463, 101, 1597.5], onGround: true },
+          'leaves the ground (2)': { tick: 25, pos: [3.6240122195916764, 101, 1597.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'lands (2)': { tick: 26, pos: [3.639692219780027, 101, 1597.5], onGround: true },
           'final state': { tick: 55, pos: [3.9532922352295508, 101, 1597.5], vel: [0, -0.0784000015258789, 0], onGround: true }
         }
       }

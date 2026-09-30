@@ -13,7 +13,7 @@ describe('vanilla recordings: honey', () => {
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 119, 1987.5], vel: [0, -0.0784000015258789, 0], onGround: false },
-          'lands (1)': { tick: 24, pos: [0.5, 101, 1987.5], onGround: true },
+          'lands (1)': { tick: 25, pos: [0.5, 101, 1987.5], onGround: true },
           'final state': { tick: 65, pos: [0.5, 101, 1987.5], vel: [0, -0.0784000015258789, 0], onGround: true }
         }
       }
@@ -65,9 +65,9 @@ describe('vanilla recordings: honey', () => {
         milestones: {
           'first tick': { tick: 1, vel: [0.10810801439577364, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5, 119, 1987.5], vel: [0.10810801439577364, -0.0784000015258789, 0], onGround: false },
-          'top speed 0.748 b/s': { tick: 10, pos: [1.7100946934850922, 115.65394638837971, 1987.5], vel: [0.002609497011476296, -0.12740000247955321, 0] },
-          'touches a wall': { tick: 14, pos: [1.7624999880790713, 115.14434637846152, 1987.5], isCollidedHorizontally: true },
-          'final state': { tick: 105, pos: [1.7624999880790713, 103.55094615282275, 1987.5], vel: [0, -0.12740000247955321, 0], onGround: false }
+          'top speed 2.28 b/s': { tick: 2, pos: [1.6139880148556234, 118.92159999847412, 1987.5], vel: [0.10372909650807201, -0.1552320045166016, 0] },
+          'touches a wall': { tick: 12, pos: [1.7624999880790713, 116.81954423725848, 1987.5], isCollidedHorizontally: true },
+          'final state': { tick: 105, pos: [1.7624999880790713, 104.97134400666062, 1987.5], vel: [0, -0.12740000247955321, 0], onGround: false }
         }
       }
     ]
