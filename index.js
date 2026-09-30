@@ -50,6 +50,7 @@ function Physics (mcData, world) {
   const STUCK_IN_WEB = [0.25, Math.fround(0.05), 0.25]
   const STUCK_IN_BERRY_BUSH = [Math.fround(0.8), 0.75, Math.fround(0.8)]
   const STUCK_IN_POWDER_SNOW = [Math.fround(0.9), 1.5, Math.fround(0.9)]
+  const bedIds = new Set(mcData.blocksArray.filter(b => b.name === 'bed' || b.name.endsWith('_bed')).map(b => b.id))
   const soulsandId = blocksByName.soul_sand.id
   const soulSoilId = blocksByName.soul_soil ? blocksByName.soul_soil.id : -1 // 1.16+
   const honeyblockId = blocksByName.honey_block ? blocksByName.honey_block.id : -1 // 1.15+
@@ -163,6 +164,7 @@ function Physics (mcData, world) {
     fluidFallingBeforeMove: supportFeature('modernMove'),
     climbFloatVertical: supportFeature('modernMove'),
     crouchLag: supportFeature('crouchLag'),
+    bedBounce: supportFeature('bedBounce'),
     elytraDoubleCos: supportFeature('elytraDoubleCos'),
     elytraSquareOnly: supportFeature('elytraSquareOnly'),
     clientStartsGliding: supportFeature('crouchLag'),
@@ -653,6 +655,9 @@ function Physics (mcData, world) {
     const blockAtFeet = world.getBlock(getOnPos(entity, f32(0.2)))
     if (blockAtFeet && blockAtFeet.type === slimeBlockId && !entity.control.sneak) {
       if (vel.y < 0) vel.y = -vel.y
+    } else if (blockAtFeet && vanilla.bedBounce && bedIds.has(blockAtFeet.type) && !entity.control.sneak) {
+      // beds bounce a falling player back up at 0.66F of its speed (1.12+)
+      if (vel.y < 0) vel.y = -vel.y * f32(0.66)
     } else {
       vel.y = 0
     }
