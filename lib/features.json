@@ -156,5 +156,15 @@
     "name": "movementEfficiency",
     "description": "The block speed factor is lerped toward 1 by the movement_efficiency attribute (soul speed)",
     "since": "1.21"
+  },
+  {
+    "name": "supportingBlock",
+    "description": "The player keeps the block it stands on (checkSupportingBlock); getOnPos looks in its column",
+    "since": "1.20"
+  },
+  {
+    "name": "blockEffectsAfterTravel",
+    "description": "Block effects (stepOn, checkInsideBlocks) run after the whole travel (applyEffectsFromBlocks), not inside the move",
+    "since": "1.21.2"
   }
 ]

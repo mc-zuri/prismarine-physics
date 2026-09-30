@@ -39,6 +39,10 @@ function Physics (mcData, world) {
   }
 
   // Block ids
+  const byTag = test => new Set(mcData.blocksArray.filter(b => test(b.name)).map(b => b.id))
+  const fenceIds = byTag(name => name.endsWith('fence'))
+  const wallIds = byTag(name => name.endsWith('_wall') && !name.includes('sign') && !name.includes('banner') && !name.includes('torch') && !name.includes('head') && !name.includes('skull') && !name.includes('fan'))
+  const gateIds = byTag(name => name.endsWith('fence_gate'))
   const soulsandId = blocksByName.soul_sand.id
   const soulSoilId = blocksByName.soul_soil ? blocksByName.soul_soil.id : -1 // 1.16+
   const honeyblockId = blocksByName.honey_block ? blocksByName.honey_block.id : -1 // 1.15+
@@ -151,6 +155,8 @@ function Physics (mcData, world) {
     climbFloatVertical: supportFeature('modernMove'),
     crouchLag: supportFeature('crouchLag'),
     blockSpeedFactor: supportFeature('blockSpeedFactor'),
+    supportingBlock: supportFeature('supportingBlock'),
+    effectsAfterTravel: supportFeature('blockEffectsAfterTravel'),
     movementEfficiency: supportFeature('movementEfficiency'),
     blockBelowHalf: supportFeature('blockBelowHalfBlock'),
     blockBelowOnPos: supportFeature('blockBelowOnPos'),
@@ -418,6 +424,7 @@ function Physics (mcData, world) {
       entity.isCollidedHorizontally = collidedX || collidedZ
       entity.isCollidedVertically = dy !== moved.y
       entity.onGround = entity.isCollidedVertically && dy < 0
+      if (vanilla.supportingBlock) checkSupportingBlock(entity, world, playerBB, moved)
       if (vanilla.collisionEpsilonVelocity) {
         if (collidedX) vel.x = 0
         if (collidedZ) vel.z = 0
@@ -428,6 +435,7 @@ function Physics (mcData, world) {
         if (dz !== moved.z) { vel.x = before.x; vel.y = before.y; vel.z = 0 }
       }
       if (dy !== moved.y) afterFallOn(entity, world, vel)
+      if (!vanilla.effectsAfterTravel) stepOn(entity, world)
       applyBlockCollisions(entity, world, playerBB)
       return
     }
@@ -515,12 +523,13 @@ function Physics (mcData, world) {
     if (dx !== oldVelX) vel.x = 0
     if (dz !== oldVelZ) vel.z = 0
     if (dy !== oldVelY) afterFallOn(entity, world, vel)
+    stepOn(entity, world)
     applyBlockCollisions(entity, world, playerBB)
   }
 
   // Block.updateEntityAfterFallOn: slime bounces a falling player back up unless sneaking; others stop it.
   function afterFallOn (entity, world, vel) {
-    const blockAtFeet = world.getBlock(entity.pos.offset(0, -0.2, 0))
+    const blockAtFeet = world.getBlock(getOnPos(entity, f32(0.2)))
     if (blockAtFeet && blockAtFeet.type === slimeBlockId && !entity.control.sneak) {
       if (vel.y < 0) vel.y = -vel.y
     } else {
@@ -587,9 +596,84 @@ function Physics (mcData, world) {
   // The block under the player that sets its friction, speed and jump factors (getBlockPosBelowThatAffectsMyMovement):
   // one block below before 1.15, 0.5000001 below the feet since (1.20+: 0.500001F).
   function blockBelowAffectingMovement (entity, world) {
+    if (vanilla.blockBelowOnPos) return world.getBlock(getOnPos(entity, f32(0.500001)))
     const pos = entity.pos
-    const depth = vanilla.blockBelowHalf ? (vanilla.blockBelowOnPos ? f32(0.500001) : 0.5000001) : 1
-    return world.getBlock(new Vec3(pos.x, Math.floor(pos.y - depth), pos.z))
+    return world.getBlock(new Vec3(pos.x, Math.floor(pos.y - (vanilla.blockBelowHalf ? 0.5000001 : 1)), pos.z))
+  }
+
+  // Entity.getOnPos(offset): the block offset under the feet; 1.20+ in the column of the supporting block (the one the
+  // player stands on, kept from the last landing), except that fences, walls and gates count as they are.
+  function getOnPos (entity, offset) {
+    const pos = entity.pos
+    const support = vanilla.supportingBlock ? entity.supportingBlockPos : null
+    if (!support) return new Vec3(Math.floor(pos.x), Math.floor(pos.y - offset), Math.floor(pos.z))
+    if (!(offset > f32(1.0e-5))) return support.clone()
+    const block = world.getBlock(support)
+    if (block && ((offset <= 0.5 && fenceIds.has(block.type)) || wallIds.has(block.type) || gateIds.has(block.type))) return support.clone()
+    return new Vec3(support.x, Math.floor(pos.y - offset), support.z)
+  }
+
+  // Entity.checkSupportingBlock (1.20+): among the blocks the underside of the box touches, the one whose center is
+  // closest to the position (ties to the greater); when none, under where the box was before the horizontal move.
+  function checkSupportingBlock (entity, world, box, movement) {
+    if (!entity.onGround) {
+      entity.onGroundNoBlocks = false
+      entity.supportingBlockPos = null
+      return
+    }
+    const underside = new AABB(box.minX, box.minY - 1.0e-6, box.minZ, box.maxX, box.minY, box.maxZ)
+    let found = findSupportingBlock(entity, world, underside)
+    if (!found && !entity.onGroundNoBlocks) {
+      if (movement) {
+        found = findSupportingBlock(entity, world, underside.clone().offset(-movement.x, 0, -movement.z))
+        entity.supportingBlockPos = found
+      }
+    } else {
+      entity.supportingBlockPos = found
+    }
+    entity.onGroundNoBlocks = !found
+  }
+
+  function findSupportingBlock (entity, world, box) {
+    let best = null
+    let bestDistance = Number.MAX_VALUE
+    const pos = entity.pos
+    const cursor = new Vec3(0, 0, 0)
+    for (cursor.y = Math.floor(box.minY) - 1; cursor.y <= Math.floor(box.maxY); cursor.y++) {
+      for (cursor.z = Math.floor(box.minZ); cursor.z <= Math.floor(box.maxZ); cursor.z++) {
+        for (cursor.x = Math.floor(box.minX); cursor.x <= Math.floor(box.maxX); cursor.x++) {
+          const block = world.getBlock(cursor)
+          if (!block || !block.shapes.some(shape => new AABB(...shape).offset(cursor.x, cursor.y, cursor.z).intersects(box))) continue
+          const dx = cursor.x + 0.5 - pos.x
+          const dy = cursor.y + 0.5 - pos.y
+          const dz = cursor.z + 0.5 - pos.z
+          const distance = dx * dx + dy * dy + dz * dz
+          if (distance < bestDistance || (distance === bestDistance && (!best || compareBlockPos(best, cursor) < 0))) {
+            best = cursor.clone()
+            bestDistance = distance
+          }
+        }
+      }
+    }
+    return best
+  }
+
+  // Vec3i.compareTo: y, then z, then x
+  function compareBlockPos (a, b) {
+    if (a.y !== b.y) return a.y - b.y
+    return a.z !== b.z ? a.z - b.z : a.x - b.x
+  }
+
+  // Block.stepOn while on the ground: slime slows the walk to 0.4 + |vy| * 0.2 unless sneaking. Inside the move before
+  // 1.21.2, after the whole travel since (applyEffectsFromBlocks).
+  function stepOn (entity, world) {
+    if (!entity.onGround || entity.control.sneak) return
+    const block = world.getBlock(getOnPos(entity, f32(0.2)))
+    if (block && block.type === slimeBlockId && Math.abs(entity.vel.y) < 0.1) {
+      const scale = 0.4 + Math.abs(entity.vel.y) * 0.2
+      entity.vel.x *= scale
+      entity.vel.z *= scale
+    }
   }
 
   // A block factor (speed or jump): the block at the player's position, when it is 1 that of the block below.
@@ -1106,6 +1190,8 @@ function Physics (mcData, world) {
 
     moveEntityWithHeading(entity, world, strafe, forward)
 
+    if (vanilla.effectsAfterTravel) stepOn(entity, world)
+
     // The crouching state the next tick starts with: the sneak key held, unless gliding
     entity.isCrouching = !!entity.control.sneak && !entity.elytraFlying
 
@@ -1169,6 +1255,9 @@ class PlayerState {
     this.isInLava = bot.entity.isInLava
     this.isInWeb = bot.entity.isInWeb
     this.isCrouching = bot.entity.isCrouching ?? false
+    // The block the player stands on (1.20+) and whether its last landing found none
+    this.supportingBlockPos = bot.entity.supportingBlockPos ?? null
+    this.onGroundNoBlocks = bot.entity.onGroundNoBlocks ?? false
     this.isCollidedHorizontally = bot.entity.isCollidedHorizontally
     this.isCollidedVertically = bot.entity.isCollidedVertically
     this.elytraFlying = bot.entity.elytraFlying
@@ -1274,6 +1363,8 @@ class PlayerState {
     bot.entity.isInLava = this.isInLava
     bot.entity.isInWeb = this.isInWeb
     bot.entity.isCrouching = this.isCrouching
+    bot.entity.supportingBlockPos = this.supportingBlockPos
+    bot.entity.onGroundNoBlocks = this.onGroundNoBlocks
     bot.entity.isCollidedHorizontally = this.isCollidedHorizontally
     bot.entity.isCollidedVertically = this.isCollidedVertically
     bot.entity.elytraFlying = this.elytraFlying
