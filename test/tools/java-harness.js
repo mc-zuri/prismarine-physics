@@ -295,6 +295,8 @@ function applyEvents (state, w, events, ctx) {
       // Attribute packets: minecraft-protocol's attribute ids do not match every version's registry (1.21.11 decodes
       // movement_speed as generic.scale), so the attributes are taken from what vanilla's handling left.
       if (entry.after && (entry.after.attributes || entry.after.attributeModifiers)) state.attributes = attributesOf({ ...entry.before, ...entry.after }, ctx.mcData)
+      // Effect ids likewise (the effect registry is 0-based in play packets): the effects vanilla's handling left.
+      if (entry.after && entry.after.effects) Object.assign(state, levels(entry.after.effects))
     }
     return
   }
@@ -365,7 +367,7 @@ function replay (version, rec, { mode = 'trajectory', fields = FIELDS, epsilon =
 
 // ---- packets ----
 
-const EFFECT_FIELDS = { speed: 'speed', slowness: 'slowness', jump_boost: 'jumpBoost', levitation: 'levitation', slow_falling: 'slowFalling', dolphins_grace: 'dolphinsGrace' }
+const EFFECT_FIELDS = { speed: 'speed', slowness: 'slowness', jump_boost: 'jumpBoost', levitation: 'levitation', slow_falling: 'slowFalling', dolphins_grace: 'dolphinsGrace', blindness: 'blindness' }
 
 function packetContext (version, mcData, rec) {
   const net = rec.start.netState || {}
