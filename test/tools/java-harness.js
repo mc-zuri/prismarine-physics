@@ -20,7 +20,7 @@ const SUFFIX = '-recorded'
 const FIELDS = ['pos', 'vel', 'onGround', 'isCollidedHorizontally', 'isCollidedVertically', 'isInWater', 'isInLava',
   'isInWeb', 'elytraFlying']
 const KEYS = { forward: 'forward', back: 'back', left: 'left', right: 'right', jump: 'jump', sprint: 'sprint', sneak: 'sneak' }
-const EFFECTS = { jump_boost: 'jumpBoost', speed: 'speed', slowness: 'slowness', dolphins_grace: 'dolphinsGrace', slow_falling: 'slowFalling', levitation: 'levitation' }
+const EFFECTS = { jump_boost: 'jumpBoost', speed: 'speed', slowness: 'slowness', dolphins_grace: 'dolphinsGrace', slow_falling: 'slowFalling', levitation: 'levitation', blindness: 'blindness' }
 
 // ---- step helpers (documentation of the inputs; checked against the recording) ----
 
@@ -236,6 +236,9 @@ function makeState (rec, mcData) {
     elytraFlying: s.elytraFlying,
     jumpTicks: s.jumpTicks,
     jumpQueued: s.jumpQueued,
+    food: s.food,
+    sprinting: s.sprinting,
+    isCrouching: s.shiftKeyDown,
     fireworkRocketDuration: 0,
     attributes: attributesOf(s, mcData),
     yaw: yawOf(s.yaw),
@@ -256,6 +259,7 @@ function makeState (rec, mcData) {
 function applyInput (state, row, mcData) {
   state.attributes = attributesOf(row, mcData)
   Object.assign(state, levels(row.effects))
+  state.food = row.food
   for (const key of Object.keys(state.control)) state.control[key] = false
   for (const [key, down] of Object.entries(row.in)) if (KEYS[key] && down) state.control[KEYS[key]] = true
   state.yaw = yawOf(row.in.yaw)
@@ -343,6 +347,9 @@ function replay (version, rec, { mode = 'trajectory', fields = FIELDS, epsilon =
       state.vel = new Vec3(...before.vel)
       for (const field of FIELDS.slice(2)) state[field] = before[field]
       state.jumpTicks = before.jumpTicks
+      // the state the tick carries over: sprinting, and the sneak key the next crouching comes from
+      state.sprinting = before.sprinting
+      state.isCrouching = before.shiftKeyDown
     }
     // Inputs synced before this tick are those of the previous row (the state the tick started from).
     applyInput(state, { ...(i > 0 ? rows[i - 1] : rec.start), ...(rec.start.netState ? {} : { attributes: row.attributes, attributeModifiers: row.attributeModifiers }), in: row.in }, mcData)
