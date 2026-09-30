@@ -144,6 +144,7 @@ function Physics (mcData, world) {
     moveWhenBlocked: supportFeature('moveWhenFullyBlocked'),
     collisionEpsilonVelocity: supportFeature('collisionEpsilonVelocityReset'),
     waterSprintSlowdown: supportFeature('proportionalLiquidGravity'),
+    waterMovementEfficiency: supportFeature('waterMovementEfficiency'),
     proportionalLiquidGravity: supportFeature('proportionalLiquidGravity'),
     fluidFallingBeforeMove: supportFeature('modernMove'),
     climbFloatVertical: supportFeature('modernMove'),
@@ -776,11 +777,21 @@ function Physics (mcData, world) {
         // moves them toward 0.54600006F and the speed in float.
         let inertia = f32(vanilla.waterSprintSlowdown && sprinting ? 0.9 : physics.waterInertia)
         let acceleration = f32(physics.liquidAcceleration)
-        let strider = f32(Math.min(entity.depthStrider, 3))
-        if (!entity.onGround) strider = f32(strider * f32(0.5))
-        if (strider > 0) {
-          inertia = f32(inertia + f32(f32(f32(f32(0.54600006) - inertia) * strider) / 3))
-          acceleration = f32(acceleration + f32(f32(f32(landSpeed(entity) - acceleration) * strider) / 3))
+        if (vanilla.waterMovementEfficiency) {
+          // 1.21+: the water_movement_efficiency attribute, depth strider adding 0.33333334F per level
+          let efficiency = f32(Math.min(f32(f32(0.33333334) * entity.depthStrider), 1))
+          if (!entity.onGround) efficiency = f32(efficiency * f32(0.5))
+          if (efficiency > 0) {
+            inertia = f32(inertia + f32(f32(f32(0.54600006) - inertia) * efficiency))
+            acceleration = f32(acceleration + f32(f32(landSpeed(entity) - acceleration) * efficiency))
+          }
+        } else {
+          let strider = f32(Math.min(entity.depthStrider, 3))
+          if (!entity.onGround) strider = f32(strider * f32(0.5))
+          if (strider > 0) {
+            inertia = f32(inertia + f32(f32(f32(f32(0.54600006) - inertia) * strider) / 3))
+            acceleration = f32(acceleration + f32(f32(f32(landSpeed(entity) - acceleration) * strider) / 3))
+          }
         }
         if (entity.dolphinsGrace > 0) inertia = f32(0.96)
 

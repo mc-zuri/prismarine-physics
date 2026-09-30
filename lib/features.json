@@ -131,5 +131,10 @@
     "name": "collisionEpsilonVelocityReset",
     "description": "The velocity is reset on the axes that collided by more than 1e-5 (Mth.equal); before, on any difference, the z reset restoring x",
     "since": "22w19a"
+  },
+  {
+    "name": "waterMovementEfficiency",
+    "description": "Depth strider acts through the water_movement_efficiency attribute (0.33333334F per level, no division by 3)",
+    "since": "1.21"
   }
 ]
