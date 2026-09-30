@@ -255,7 +255,9 @@ function makeState (rec, mcData) {
     depthStrider: enchantment(setup, 'feet', 'depth_strider'),
     soulSpeed: enchantment(setup, 'feet', 'soul_speed'),
     swiftSneak: enchantment(setup, 'legs', 'swift_sneak'),
-    elytraEquipped: !!(setup.equipment && setup.equipment.chest && setup.equipment.chest.id === 'elytra')
+    elytraEquipped: !!(setup.equipment && setup.equipment.chest && setup.equipment.chest.id === 'elytra'),
+    leatherBoots: !!(setup.equipment && setup.equipment.feet && setup.equipment.feet.id === 'leather_boots'),
+    fallDistance: s.fallDistance || 0
   }
 }
 
@@ -359,6 +361,7 @@ function replay (version, rec, { mode = 'trajectory', fields = FIELDS, epsilon =
       state.sprinting = before.sprinting
       state.isCrouching = before.shiftKeyDown
       state.pose = before.pose
+      state.fallDistance = before.fallDistance || 0
     }
     // Inputs synced before this tick are those of the previous row (the state the tick started from).
     applyInput(state, { ...(i > 0 ? rows[i - 1] : rec.start), ...(rec.start.netState ? {} : { attributes: row.attributes, attributeModifiers: row.attributeModifiers }), usingItem: row.usingItem, in: row.in }, mcData)
