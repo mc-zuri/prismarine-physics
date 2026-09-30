@@ -1029,6 +1029,11 @@ function Physics (mcData, world) {
       const input = f32(0.98)
       xxa = f32(xxa * input)
       zza = f32(zza * input)
+      if (entity.usingItem) {
+        // an item in use slows the input (itemUseSpeedMultiplier, 0.2F)
+        xxa = f32(xxa * ITEM_USE_SLOWDOWN)
+        zza = f32(zza * ITEM_USE_SLOWDOWN)
+      }
       if (slow !== 1) {
         xxa = f32(xxa * slow)
         zza = f32(zza * slow)
@@ -1045,10 +1050,19 @@ function Physics (mcData, world) {
       const scale = Math.min(f32(length * toSquare), 1)
       return { xxa: f32(ux * scale), zza: f32(uz * scale) }
     }
-    xxa = f32(xxa * slow)
-    zza = f32(zza * slow)
+    // an item in use scales the impulse by 0.2F, after the sneak factor (before it on 1.21.4)
+    const using = entity.usingItem ? ITEM_USE_SLOWDOWN : 1
+    if (vanilla.sprintStopsWhenSlow) {
+      xxa = f32(f32(xxa * using) * slow)
+      zza = f32(f32(zza * using) * slow)
+    } else {
+      xxa = f32(f32(xxa * slow) * using)
+      zza = f32(f32(zza * slow) * using)
+    }
     return { xxa: f32(xxa * f32(0.98)), zza: f32(zza * f32(0.98)) }
   }
+
+  const ITEM_USE_SLOWDOWN = Math.fround(0.2)
 
   function sneakFactor (entity) {
     if (vanilla.sneakingSpeedAttribute) return f32(attributeValue(entity, 'playerSneakingSpeed', attributeValue(entity, 'sneakingSpeed', physics.sneakSpeed)))
@@ -1557,23 +1571,25 @@ function Physics (mcData, world) {
 
     if (!vanilla.fluidHeights) {
       // before 1.13: the forward input (0.3 while sneaking) must be at least 0.8
-      const forward = f32(forwardKeys * (control.sneak ? f32(0.3) : 1))
-      if (!sprinting && forward >= 0.8 && food && !blind && control.sprint) sprinting = true
+      const forward = f32(f32(forwardKeys * (control.sneak ? f32(0.3) : 1)) * (entity.usingItem ? ITEM_USE_SLOWDOWN : 1))
+      if (!sprinting && forward >= 0.8 && food && !blind && !entity.usingItem && control.sprint) sprinting = true
       if (sprinting && (forward < 0.8 || entity.isCollidedHorizontally || !food)) sprinting = false
     } else if (vanilla.sprintByForwardImpulse) {
       // 1.21.5+: any forward impulse; not in shallow water, not sneaking unless under water
       const hasForward = forwardKeys > 0
       const possible = !blind && food
       const shallow = inWater && !underWater
-      if (!sprinting && hasForward && possible && !shallow && !(entity.elytraFlying && !underWater) && (!slow || underWater) && control.sprint) sprinting = true
+      if (!sprinting && hasForward && possible && !shallow && !entity.usingItem && !(entity.elytraFlying && !underWater) && (!slow || underWater) && control.sprint) sprinting = true
       if (sprinting && (!possible || shallow || !hasForward || collided)) sprinting = false
     } else {
       // 1.13-1.21.4: at least 0.8 forward to start (any under water), any forward to keep
-      const forward = f32(forwardKeys * (slow ? sneakFactor(entity) : 1))
+      const using = entity.usingItem ? ITEM_USE_SLOWDOWN : 1
+      const sneak = slow ? sneakFactor(entity) : 1
+      const forward = vanilla.sprintStopsWhenSlow ? f32(f32(forwardKeys * using) * sneak) : f32(f32(forwardKeys * sneak) * using)
       const hasForward = forward > f32(1.0e-5)
-      if (vanilla.sprintStopsWhenSlow && (slow || blind || entity.elytraFlying)) sprinting = false
+      if (vanilla.sprintStopsWhenSlow && (slow || blind || entity.elytraFlying || (entity.usingItem && !underWater))) sprinting = false
       const enough = underWater ? hasForward : forward >= 0.8
-      const canStart = !sprinting && enough && food && !blind && !(vanilla.sprintNotWhileGliding && entity.elytraFlying) &&
+      const canStart = !sprinting && enough && food && !blind && !entity.usingItem && !(vanilla.sprintNotWhileGliding && entity.elytraFlying) &&
         (!vanilla.sprintStopsWhenSlow || !slow || underWater)
       if ((!inWater || underWater) && canStart && control.sprint) sprinting = true
       if (sprinting) {
