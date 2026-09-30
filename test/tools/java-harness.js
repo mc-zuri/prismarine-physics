@@ -225,6 +225,9 @@ function makeState (rec, mcData) {
     attributes: { [speed]: speedAttribute(s) },
     yaw: yawOf(s.yaw),
     pitch: pitchOf(s.pitch),
+    // The vanilla rotation as well: a bot that turns itself knows it, and the radians lose whole turns
+    yawDegrees: s.yaw,
+    pitchDegrees: s.pitch,
     control: { forward: false, back: false, left: false, right: false, jump: false, sprint: false, sneak: false },
     ...levels(s.effects),
     depthStrider: enchantment(setup, 'feet', 'depth_strider'),
@@ -241,6 +244,8 @@ function applyInput (state, row, mcData) {
   for (const key of Object.keys(state.control)) state.control[key] = false
   for (const [key, down] of Object.entries(row.in)) if (KEYS[key] && down) state.control[KEYS[key]] = true
   state.yaw = yawOf(row.in.yaw)
+  state.yawDegrees = row.in.yaw
+  state.pitchDegrees = row.in.pitch
   state.pitch = pitchOf(row.in.pitch)
 }
 
