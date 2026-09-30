@@ -205,10 +205,25 @@ function speedAttribute (row) {
   }
 }
 
+// Every recorded attribute minecraft-data knows, keyed like mineflayer's bot.entity.attributes (the resource name),
+// as { value, modifiers }; movement_speed without vanilla's sprint modifier.
+const camel = name => name.replace(/[._]([a-z])/g, (m, c) => c.toUpperCase())
+function attributesOf (row, mcData) {
+  const out = { [mcData.attributesByName.movementSpeed.resource]: speedAttribute(row) }
+  for (const [name, value] of Object.entries(row.attributes || {})) {
+    const known = mcData.attributesByName[camel(name)] || mcData.attributesByName[camel(name.replace(/^player./, ''))]
+    if (!known || known.name === 'movementSpeed') continue
+    const withModifiers = row.attributeModifiers && row.attributeModifiers[name]
+    out[known.resource] = withModifiers
+      ? { value: withModifiers.base, modifiers: withModifiers.modifiers.map(m => ({ uuid: m.id, amount: m.amount, operation: m.operation })) }
+      : { value, modifiers: [] }
+  }
+  return out
+}
+
 function makeState (rec, mcData) {
   const s = rec.start
   const setup = rec.setup || {}
-  const speed = mcData.attributesByName.movementSpeed.resource
   return {
     pos: new Vec3(...s.pos),
     vel: new Vec3(...s.vel),
@@ -222,7 +237,7 @@ function makeState (rec, mcData) {
     jumpTicks: s.jumpTicks,
     jumpQueued: s.jumpQueued,
     fireworkRocketDuration: 0,
-    attributes: { [speed]: speedAttribute(s) },
+    attributes: attributesOf(s, mcData),
     yaw: yawOf(s.yaw),
     pitch: pitchOf(s.pitch),
     // The vanilla rotation as well: a bot that turns itself knows it, and the radians lose whole turns
@@ -239,7 +254,7 @@ function makeState (rec, mcData) {
 
 // The tick's input: keys and view, plus what the server synced by then (attributes, effects).
 function applyInput (state, row, mcData) {
-  state.attributes = { [mcData.attributesByName.movementSpeed.resource]: speedAttribute(row) }
+  state.attributes = attributesOf(row, mcData)
   Object.assign(state, levels(row.effects))
   for (const key of Object.keys(state.control)) state.control[key] = false
   for (const [key, down] of Object.entries(row.in)) if (KEYS[key] && down) state.control[KEYS[key]] = true
