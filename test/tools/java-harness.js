@@ -286,6 +286,9 @@ function applyEvents (state, w, events, ctx) {
   if (events.serverPackets && ctx && packetsSupported(ctx.version)) {
     for (const entry of events.serverPackets) {
       for (const part of entry.packets || [entry]) packets.handle(state, packets.decode(ctx.version, 'toClient', part.bytes), { ...ctx, world: w })
+      // Attribute packets: minecraft-protocol's attribute ids do not match every version's registry (1.21.11 decodes
+      // movement_speed as generic.scale), so the attributes are taken from what vanilla's handling left.
+      if (entry.after && (entry.after.attributes || entry.after.attributeModifiers)) state.attributes = attributesOf({ ...entry.before, ...entry.after }, ctx.mcData)
     }
     return
   }
