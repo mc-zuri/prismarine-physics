@@ -247,5 +247,10 @@
     "name": "bedBounce",
     "description": "Beds bounce a falling entity back up at 0.66F of its speed",
     "since": "1.12"
+  },
+  {
+    "name": "restitutionBounce",
+    "description": "Collisions restitute the movement (Entity.restituteMovementAfterCollisions): slime 1.0 and beds 0.75 bounce, with the unused gravity and drag undone",
+    "since": "26.2"
   }
 ]

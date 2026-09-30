@@ -165,6 +165,7 @@ function Physics (mcData, world) {
     fluidFallingBeforeMove: supportFeature('modernMove'),
     climbFloatVertical: supportFeature('modernMove'),
     crouchLag: supportFeature('crouchLag'),
+    restitution: supportFeature('restitutionBounce'),
     backOffThinBox: supportFeature('playerPhysicsAttributes'),
     backOffAboveGround: supportFeature('lavaFluidHeight'),
     backOffOnlyDown: supportFeature('sprintNotWhileGliding'),
@@ -632,6 +633,13 @@ function Physics (mcData, world) {
       if (vanilla.supportingBlock) checkSupportingBlock(entity, world, playerBB, moved)
       waterAfterMove(entity, world)
       updateFallDistance(entity, moved.y)
+      if (vanilla.restitution) {
+        // 26.2: Entity.restituteMovementAfterCollisions replaces the velocity reset and the blocks' fall-on bounce
+        if ((dy !== 0 && entity.isCollidedVertically) || entity.isCollidedHorizontally) restitute(entity, world, collidedX, collidedZ, moved)
+        if (!vanilla.effectsAfterTravel) stepOn(entity, world)
+        applyBlockCollisions(entity, world, playerBB)
+        return
+      }
       if (vanilla.collisionEpsilonVelocity) {
         if (collidedX) vel.x = 0
         if (collidedZ) vel.z = 0
@@ -758,6 +766,32 @@ function Physics (mcData, world) {
     }
     if (vanilla.fluidHeights) entity.isInWater = updateFluid(entity, world, entityBox(entity), 'water', 0.014).found
     else entity.isInWater = isInWaterApplyCurrent(world, getPlayerBB(entity.pos).contract(0.001, 0.401, 0.001), entity.vel)
+  }
+
+  // Entity.restituteMovementAfterCollisions (26.2): a collided axis bounces back by the restitution (none for a
+  // player's walls); landing on slime (1.0) or a bed (0.75) without sneaking bounces the fall back up, after undoing
+  // the part of the tick's gravity and drag the move did not use
+  function restitute (entity, world, collidedX, collidedZ, moved) {
+    const vel = entity.vel
+    const suppress = !!entity.control.sneak
+    let restitution = 0
+    if (collidedX) vel.x = -vel.x * restitution
+    if (collidedZ) vel.z = -vel.z * restitution
+    if (!entity.isCollidedVertically) return
+    const gravity = (vel.y <= 0 && entity.slowFalling > 0) ? Math.min(gravityOf(entity), 0.01) : gravityOf(entity)
+    if (entity.onGround) {
+      const block = world.getBlock(getOnPos(entity, f32(0.2)))
+      const bounciness = !block ? 0 : block.type === slimeBlockId ? 1 : bedIds.has(block.type) ? f32(0.75) : 0
+      restitution = !(-vel.y < gravity) && !suppress ? Math.max(restitution, bounciness) : 0
+    }
+    let compensation = 0
+    let drag = 1
+    if (restitution > 0) {
+      const portion = moved.y / vel.y
+      compensation = portion * gravity
+      drag = 1.0 + portion * (f32(0.98) - 1.0)
+    }
+    vel.y = (compensation - vel.y) * drag * restitution
   }
 
   // Block.updateEntityAfterFallOn: slime bounces a falling player back up unless sneaking; others stop it.
