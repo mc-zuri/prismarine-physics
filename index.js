@@ -165,6 +165,7 @@ function Physics (mcData, world) {
     fluidFallingBeforeMove: supportFeature('modernMove'),
     climbFloatVertical: supportFeature('modernMove'),
     crouchLag: supportFeature('crouchLag'),
+    swiftSneak: supportFeature('swiftSneak'),
     restitution: supportFeature('restitutionBounce'),
     backOffThinBox: supportFeature('playerPhysicsAttributes'),
     backOffAboveGround: supportFeature('lavaFluidHeight'),
@@ -1186,6 +1187,8 @@ function Physics (mcData, world) {
 
   function sneakFactor (entity) {
     if (vanilla.sneakingSpeedAttribute) return f32(attributeValue(entity, 'playerSneakingSpeed', attributeValue(entity, 'sneakingSpeed', physics.sneakSpeed)))
+    // 1.19-1.20: swift sneak adds 0.15F per level to 0.3F (at most 1)
+    if (vanilla.swiftSneak && entity.swiftSneak > 0) return Math.min(Math.max(f32(f32(0.3) + f32(entity.swiftSneak * f32(0.15))), 0), 1)
     return f32(physics.sneakSpeed)
   }
 
