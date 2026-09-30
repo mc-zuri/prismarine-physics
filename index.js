@@ -358,14 +358,18 @@ function Physics (mcData, world) {
     const vel = entity.vel
     const pos = entity.pos
 
-    if (entity.isInWeb) {
+    // A cobweb touched at the end of the last move (webPending, the stuck speed multiplier) slows this one and stops
+    // the velocity; isInWeb tells whether this move was slowed. Callers that only keep isInWeb pass it as pending.
+    const stuck = entity.webPending !== undefined ? entity.webPending : entity.isInWeb
+    entity.isInWeb = !!stuck
+    entity.webPending = false
+    if (stuck) {
       dx *= 0.25
       dy *= vanilla.webSpeed
       dz *= 0.25
       vel.x = 0
       vel.y = 0
       vel.z = 0
-      entity.isInWeb = false
     }
 
     let oldVelX = dx
@@ -570,7 +574,7 @@ function Physics (mcData, world) {
               }
             }
             if (block.type === webId) {
-              entity.isInWeb = true
+              entity.webPending = true
             } else if (block.type === bubblecolumnId) {
               const down = !block.metadata
               const aboveBlock = world.getBlock(cursor.offset(0, 1, 0))
@@ -1401,6 +1405,7 @@ class PlayerState {
     this.isInWater = bot.entity.isInWater
     this.isInLava = bot.entity.isInLava
     this.isInWeb = bot.entity.isInWeb
+    this.webPending = bot.entity.webPending
     this.isCrouching = bot.entity.isCrouching ?? false
     // The block the player stands on (1.20+) and whether its last landing found none
     this.supportingBlockPos = bot.entity.supportingBlockPos ?? null
@@ -1509,6 +1514,7 @@ class PlayerState {
     bot.entity.isInWater = this.isInWater
     bot.entity.isInLava = this.isInLava
     bot.entity.isInWeb = this.isInWeb
+    bot.entity.webPending = this.webPending
     bot.entity.isCrouching = this.isCrouching
     bot.entity.supportingBlockPos = this.supportingBlockPos
     bot.entity.onGroundNoBlocks = this.onGroundNoBlocks

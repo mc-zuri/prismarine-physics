@@ -2,4 +2,3 @@ node_modules/
 package-lock.json
 .vscode
 coverage/
-test/fixtures/java/*-recorded/
