@@ -1691,8 +1691,10 @@ function Physics (mcData, world) {
         const power = f32(strength * jumpFactor)
         const boost = entity.jumpBoost > 0 ? f32(f32(0.1) * entity.jumpBoost) : 0
         const jump = vanilla.jumpBoostFloatSum ? f32(power + boost) : power + boost
-        vel.y = vanilla.jumpKeepsVelocity ? Math.max(jump, vel.y) : jump
-        if (isSprinting(entity)) {
+        // 1.20.5+: no jump at all without jump power
+        const jumps = !(vanilla.jumpSprintDouble && jump <= f32(1.0e-5))
+        if (jumps) vel.y = vanilla.jumpKeepsVelocity ? Math.max(jump, vel.y) : jump
+        if (jumps && isSprinting(entity)) {
           const radians = f32(yawDegrees(entity) * DEG_TO_RAD_F)
           if (vanilla.jumpSprintDouble) {
             vel.x += -mthSin(radians) * 0.2
