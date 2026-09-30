@@ -1308,7 +1308,7 @@ function Physics (mcData, world) {
         acceleration = f32(attributeSpeed * f32(vanilla.groundFriction / f32(f32(f * f) * f)))
         if (acceleration < 0) acceleration = 0 // acceleration should not be negative
       } else {
-        acceleration = isSprinting(entity) ? vanilla.airSprintSpeed : f32(physics.airborneAcceleration)
+        acceleration = entity.flying ? flySpeedOf(entity) : isSprinting(entity) ? vanilla.airSprintSpeed : f32(physics.airborneAcceleration)
         inertia = f32(physics.airborneInertia)
       }
 
@@ -1765,14 +1765,14 @@ function Physics (mcData, world) {
   // LocalPlayer.aiStep: crouching from the sneak key of the tick before, or forced where standing does not fit
   function updateCrouching (entity, world) {
     const shift = !!entity.isCrouching // the sneak key the last tick ended with
-    entity.crouching = !(entity.pose === 'swimming' && entity.isInWater) && fitsPose(entity, world, 'crouching') &&
+    entity.crouching = !entity.flying && !(entity.pose === 'swimming' && entity.isInWater) && fitsPose(entity, world, 'crouching') &&
       (shift || !fitsPose(entity, world, 'standing'))
   }
 
   // Player.updatePlayerPose at the end of the tick
   function updatePose (entity, world) {
     if (!fitsPose(entity, world, 'swimming')) return
-    const desired = entity.swimming ? 'swimming' : entity.elytraFlying ? 'fall_flying' : entity.control.sneak ? 'crouching' : 'standing'
+    const desired = entity.swimming ? 'swimming' : entity.elytraFlying ? 'fall_flying' : (entity.control.sneak && !entity.flying) ? 'crouching' : 'standing'
     const pose = fitsPose(entity, world, desired) ? desired : fitsPose(entity, world, 'crouching') ? 'crouching' : 'swimming'
     if (pose !== entity.pose) entity.javaBox = null // the box is rebuilt for the new size
     entity.pose = pose
@@ -1791,6 +1791,33 @@ function Physics (mcData, world) {
     vel.z += look.z * 0.1 + (look.z * 1.5 - vel.z) * 0.5
     --entity.fireworkRocketDuration
   }
+
+  // LivingEntity.jumpFromGround
+  function jumpFromGround (entity, world) {
+    const vel = entity.vel
+    // honey's jump factor 0.5F (the block the player is in, else the one below)
+    const jumpFactor = blockFactor(entity, world, block => block.type === honeyblockId ? f32(physics.honeyblockJumpSpeed) : 1, false)
+    const strength = vanilla.playerAttributes ? f32(attributeValue(entity, 'jumpStrength', f32(0.42))) : f32(0.42)
+    const power = f32(strength * jumpFactor)
+    const boost = entity.jumpBoost > 0 ? f32(f32(0.1) * entity.jumpBoost) : 0
+    const jump = vanilla.jumpBoostFloatSum ? f32(power + boost) : power + boost
+    // 1.20.5+: no jump at all without jump power
+    const jumps = !(vanilla.jumpSprintDouble && jump <= f32(1.0e-5))
+    if (jumps) vel.y = vanilla.jumpKeepsVelocity ? Math.max(jump, vel.y) : jump
+    if (jumps && isSprinting(entity)) {
+      const radians = f32(yawDegrees(entity) * DEG_TO_RAD_F)
+      if (vanilla.jumpSprintDouble) {
+        vel.x += -mthSin(radians) * 0.2
+        vel.z += mthCos(radians) * 0.2
+      } else {
+        vel.x += f32(-mthSin(radians) * f32(0.2))
+        vel.z += f32(mthCos(radians) * f32(0.2))
+      }
+    }
+  }
+
+  // The flying speed (Player.getFlyingSpeed while flying): the ability's, doubled when sprinting
+  const flySpeedOf = entity => f32(f32(typeof entity.flySpeed === 'number' ? entity.flySpeed : 0.05) * (isSprinting(entity) ? 2 : 1))
 
   // Which jump the jump key makes: true swims up (jumpInLiquid), false jumps from the ground, null neither.
   function fluidJump (entity) {
@@ -1867,15 +1894,36 @@ function Physics (mcData, world) {
     }
     if (vanilla.sprintState) updateSprinting(entity, world)
 
+    // Creative flight: a double press of jump toggles flying (LocalPlayer.aiStep), a take-off from the ground jumping
+    let toggledFlight = false
+    if (entity.mayFly && entity.control.jump && !entity.jumpHeld) {
+      if (!(entity.jumpTriggerTime > 0)) {
+        entity.jumpTriggerTime = 7
+      } else if (!entity.swimming) {
+        entity.flying = !entity.flying
+        if (entity.flying && entity.onGround) jumpFromGround(entity, world)
+        toggledFlight = true
+        entity.jumpTriggerTime = 0
+      }
+    }
+
     // 1.15+: pressing jump in the air with an elytra starts gliding at once (LocalPlayer.aiStep, tryToStartFallFlying);
     // before, the server starts it
-    if (vanilla.clientStartsGliding && entity.control.jump && !entity.jumpHeld && !entity.elytraFlying && entity.elytraEquipped &&
+    if (vanilla.clientStartsGliding && !toggledFlight && !entity.flying && entity.control.jump && !entity.jumpHeld && !entity.elytraFlying && entity.elytraEquipped &&
       !entity.onGround && !entity.isInWater && !entity.levitation && !isOnLadder(world, entity.pos)) {
       entity.elytraFlying = true
     }
 
     // 1.13+: sneaking in water sinks (LocalPlayer.aiStep, goDownInWater)
     if (vanilla.fluidHeights && entity.isInWater && entity.control.sneak) vel.y -= f32(0.04)
+
+    if (entity.flying) {
+      // sneak and jump fly down and up at three times the flying speed
+      const vertical = (entity.control.jump ? 1 : 0) - (entity.control.sneak ? 1 : 0)
+      if (vertical !== 0) vel.y += f32(f32(vertical * f32(typeof entity.flySpeed === 'number' ? entity.flySpeed : 0.05)) * 3)
+      entity.fallDistance = 0
+    }
+    if (entity.jumpTriggerTime > 0) entity.jumpTriggerTime--
 
     // Reset velocity component if it falls under the threshold (1.21.5+: the player's horizontal speed as a whole)
     if (vanilla.playerHorizontalThreshold) {
@@ -1896,25 +1944,7 @@ function Physics (mcData, world) {
       if (liquidJump) {
         vel.y += f32(0.04)
       } else if (liquidJump === false && entity.jumpTicks === 0) {
-        // honey's jump factor 0.5F (the block the player is in, else the one below)
-        const jumpFactor = blockFactor(entity, world, block => block.type === honeyblockId ? f32(physics.honeyblockJumpSpeed) : 1, false)
-        const strength = vanilla.playerAttributes ? f32(attributeValue(entity, 'jumpStrength', f32(0.42))) : f32(0.42)
-        const power = f32(strength * jumpFactor)
-        const boost = entity.jumpBoost > 0 ? f32(f32(0.1) * entity.jumpBoost) : 0
-        const jump = vanilla.jumpBoostFloatSum ? f32(power + boost) : power + boost
-        // 1.20.5+: no jump at all without jump power
-        const jumps = !(vanilla.jumpSprintDouble && jump <= f32(1.0e-5))
-        if (jumps) vel.y = vanilla.jumpKeepsVelocity ? Math.max(jump, vel.y) : jump
-        if (jumps && isSprinting(entity)) {
-          const radians = f32(yawDegrees(entity) * DEG_TO_RAD_F)
-          if (vanilla.jumpSprintDouble) {
-            vel.x += -mthSin(radians) * 0.2
-            vel.z += mthCos(radians) * 0.2
-          } else {
-            vel.x += f32(-mthSin(radians) * f32(0.2))
-            vel.z += f32(mthCos(radians) * f32(0.2))
-          }
-        }
+        jumpFromGround(entity, world)
         entity.jumpTicks = physics.autojumpCooldown
       }
     } else {
@@ -1940,7 +1970,13 @@ function Physics (mcData, world) {
 
     if (!vanilla.clientStartsGliding) fireworkBoost(entity)
 
+    const flyingY = vel.y
     moveEntityWithHeading(entity, world, strafe, forward)
+    if (entity.flying) {
+      // Player.travel while flying: the vertical speed decays to 0.6 of what it was, no gravity; landing ends flight
+      vel.y = flyingY * 0.6
+      if (entity.onGround && entity.gameMode !== 'spectator') entity.flying = false
+    }
 
     // A firework rocket the player glides with (FireworkRocketEntity.tick, after the player's own tick; checked on
     // 1.21.11, older versions keep boosting before the move)
@@ -2033,6 +2069,7 @@ class PlayerState {
     this.swimming = bot.entity.swimming ?? false
     this.fallDistance = bot.entity.fallDistance ?? 0
     this.sprintTriggerTime = bot.entity.sprintTriggerTime ?? 0
+    this.jumpTriggerTime = bot.entity.jumpTriggerTime ?? 0
     this.hadForward = bot.entity.hadForward ?? false
     this.isInPowderSnow = bot.entity.isInPowderSnow ?? false
     this.eyeInWater = bot.entity.eyeInWater ?? false
@@ -2154,6 +2191,7 @@ class PlayerState {
     bot.entity.swimming = this.swimming
     bot.entity.fallDistance = this.fallDistance
     bot.entity.sprintTriggerTime = this.sprintTriggerTime
+    bot.entity.jumpTriggerTime = this.jumpTriggerTime
     bot.entity.hadForward = this.hadForward
     bot.entity.isInPowderSnow = this.isInPowderSnow
     bot.entity.eyeInWater = this.eyeInWater
