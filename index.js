@@ -164,6 +164,7 @@ function Physics (mcData, world) {
     fluidFallingBeforeMove: supportFeature('modernMove'),
     climbFloatVertical: supportFeature('modernMove'),
     crouchLag: supportFeature('crouchLag'),
+    pushOutOfBlocks: supportFeature('lavaFluidHeight'),
     thinLadder: supportFeature('velocityThreshold005'),
     bedBounce: supportFeature('bedBounce'),
     elytraDoubleCos: supportFeature('elytraDoubleCos'),
@@ -1674,6 +1675,43 @@ function Physics (mcData, world) {
     }
   }
 
+  // A block that suffocates: a full collision cube that is not see-through (glass, leaves... never suffocate)
+  function suffocates (block) {
+    return !!block && !block.transparent && block.shapes.length === 1 && block.shapes[0].every((v, i) => v === (i < 3 ? 0 : 1))
+  }
+
+  // LocalPlayer.suffocatesAt: a suffocating block in the column of the player's box at that cell
+  function suffocatesAt (entity, world, x, z) {
+    const box = getPlayerBB(entity.pos)
+    const check = new AABB(x, box.minY, z, x + 1, box.maxY, z + 1).contract(1.0e-7, 1.0e-7, 1.0e-7)
+    for (let y = Math.floor(check.minY); y <= Math.floor(check.maxY); y++) {
+      if (suffocates(world.getBlock(new Vec3(x, y, z)))) return true
+    }
+    return false
+  }
+
+  // LocalPlayer.moveTowardsClosestSpace: inside a suffocating block, push 0.1 toward the nearest free side
+  function moveTowardsClosestSpace (entity, world, x, z) {
+    const bx = Math.floor(x)
+    const bz = Math.floor(z)
+    if (!suffocatesAt(entity, world, bx, bz)) return
+    const dx = x - bx
+    const dz = z - bz
+    let best = null
+    let bestDistance = Number.MAX_VALUE
+    for (const [sx, sz] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) { // west, east, north, south
+      const coord = sx !== 0 ? dx : dz
+      const distance = (sx > 0 || sz > 0) ? 1.0 - coord : coord
+      if (distance < bestDistance && !suffocatesAt(entity, world, bx + sx, bz + sz)) {
+        bestDistance = distance
+        best = [sx, sz]
+      }
+    }
+    if (!best) return
+    if (best[0] !== 0) entity.vel.x = 0.1 * best[0]
+    else entity.vel.z = 0.1 * best[1]
+  }
+
   // ---- pose (1.14+) ----
 
   // LocalPlayer.isMovingSlowly: crouching (1.15+ the flag set at the tick start; the key before), or crawling
@@ -1774,6 +1812,14 @@ function Physics (mcData, world) {
     }
     if (entity.isInWater) entity.fallDistance = 0
     if (vanilla.crouchLag) updateCrouching(entity, world)
+    if (vanilla.pushOutOfBlocks) {
+      // LocalPlayer.moveTowardsClosestSpace from the four corners 0.35 widths out
+      const w = Math.fround(0.6) * 0.35
+      moveTowardsClosestSpace(entity, world, pos.x - w, pos.z + w)
+      moveTowardsClosestSpace(entity, world, pos.x - w, pos.z - w)
+      moveTowardsClosestSpace(entity, world, pos.x + w, pos.z - w)
+      moveTowardsClosestSpace(entity, world, pos.x + w, pos.z + w)
+    }
     if (vanilla.sprintState) updateSprinting(entity, world)
 
     // 1.15+: pressing jump in the air with an elytra starts gliding at once (LocalPlayer.aiStep, tryToStartFallFlying);
