@@ -202,5 +202,10 @@
     "description": "The world border shape is always among the colliders of a move (only near the border since)",
     "since": "1.14",
     "before": "1.18"
+  },
+  {
+    "name": "playerPhysicsAttributes",
+    "description": "Gravity, jump strength and step height are attributes",
+    "since": "1.20.5"
   }
 ]

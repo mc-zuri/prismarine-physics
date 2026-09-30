@@ -163,6 +163,8 @@ function Physics (mcData, world) {
     fluidFallingBeforeMove: supportFeature('modernMove'),
     climbFloatVertical: supportFeature('modernMove'),
     crouchLag: supportFeature('crouchLag'),
+    playerAttributes: supportFeature('playerPhysicsAttributes'),
+    sneakingSpeedAttribute: supportFeature('waterMovementEfficiency'),
     blockSpeedFactor: supportFeature('blockSpeedFactor'),
     fluidHeights: supportFeature('proportionalLiquidGravity'),
     lavaFluidHeight: supportFeature('lavaFluidHeight'),
@@ -181,6 +183,17 @@ function Physics (mcData, world) {
     blockBelowHalf: supportFeature('blockBelowHalfBlock'),
     blockBelowOnPos: supportFeature('blockBelowOnPos')
   }
+
+  // An attribute the caller holds (entity.attributes, keyed like mineflayer by the resource name), else the default.
+  function attributeValue (entity, name, fallback) {
+    const def = mcData.attributesByName[name]
+    const held = def && entity.attributes && entity.attributes[def.resource]
+    return held ? attribute.getAttributeValue(held) : fallback
+  }
+
+  // 1.20.5+ player attributes: gravity, jump strength, step height; 1.21+: sneaking speed
+  const gravityOf = entity => vanilla.playerAttributes ? attributeValue(entity, 'gravity', physics.gravity) : physics.gravity
+  const stepHeightOf = entity => vanilla.playerAttributes ? f32(attributeValue(entity, 'stepHeight', physics.stepHeight)) : physics.stepHeight
 
   // The vanilla rotation in degrees (a float). Callers holding it pass yawDegrees / pitchDegrees: mineflayer's
   // radians lose the turns beyond one revolution, which Mth.sin's table index keeps.
@@ -340,7 +353,7 @@ function Physics (mcData, world) {
     const collidedX = move.x !== moved.x
     const collidedZ = move.z !== moved.z
     const landing = move.y !== moved.y && move.y < 0
-    const step = physics.stepHeight
+    const step = stepHeightOf(entity)
     if (!(step > 0 && (landing || entity.onGround) && (collidedX || collidedZ))) return moved
 
     if (vanilla.candidateStepHeights) {
@@ -1010,6 +1023,7 @@ function Physics (mcData, world) {
   }
 
   function sneakFactor (entity) {
+    if (vanilla.sneakingSpeedAttribute) return f32(attributeValue(entity, 'playerSneakingSpeed', attributeValue(entity, 'sneakingSpeed', physics.sneakSpeed)))
     return f32(physics.sneakSpeed)
   }
 
@@ -1071,7 +1085,9 @@ function Physics (mcData, world) {
     const vel = entity.vel
     const pos = entity.pos
 
-    const gravityMultiplier = (vel.y <= 0 && entity.slowFalling > 0) ? physics.slowFalling : 1
+    // LivingEntity.getEffectiveGravity: slow falling caps it at 0.01 while falling
+    const baseGravity = gravityOf(entity)
+    const effectiveGravity = (vel.y <= 0 && entity.slowFalling > 0) ? Math.min(baseGravity, 0.01) : baseGravity
 
     if (entity.isInWater || entity.isInLava) {
       // Water / Lava movement
@@ -1086,7 +1102,7 @@ function Physics (mcData, world) {
         let acceleration = f32(physics.liquidAcceleration)
         if (vanilla.waterMovementEfficiency) {
           // 1.21+: the water_movement_efficiency attribute, depth strider adding 0.33333334F per level
-          let efficiency = f32(Math.min(f32(f32(0.33333334) * entity.depthStrider), 1))
+          let efficiency = f32(attributeValue(entity, 'waterMovementEfficiency', Math.min(f32(f32(0.33333334) * entity.depthStrider), 1)))
           if (!entity.onGround) efficiency = f32(efficiency * f32(0.5))
           if (efficiency > 0) {
             inertia = f32(inertia + f32(f32(f32(0.54600006) - inertia) * efficiency))
@@ -1110,7 +1126,7 @@ function Physics (mcData, world) {
         if (vanilla.proportionalLiquidGravity) {
           // getFluidFallingAdjustedMovement: gravity / 16, or -0.003 when that is about where it would settle
           if (!sprinting) {
-            const gravity = physics.gravity * gravityMultiplier
+            const gravity = effectiveGravity
             const isFalling = vanilla.fluidFallingBeforeMove ? falling : vel.y <= 0
             if (isFalling && Math.abs(vel.y - 0.005) >= 0.003 && Math.abs(vel.y - gravity / 16) < 0.003) vel.y = -0.003
             else vel.y -= gravity / 16
@@ -1121,7 +1137,7 @@ function Physics (mcData, world) {
       } else {
         applyHeading(entity, strafe, forward, f32(physics.liquidAcceleration))
         moveEntity(entity, world, vel.x, vel.y, vel.z)
-        const gravity = physics.gravity * gravityMultiplier
+        const gravity = effectiveGravity
         if (vanilla.lavaFluidHeight && entity.lavaHeight <= 0.4) {
           // 1.16+: in lava no deeper than the jump threshold, the water-like drag and falling adjustment
           vel.x *= physics.lavaInertia
@@ -1151,7 +1167,7 @@ function Physics (mcData, world) {
       } = getLookingVector(entity)
       const horizontalSpeed = Math.sqrt(vel.x * vel.x + vel.z * vel.z)
       const cosPitchSquared = cosPitch * cosPitch
-      vel.y += physics.gravity * gravityMultiplier * (-1.0 + cosPitchSquared * 0.75)
+      vel.y += effectiveGravity * (-1.0 + cosPitchSquared * 0.75)
       // cosPitch is in [0, 1], so cosPitch > 0.0 is just to protect against
       // divide by zero errors
       if (vel.y < 0.0 && cosPitch > 0.0) {
@@ -1223,7 +1239,7 @@ function Physics (mcData, world) {
       if (entity.levitation > 0) {
         vel.y += (0.05 * entity.levitation - vel.y) * 0.2
       } else {
-        vel.y -= physics.gravity * gravityMultiplier
+        vel.y -= effectiveGravity
       }
       vel.y *= physics.airdrag
       vel.x *= inertia
@@ -1534,7 +1550,8 @@ function Physics (mcData, world) {
       } else if (liquidJump === false && entity.jumpTicks === 0) {
         // honey's jump factor 0.5F (the block the player is in, else the one below)
         const jumpFactor = blockFactor(entity, world, block => block.type === honeyblockId ? f32(physics.honeyblockJumpSpeed) : 1, false)
-        const power = f32(f32(0.42) * jumpFactor)
+        const strength = vanilla.playerAttributes ? f32(attributeValue(entity, 'jumpStrength', f32(0.42))) : f32(0.42)
+        const power = f32(strength * jumpFactor)
         const boost = entity.jumpBoost > 0 ? f32(f32(0.1) * entity.jumpBoost) : 0
         const jump = vanilla.jumpBoostFloatSum ? f32(power + boost) : power + boost
         vel.y = vanilla.jumpKeepsVelocity ? Math.max(jump, vel.y) : jump
