@@ -578,6 +578,16 @@ function Physics (mcData, world) {
   function moveEntityInContext (entity, world, dx, dy, dz) {
     const vel = entity.vel
     const pos = entity.pos
+    if (entity.gameMode === 'spectator') {
+      // noPhysics: a spectator moves through everything and touches nothing
+      pos.x += dx
+      pos.y += dy
+      pos.z += dz
+      entity.isCollidedHorizontally = false
+      entity.isCollidedVertically = false
+      entity.onGround = false
+      return
+    }
 
     // A cobweb, berry bush or powder snow touched at the end of the last move (the stuck speed multiplier) scales this
     // one and stops the velocity; isInWeb tells whether this move was slowed. Callers that only keep isInWeb pass it
@@ -1956,7 +1966,7 @@ function Physics (mcData, world) {
     }
     if (entity.isInWater) entity.fallDistance = 0
     if (vanilla.crouchLag) updateCrouching(entity, world)
-    if (vanilla.pushOutOfBlocks) {
+    if (vanilla.pushOutOfBlocks && entity.gameMode !== 'spectator') {
       // LocalPlayer.moveTowardsClosestSpace from the four corners 0.35 widths out
       const w = f32(f32(0.6) * boxScale) * 0.35
       moveTowardsClosestSpace(entity, world, pos.x - w, pos.z + w)
