@@ -1642,6 +1642,9 @@ function Physics (mcData, world) {
       entity.elytraFlying = true
     }
 
+    // 1.13+: sneaking in water sinks (LocalPlayer.aiStep, goDownInWater)
+    if (vanilla.fluidHeights && entity.isInWater && entity.control.sneak) vel.y -= f32(0.04)
+
     // Reset velocity component if it falls under the threshold (1.21.5+: the player's horizontal speed as a whole)
     if (vanilla.playerHorizontalThreshold) {
       if (vel.x * vel.x + vel.z * vel.z < 9.0e-6) {
