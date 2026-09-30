@@ -163,6 +163,15 @@ function Physics (mcData, world) {
     fluidFallingBeforeMove: supportFeature('modernMove'),
     climbFloatVertical: supportFeature('modernMove'),
     crouchLag: supportFeature('crouchLag'),
+    crouchPose: supportFeature('modernMove'),
+    sprintState: supportFeature('sprintState'),
+    sprintState13: !supportFeature('modernMove'),
+    sprintByForwardImpulse: supportFeature('squareMovementInput'),
+    sprintStopsWhenSlow: supportFeature('sprintStopsWhenSlow'),
+    sprintNotWhileGliding: supportFeature('sprintNotWhileGliding'),
+    minorCollision: supportFeature('minorHorizontalCollision'),
+    eyeFluidOffset: supportFeature('eyeFluidOffset'),
+    eyeFluidLegacy: supportFeature('proportionalLiquidGravity') && !supportFeature('lavaFluidHeight'),
     playerAttributes: supportFeature('playerPhysicsAttributes'),
     sneakingSpeedAttribute: supportFeature('waterMovementEfficiency'),
     blockSpeedFactor: supportFeature('blockSpeedFactor'),
@@ -500,6 +509,7 @@ function Physics (mcData, world) {
       const collidedX = !nearlyEqual(dx, moved.x)
       const collidedZ = !nearlyEqual(dz, moved.z)
       entity.isCollidedHorizontally = collidedX || collidedZ
+      entity.minorHorizontalCollision = vanilla.minorCollision && entity.isCollidedHorizontally && isHorizontalCollisionMinor(entity, moved)
       entity.isCollidedVertically = dy !== moved.y
       entity.onGround = entity.isCollidedVertically && dy < 0
       if (vanilla.supportingBlock) checkSupportingBlock(entity, world, playerBB, moved)
@@ -1068,7 +1078,7 @@ function Physics (mcData, world) {
     // Client-side sprinting (don't rely on server-side sprinting)
     // setSprinting in LivingEntity.java
     playerSpeedAttribute = attribute.deleteAttributeModifier(playerSpeedAttribute, physics.sprintingUUID) // always delete sprinting (if it exists)
-    if (entity.control.sprint) {
+    if (isSprinting(entity)) {
       if (!attribute.checkAttributeModifier(playerSpeedAttribute, physics.sprintingUUID)) {
         playerSpeedAttribute = attribute.addAttributeModifier(playerSpeedAttribute, {
           uuid: physics.sprintingUUID,
@@ -1094,7 +1104,7 @@ function Physics (mcData, world) {
       const lastY = pos.y
       // Falling when the tick started (1.14+), for the fluid falling adjustment
       const falling = vel.y <= 0
-      const sprinting = !!entity.control.sprint
+      const sprinting = isSprinting(entity)
       if (entity.isInWater) {
         // The water slowdown and acceleration are floats (0.8F, 0.9F sprinting since 1.13, 0.02F); depth strider
         // moves them toward 0.54600006F and the speed in float.
@@ -1211,7 +1221,7 @@ function Physics (mcData, world) {
         acceleration = f32(attributeSpeed * f32(vanilla.groundFriction / f32(f32(f * f) * f)))
         if (acceleration < 0) acceleration = 0 // acceleration should not be negative
       } else {
-        acceleration = entity.control.sprint ? vanilla.airSprintSpeed : f32(physics.airborneAcceleration)
+        acceleration = isSprinting(entity) ? vanilla.airSprintSpeed : f32(physics.airborneAcceleration)
         inertia = f32(physics.airborneInertia)
       }
 
@@ -1480,6 +1490,81 @@ function Physics (mcData, world) {
     entity.lavaHeight = lava.height
   }
 
+  // ---- sprinting (LocalPlayer.aiStep) ----
+
+  // The sprint state (vanilla's isSprinting) when tracked, else the sprint key.
+  const isSprinting = entity => vanilla.sprintState ? !!entity.sprinting : !!entity.control.sprint
+
+  // Whether the eyes are in water (Entity.updateFluidOnEyes / isEyeInFluid).
+  function eyeInWater (entity, world) {
+    const pos = entity.pos
+    const eyeHeight = vanilla.crouchPose && entity.isCrouching ? f32(1.27) : f32(1.62)
+    let eyeY = pos.y + eyeHeight
+    if (vanilla.eyeFluidOffset) eyeY -= 0.1111111119389534 // 1.16-1.20
+    const cell = new Vec3(Math.floor(pos.x), Math.floor(eyeY), Math.floor(pos.z))
+    const fluid = fluidOf(world.getBlock(cell), 'water')
+    if (!fluid) return false
+    const height = fluidHeight(world, cell, fluid, 'water')
+    if (vanilla.eyeFluidLegacy) return eyeY < f32(f32(cell.y + height) + f32(0.11111111)) // 1.13-1.15
+    return f32(cell.y + height) > eyeY
+  }
+
+  // LocalPlayer.isHorizontalCollisionMinor (1.18+): the move went within 8 degrees of the input's direction.
+  function isHorizontalCollisionMinor (entity, moved) {
+    const radians = f32(yawDegrees(entity) * DEG_TO_RAD_F)
+    const sin = mthSin(radians)
+    const cos = mthCos(radians)
+    const xxa = entity.xxa || 0
+    const zza = entity.zza || 0
+    const x = xxa * cos - zza * sin
+    const z = zza * cos + xxa * sin
+    const inputSqr = x * x + z * z
+    const movedSqr = moved.x * moved.x + moved.z * moved.z
+    if (inputSqr < 9.999999747378752e-6 || movedSqr < 9.999999747378752e-6) return false
+    return Math.acos((x * moved.x + z * moved.z) / Math.sqrt(inputSqr * movedSqr)) < 0.13962633907794952
+  }
+
+  // The sprint state from the keys, before the tick moves (only the sprint key starts it; the double tap is left out).
+  function updateSprinting (entity, world) {
+    const control = entity.control
+    const forwardKeys = (control.forward ? 1 : 0) - (control.back ? 1 : 0)
+    const food = entity.food === undefined || entity.food > 6
+    const blind = entity.blindness > 0
+    const inWater = entity.isInWater
+    const underWater = vanilla.fluidHeights && inWater && eyeInWater(entity, world)
+    const collided = entity.isCollidedHorizontally && !(vanilla.minorCollision && entity.minorHorizontalCollision)
+    const slow = vanilla.crouchLag ? entity.isCrouching : control.sneak
+    let sprinting = !!entity.sprinting
+
+    if (!vanilla.fluidHeights) {
+      // before 1.13: the forward input (0.3 while sneaking) must be at least 0.8
+      const forward = f32(forwardKeys * (control.sneak ? f32(0.3) : 1))
+      if (!sprinting && forward >= 0.8 && food && !blind && control.sprint) sprinting = true
+      if (sprinting && (forward < 0.8 || entity.isCollidedHorizontally || !food)) sprinting = false
+    } else if (vanilla.sprintByForwardImpulse) {
+      // 1.21.5+: any forward impulse; not in shallow water, not sneaking unless under water
+      const hasForward = forwardKeys > 0
+      const possible = !blind && food
+      const shallow = inWater && !underWater
+      if (!sprinting && hasForward && possible && !shallow && !(entity.elytraFlying && !underWater) && (!slow || underWater) && control.sprint) sprinting = true
+      if (sprinting && (!possible || shallow || !hasForward || collided)) sprinting = false
+    } else {
+      // 1.13-1.21.4: at least 0.8 forward to start (any under water), any forward to keep
+      const forward = f32(forwardKeys * (slow ? sneakFactor(entity) : 1))
+      const hasForward = forward > f32(1.0e-5)
+      if (vanilla.sprintStopsWhenSlow && (slow || blind || entity.elytraFlying)) sprinting = false
+      const enough = underWater ? hasForward : forward >= 0.8
+      const canStart = !sprinting && enough && food && !blind && !(vanilla.sprintNotWhileGliding && entity.elytraFlying) &&
+        (!vanilla.sprintStopsWhenSlow || !slow || underWater)
+      if ((!inWater || underWater) && canStart && control.sprint) sprinting = true
+      if (sprinting) {
+        const stop = vanilla.sprintState13 ? forward < 0.8 || !food : !hasForward || !food
+        if (stop || collided || (inWater && !underWater)) sprinting = false
+      }
+    }
+    entity.sprinting = sprinting
+  }
+
   // Which jump the jump key makes: true swims up (jumpInLiquid), false jumps from the ground, null neither.
   function fluidJump (entity) {
     const threshold = 0.4 // getFluidJumpThreshold: the player's eyes are above 0.4
@@ -1529,6 +1614,8 @@ function Physics (mcData, world) {
       entity.isInLava = isMaterialInBB(world, lavaBB, lavaIds)
     }
 
+    if (vanilla.sprintState) updateSprinting(entity, world)
+
     // Reset velocity component if it falls under the threshold (1.21.5+: the player's horizontal speed as a whole)
     if (vanilla.playerHorizontalThreshold) {
       if (vel.x * vel.x + vel.z * vel.z < 9.0e-6) {
@@ -1555,7 +1642,7 @@ function Physics (mcData, world) {
         const boost = entity.jumpBoost > 0 ? f32(f32(0.1) * entity.jumpBoost) : 0
         const jump = vanilla.jumpBoostFloatSum ? f32(power + boost) : power + boost
         vel.y = vanilla.jumpKeepsVelocity ? Math.max(jump, vel.y) : jump
-        if (entity.control.sprint) {
+        if (isSprinting(entity)) {
           const radians = f32(yawDegrees(entity) * DEG_TO_RAD_F)
           if (vanilla.jumpSprintDouble) {
             vel.x += -mthSin(radians) * 0.2
@@ -1573,6 +1660,8 @@ function Physics (mcData, world) {
     entity.jumpQueued = false
 
     const { xxa: strafe, zza: forward } = movementInput(entity)
+    entity.xxa = strafe
+    entity.zza = forward
 
     entity.elytraFlying = entity.elytraFlying && entity.elytraEquipped && !entity.onGround && !entity.levitation
 
@@ -1668,6 +1757,9 @@ class PlayerState {
     this.isInWeb = bot.entity.isInWeb
     this.stuckSpeedMultiplier = bot.entity.stuckSpeedMultiplier
     this.isCrouching = bot.entity.isCrouching ?? false
+    // The sprint state (vanilla's isSprinting): the sprint key starts it, the game's conditions stop it
+    this.sprinting = bot.entity.sprinting ?? false
+    this.minorHorizontalCollision = bot.entity.minorHorizontalCollision ?? false
     // The block the player stands on (1.20+) and whether its last landing found none
     this.supportingBlockPos = bot.entity.supportingBlockPos ?? null
     this.onGroundNoBlocks = bot.entity.onGroundNoBlocks ?? false
@@ -1738,7 +1830,7 @@ class PlayerState {
     this.dolphinsGrace = getEffectLevel(mcData, 'DolphinsGrace', effects)
     this.slowFalling = getEffectLevel(mcData, 'SlowFalling', effects)
     this.levitation = getEffectLevel(mcData, 'Levitation', effects)
-    this.blindness = mcData.type === 'bedrock' ? getEffectLevel(mcData, 'Blindness', effects) : 0
+    this.blindness = getEffectLevel(mcData, 'Blindness', effects)
     this.weaving = mcData.type === 'bedrock' ? getEffectLevel(mcData, 'Weaving', effects) : 0
 
     // armour enchantments
@@ -1777,6 +1869,8 @@ class PlayerState {
     bot.entity.isInWeb = this.isInWeb
     bot.entity.stuckSpeedMultiplier = this.stuckSpeedMultiplier
     bot.entity.isCrouching = this.isCrouching
+    bot.entity.sprinting = this.sprinting
+    bot.entity.minorHorizontalCollision = this.minorHorizontalCollision
     bot.entity.supportingBlockPos = this.supportingBlockPos
     bot.entity.onGroundNoBlocks = this.onGroundNoBlocks
     bot.entity.isCollidedHorizontally = this.isCollidedHorizontally

@@ -207,5 +207,30 @@
     "name": "playerPhysicsAttributes",
     "description": "Gravity, jump strength and step height are attributes",
     "since": "1.20.5"
+  },
+  {
+    "name": "sprintState",
+    "description": "The player keeps a sprint state: the sprint key starts it when allowed, the game stops it (released forward, collision, water...)"
+  },
+  {
+    "name": "sprintStopsWhenSlow",
+    "description": "Sneaking, blindness and gliding stop sprinting (LocalPlayer.shouldStopSprinting)",
+    "since": "1.21.4"
+  },
+  {
+    "name": "sprintNotWhileGliding",
+    "description": "Sprinting cannot start while gliding",
+    "since": "1.20"
+  },
+  {
+    "name": "minorHorizontalCollision",
+    "description": "A collision within 8 degrees of the input direction does not stop sprinting",
+    "since": "1.18"
+  },
+  {
+    "name": "eyeFluidOffset",
+    "description": "The eyes are taken 0.11111111 lower when checking for water",
+    "since": "1.16",
+    "before": "1.21"
   }
 ]
