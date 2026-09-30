@@ -345,7 +345,7 @@ function replay (version, rec, { mode = 'trajectory', fields = FIELDS, epsilon =
       state.jumpTicks = before.jumpTicks
     }
     // Inputs synced before this tick are those of the previous row (the state the tick started from).
-    applyInput(state, { ...(i > 0 ? rows[i - 1] : rec.start), in: row.in }, mcData)
+    applyInput(state, { ...(i > 0 ? rows[i - 1] : rec.start), ...(rec.start.netState ? {} : { attributes: row.attributes, attributeModifiers: row.attributeModifiers }), in: row.in }, mcData)
     applyEvents(state, w, row.events, packetContext(version, mcData, rec))
     physics.simulatePlayer(state, w)
     const diffs = differences(state, row, fields, epsilon)
@@ -524,7 +524,7 @@ function replayUntil (version, rec, tick, options) {
   const state = makeState(rec, mcData)
   const rows = expand(rec)
   for (let i = 0; i < tick; i++) {
-    applyInput(state, { ...(i > 0 ? rows[i - 1] : rec.start), in: rows[i].in }, mcData)
+    applyInput(state, { ...(i > 0 ? rows[i - 1] : rec.start), ...(rec.start.netState ? {} : { attributes: rows[i].attributes, attributeModifiers: rows[i].attributeModifiers }), in: rows[i].in }, mcData)
     applyEvents(state, w, rows[i].events, packetContext(version, mcData, rec))
     physics.simulatePlayer(state, w)
   }
