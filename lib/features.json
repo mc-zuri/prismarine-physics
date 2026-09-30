@@ -15,11 +15,6 @@
     "versions": ["1.7", "1.8", "1.9", "1.10", "1.11", "1.12", "1.13", "1.14"]
   },
   {
-    "name": "velocityBlocksOnTop",
-    "description": "Velocity changes are caused by the block the player is standing on",
-    "versions": ["1.15", "1.16", "1.17", "1.18", "1.19", "1.20"]
-  },
-  {
     "name": "climbUsingJump",
     "description": "Entity can climb ladders and vines by pressing jump",
     "versions": ["1.14", "1.15", "1.16", "1.17", "1.18", "1.19", "1.20", "1.21", "26.1"]
@@ -141,5 +136,25 @@
     "name": "crouchLag",
     "description": "The sneak slowdown comes from the crouching state, taken from the sneak key of the tick before",
     "since": "1.15"
+  },
+  {
+    "name": "blockSpeedFactor",
+    "description": "Soul sand and honey slow the player through the block speed factor (0.4F) at the end of the move, of the block it is in or else the one below",
+    "since": "1.15"
+  },
+  {
+    "name": "blockBelowHalfBlock",
+    "description": "The block below that sets friction and factors is 0.5000001 under the feet (one block before)",
+    "since": "1.15"
+  },
+  {
+    "name": "blockBelowOnPos",
+    "description": "The block below is taken 0.500001F under the feet (getOnPos)",
+    "since": "1.20"
+  },
+  {
+    "name": "movementEfficiency",
+    "description": "The block speed factor is lerped toward 1 by the movement_efficiency attribute (soul speed)",
+    "since": "1.21"
   }
 ]

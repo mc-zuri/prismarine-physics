@@ -40,6 +40,7 @@ function Physics (mcData, world) {
 
   // Block ids
   const soulsandId = blocksByName.soul_sand.id
+  const soulSoilId = blocksByName.soul_soil ? blocksByName.soul_soil.id : -1 // 1.16+
   const honeyblockId = blocksByName.honey_block ? blocksByName.honey_block.id : -1 // 1.15+
   const webId = blocksByName.cobweb ? blocksByName.cobweb.id : blocksByName.web.id
   const waterIds = [blocksByName.water.id, blocksByName.flowing_water ? blocksByName.flowing_water.id : -1]
@@ -82,7 +83,7 @@ function Physics (mcData, world) {
     negligeableVelocity: 0.003, // actually 0.005 for 1.8, but seems fine
     soulsandSpeed: 0.4,
     honeyblockSpeed: 0.4,
-    honeyblockJumpSpeed: 0.4,
+    honeyblockJumpSpeed: 0.5,
     ladderMaxSpeed: 0.15,
     ladderClimbSpeed: 0.2,
     playerHalfWidth: Math.fround(0.6) / 2, // the player's dimensions are floats: 0.6F wide, 1.8F tall
@@ -149,6 +150,10 @@ function Physics (mcData, world) {
     fluidFallingBeforeMove: supportFeature('modernMove'),
     climbFloatVertical: supportFeature('modernMove'),
     crouchLag: supportFeature('crouchLag'),
+    blockSpeedFactor: supportFeature('blockSpeedFactor'),
+    movementEfficiency: supportFeature('movementEfficiency'),
+    blockBelowHalf: supportFeature('blockBelowHalfBlock'),
+    blockBelowOnPos: supportFeature('blockBelowOnPos'),
     webSpeed: f32(0.05) // a cobweb scales the move by (0.25, 0.05F, 0.25)
   }
 
@@ -558,18 +563,42 @@ function Physics (mcData, world) {
         }
       }
     }
-    if (supportFeature('velocityBlocksOnTop')) {
-      const blockBelow = world.getBlock(entity.pos.floored().offset(0, -0.5, 0))
-      if (blockBelow) {
-        if (blockBelow.type === soulsandId) {
-          vel.x *= physics.soulsandSpeed
-          vel.z *= physics.soulsandSpeed
-        } else if (blockBelow.type === honeyblockId) {
-          vel.x *= physics.honeyblockSpeed
-          vel.z *= physics.honeyblockSpeed
-        }
+    if (vanilla.blockSpeedFactor) {
+      // Entity.getBlockSpeedFactor at the end of the move (1.15+): the block the player is in, else (unless water)
+      // the one below that affects its movement
+      let factor = blockFactor(entity, world, block => (block.type === soulsandId || block.type === honeyblockId) ? f32(physics.soulsandSpeed) : 1, true)
+      const below = blockBelowAffectingMovement(entity, world)
+      const onSoulSpeedBlock = !!below && (below.type === soulsandId || below.type === soulSoilId)
+      if (vanilla.movementEfficiency) {
+        // 1.21+: lerp toward 1 by the movement_efficiency attribute (soul speed sets it on soul blocks)
+        const key = mcData.attributesByName.movementEfficiency.resource
+        const efficiency = entity.attributes && entity.attributes[key]
+          ? f32(attribute.getAttributeValue(entity.attributes[key]))
+          : (entity.soulSpeed > 0 && onSoulSpeedBlock ? 1 : 0)
+        factor = f32(factor + f32(efficiency * f32(1 - factor)))
+      } else if (entity.soulSpeed > 0 && onSoulSpeedBlock) {
+        factor = 1 // soul speed boots ignore the soul sand slowdown
       }
+      vel.x *= factor
+      vel.z *= factor
     }
+  }
+
+  // The block under the player that sets its friction, speed and jump factors (getBlockPosBelowThatAffectsMyMovement):
+  // one block below before 1.15, 0.5000001 below the feet since (1.20+: 0.500001F).
+  function blockBelowAffectingMovement (entity, world) {
+    const pos = entity.pos
+    const depth = vanilla.blockBelowHalf ? (vanilla.blockBelowOnPos ? f32(0.500001) : 0.5000001) : 1
+    return world.getBlock(new Vec3(pos.x, Math.floor(pos.y - depth), pos.z))
+  }
+
+  // A block factor (speed or jump): the block at the player's position, when it is 1 that of the block below.
+  function blockFactor (entity, world, factorOf, skipWater) {
+    const inBlock = world.getBlock(entity.pos)
+    const own = inBlock ? factorOf(inBlock) : 1
+    if (own !== 1 || (skipWater && inBlock && (waterIds.includes(inBlock.type) || inBlock.type === bubblecolumnId))) return own
+    const below = blockBelowAffectingMovement(entity, world)
+    return below ? factorOf(below) : 1
   }
 
   function getLookingVector (entity) {
@@ -869,7 +898,7 @@ function Physics (mcData, world) {
       // Normal movement
       let acceleration = 0.0
       let inertia = 0.0
-      const blockUnder = world.getBlock(pos.offset(0, -1, 0))
+      const blockUnder = blockBelowAffectingMovement(entity, world)
       const slipperiness = f32(blockUnder ? (blockSlipperiness[blockUnder.type] || physics.defaultSlipperiness) : physics.defaultSlipperiness)
       if (entity.onGround) {
         const attributeSpeed = landSpeed(entity)
@@ -1036,8 +1065,9 @@ function Physics (mcData, world) {
       if (entity.isInWater || entity.isInLava) {
         vel.y += f32(0.04)
       } else if (entity.onGround && entity.jumpTicks === 0) {
-        const blockBelow = world.getBlock(entity.pos.floored().offset(0, -0.5, 0))
-        const power = f32(f32(0.42) * ((blockBelow && blockBelow.type === honeyblockId) ? f32(physics.honeyblockJumpSpeed) : 1))
+        // honey's jump factor 0.5F (the block the player is in, else the one below)
+        const jumpFactor = blockFactor(entity, world, block => block.type === honeyblockId ? f32(physics.honeyblockJumpSpeed) : 1, false)
+        const power = f32(f32(0.42) * jumpFactor)
         const boost = entity.jumpBoost > 0 ? f32(f32(0.1) * entity.jumpBoost) : 0
         const jump = vanilla.jumpBoostFloatSum ? f32(power + boost) : power + boost
         vel.y = vanilla.jumpKeepsVelocity ? Math.max(jump, vel.y) : jump
