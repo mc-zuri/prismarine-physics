@@ -10,7 +10,6 @@ describe('vanilla recordings: piston', () => {
     groups: [
       {
         versions: ['1.20.4'],
-        packetKnownFailure: 'pistons push the player after its own tick: vanilla sends the position from before the push',
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 2, pos: [0.810000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -21,7 +20,6 @@ describe('vanilla recordings: piston', () => {
       },
       {
         versions: ['1.21.10', '1.21.11'],
-        packetKnownFailure: 'pistons push the player after its own tick: vanilla sends the position from before the push',
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 3, pos: [0.810000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: false },
