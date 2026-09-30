@@ -34,7 +34,8 @@ const flags = (onGround, hasHorizontalCollision) => ({ onGround, hasHorizontalCo
  *   net:    the network state before the tick (the previous row's netState)
  * Returns { packets: [{ name, params }], net } with the network state after it.
  */
-function movementPackets (after, input, net) {
+function movementPackets (after, input, net, version, extra = {}) {
+  if (version && isOlder(version, '1.21.2')) return legacyMovementPackets(after, input, net, extra)
   const packets = []
   const next = { ...net }
   const keys = [!!input.forward, !!input.back, !!input.left, !!input.right, !!input.jump, !!input.sneak, !!input.sprint]
@@ -71,6 +72,51 @@ function movementPackets (after, input, net) {
   packets.push({ name: 'tick_end', params: {} })
   return { packets, net: next }
 }
+// Before 1.21.2 (LocalPlayer.sendPosition): the sprint and shift commands, then the move packet carrying onGround only;
+// no player_input or tick_end.
+function legacyMovementPackets (after, input, net, extra) {
+  const packets = []
+  const next = { ...net }
+  if (extra.usedItem && extra.before) {
+    // MultiPlayerGameMode.useItem first reports where the player is (before the tick) and how it looks
+    const [bx, by, bz] = extra.before.pos
+    packets.push({ name: 'position_look', params: { x: bx, y: by, z: bz, yaw: Math.fround(input.yaw), pitch: Math.fround(input.pitch), onGround: extra.before.onGround } })
+  }
+  if (after.sprinting !== net.wasSprinting) {
+    packets.push({ name: 'entity_action', params: { entityId: net.entityId, actionId: after.sprinting ? 'start_sprinting' : 'stop_sprinting', jumpBoost: 0 } })
+    next.wasSprinting = after.sprinting
+  }
+  if (after.shiftKeyDown !== undefined && !!after.shiftKeyDown !== !!net.wasShiftKeyDown) {
+    packets.push({ name: 'entity_action', params: { entityId: net.entityId, actionId: after.shiftKeyDown ? 'start_sneaking' : 'stop_sneaking', jumpBoost: 0 } })
+    next.wasShiftKeyDown = after.shiftKeyDown
+  }
+  const [x, y, z] = after.pos
+  const dx = x - net.lastPos[0]
+  const dy = y - net.lastPos[1]
+  const dz = z - net.lastPos[2]
+  const reminder = net.positionReminder + 1
+  const moved = dx * dx + dy * dy + dz * dz > 2.0e-4 * 2.0e-4 || reminder >= 20
+  const yaw = Math.fround(input.yaw)
+  const pitch = Math.fround(input.pitch)
+  const turned = yaw - Math.fround(net.lastYaw) !== 0 || pitch - Math.fround(net.lastPitch) !== 0
+  const onGround = after.onGround
+  if (moved && turned) packets.push({ name: 'position_look', params: { x, y, z, yaw, pitch, onGround } })
+  else if (moved) packets.push({ name: 'position', params: { x, y, z, onGround } })
+  else if (turned) packets.push({ name: 'look', params: { yaw, pitch, onGround } })
+  else if (net.lastOnGround !== onGround) packets.push({ name: 'flying', params: { onGround } })
+  next.positionReminder = moved ? 0 : reminder
+  if (moved) next.lastPos = [x, y, z]
+  if (turned) { next.lastYaw = yaw; next.lastPitch = pitch }
+  next.lastOnGround = onGround
+  return { packets, net: next }
+}
+
+const dataVersions = new Map()
+function isOlder (version, than) {
+  if (!dataVersions.has(version)) dataVersions.set(version, require('minecraft-data')(version))
+  return dataVersions.get(version).isOlderThan(than)
+}
+
 const MOVEMENT = new Set(['player_input', 'entity_action', 'position_look', 'position', 'look', 'flying', 'tick_end'])
 
 // ---- incoming: vanilla ClientPacketListener ----
