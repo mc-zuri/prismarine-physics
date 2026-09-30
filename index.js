@@ -989,64 +989,6 @@ function Physics (mcData, world) {
     return below ? factorOf(below) : 1
   }
 
-  function getLookingVector (entity) {
-    // given a yaw pitch, we need the looking vector
-
-    // yaw is right handed rotation about y (up) starting from -z (north)
-    // pitch is -90 looking down, 90 looking up, 0 looking at horizon
-    // lets get its coordinate system.
-    // let x' = -z (north)
-    // let y' = -x (west)
-    // let z' = y (up)
-
-    // the non normalized looking vector in x', y', z' space is
-    // x' is cos(yaw)
-    // y' is sin(yaw)
-    // z' is tan(pitch)
-
-    // substituting back in x, y, z, we get the looking vector in the normal x, y, z space
-    // -z = cos(yaw) => z = -cos(yaw)
-    // -x = sin(yaw) => x = -sin(yaw)
-    // y = tan(pitch)
-
-    // normalizing the vectors, we divide each by |sqrt(x*x + y*y + z*z)|
-    // x*x + z*z = sin^2 + cos^2 = 1
-    // so |sqrt(xx+yy+zz)| = |sqrt(1+tan^2(pitch))|
-    //     = |sqrt(1+sin^2(pitch)/cos^2(pitch))|
-    //     = |sqrt((cos^2+sin^2)/cos^2(pitch))|
-    //     = |sqrt(1/cos^2(pitch))|
-    //     = |+/- 1/cos(pitch)|
-    //     = 1/cos(pitch) since pitch in [-90, 90]
-
-    // the looking vector is therefore
-    // x = -sin(yaw) * cos(pitch)
-    // y = tan(pitch) * cos(pitch) = sin(pitch)
-    // z = -cos(yaw) * cos(pitch)
-
-    const yaw = entity.yaw
-    const pitch = entity.pitch
-    const sinYaw = Math.sin(yaw)
-    const cosYaw = Math.cos(yaw)
-    const sinPitch = Math.sin(pitch)
-    const cosPitch = Math.cos(pitch)
-    const lookX = -sinYaw * cosPitch
-    const lookY = sinPitch
-    const lookZ = -cosYaw * cosPitch
-    const lookDir = new Vec3(lookX, lookY, lookZ)
-    return {
-      yaw,
-      pitch,
-      sinYaw,
-      cosYaw,
-      sinPitch,
-      cosPitch,
-      lookX,
-      lookY,
-      lookZ,
-      lookDir
-    }
-  }
-
   // Entity.moveRelative: the input (xxa to the left, zza forward) scaled to speed and turned by the yaw. Before 1.14
   // all in float (moveFlying); since, a double input vector normalized when longer than 1, turned by float sin/cos.
   function applyHeading (entity, xxa, zza, speed) {
@@ -1771,6 +1713,20 @@ function Physics (mcData, world) {
     entity.pose = pose
   }
 
+  function fireworkBoost (entity) {
+    if (!(entity.fireworkRocketDuration > 0)) return
+    if (!entity.elytraFlying) {
+      entity.fireworkRocketDuration = 0
+      return
+    }
+    const vel = entity.vel
+    const look = viewVector(entity)
+    vel.x += look.x * 0.1 + (look.x * 1.5 - vel.x) * 0.5
+    vel.y += look.y * 0.1 + (look.y * 1.5 - vel.y) * 0.5
+    vel.z += look.z * 0.1 + (look.z * 1.5 - vel.z) * 0.5
+    --entity.fireworkRocketDuration
+  }
+
   // Which jump the jump key makes: true swims up (jumpInLiquid), false jumps from the ground, null neither.
   function fluidJump (entity) {
     const threshold = 0.4 // getFluidJumpThreshold: the player's eyes are above 0.4
@@ -1906,18 +1862,6 @@ function Physics (mcData, world) {
     // 1.15+ only the server ends a glide (the flag it syncs); before, the engine ends it like the server would
     if (!vanilla.clientStartsGliding) entity.elytraFlying = entity.elytraFlying && entity.elytraEquipped && !entity.onGround && !entity.levitation
 
-    if (entity.fireworkRocketDuration > 0) {
-      if (!entity.elytraFlying) {
-        entity.fireworkRocketDuration = 0
-      } else {
-        const { lookDir } = getLookingVector(entity)
-        vel.x += lookDir.x * 0.1 + (lookDir.x * 1.5 - vel.x) * 0.5
-        vel.y += lookDir.y * 0.1 + (lookDir.y * 1.5 - vel.y) * 0.5
-        vel.z += lookDir.z * 0.1 + (lookDir.z * 1.5 - vel.z) * 0.5
-        --entity.fireworkRocketDuration
-      }
-    }
-
     if (entity.swimming) {
       // Player.travel: a swimmer is pulled toward where it looks (0.085 when looking down more than 0.2, else 0.06),
       // upward only when jumping or with water above the head
@@ -1927,7 +1871,13 @@ function Physics (mcData, world) {
       if (lookY <= 0 || entity.control.jump || fluidOf(above, 'water') || fluidOf(above, 'lava')) vel.y += (lookY - vel.y) * pull
     }
 
+    if (!vanilla.clientStartsGliding) fireworkBoost(entity)
+
     moveEntityWithHeading(entity, world, strafe, forward)
+
+    // A firework rocket the player glides with (FireworkRocketEntity.tick, after the player's own tick; checked on
+    // 1.21.11, older versions keep boosting before the move)
+    if (vanilla.clientStartsGliding) fireworkBoost(entity)
 
     if (vanilla.effectsAfterTravel) {
       stepOn(entity, world)
