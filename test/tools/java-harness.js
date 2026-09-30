@@ -66,6 +66,10 @@ function registry (version) {
   return registries.get(version)
 }
 
+function hasData (version) {
+  try { return !!registry(version) } catch { return false }
+}
+
 // minecraft-protocol codes packets with the installed minecraft-data only; recordings of versions it lacks replay
 // through the extracted events and skip the packet tests.
 const packetSupport = new Map()
@@ -501,7 +505,8 @@ function recorded (name, spec) {
     for (const group of spec.groups) {
       const label = group.versions.length > 1 ? `${group.versions[0]} – ${group.versions[group.versions.length - 1]}` : group.versions[0]
       describe(label, function () {
-        const available = group.versions.filter(v => recordedVersions().includes(v))
+        // versions whose game data is at hand (26.2+ need PHYSREC_MCDATA)
+        const available = group.versions.filter(v => recordedVersions().includes(v) && hasData(v))
         let runs
         before(function () {
           if (!available.length) this.skip()
