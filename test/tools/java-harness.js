@@ -40,6 +40,29 @@ const server = (...actions) => ({ op: 'server', actions })
 
 // ---- fixtures ----
 
+// Game data: from the node-minecraft-data package at PHYSREC_MCDATA when set (versions the installed one lacks),
+// else the installed minecraft-data. One registry per version serves the engine, the blocks and the packet handlers.
+const registries = new Map()
+function registry (version) {
+  if (!registries.has(version)) {
+    let data = process.env.PHYSREC_MCDATA ? require(path.resolve(process.env.PHYSREC_MCDATA))(version) : undefined
+    if (!data) data = require('minecraft-data')(version)
+    if (!data) throw new Error(`no minecraft-data for ${version}`)
+    const registryDir = path.dirname(require.resolve('prismarine-registry'))
+    const base = require(path.join(registryDir, 'loader'))(data)
+    registries.set(version, Object.assign(base, require(path.join(registryDir, 'pc'))(base, data)))
+  }
+  return registries.get(version)
+}
+
+// minecraft-protocol codes packets with the installed minecraft-data only; recordings of versions it lacks replay
+// through the extracted events and skip the packet tests.
+const packetSupport = new Map()
+function packetsSupported (version) {
+  if (!packetSupport.has(version)) packetSupport.set(version, !!require('minecraft-data')(version))
+  return packetSupport.get(version)
+}
+
 const cache = new Map()
 
 function recordedVersions () {
@@ -103,8 +126,8 @@ function world (version, areaName) {
   if (!loaded.worlds.has(areaName)) {
     const area = loaded.world.areas.find(a => a.name === areaName)
     if (!area) throw new Error(`world.json of ${version} has no area ${areaName}`)
-    const Block = require('prismarine-block')(version)
-    const mcData = require('minecraft-data')(version)
+    const Block = require('prismarine-block')(registry(version))
+    const mcData = registry(version)
     const states = new Map()
     const stateId = text => {
       if (!states.has(text)) states.set(text, parseStateId(text, mcData, Block, version))
@@ -240,7 +263,7 @@ function expand (rec) {
 // Applies a tick's events before its physics. Recordings with packets are replayed through the packet handlers
 // (java-packets.js); older ones through the extracted events: block changes, velocity, explosion knockback.
 function applyEvents (state, w, events, ctx) {
-  if (events.serverPackets && ctx) {
+  if (events.serverPackets && ctx && packetsSupported(ctx.version)) {
     for (const entry of events.serverPackets) {
       for (const part of entry.packets || [entry]) packets.handle(state, packets.decode(ctx.version, 'toClient', part.bytes), { ...ctx, world: w })
     }
@@ -284,7 +307,7 @@ function differences (actual, expected, fields, epsilon) {
  * Returns { ticks, divergences: [{ t, input, diffs }] }.
  */
 function replay (version, rec, { mode = 'trajectory', fields = FIELDS, epsilon = 0 } = {}) {
-  const mcData = require('minecraft-data')(version)
+  const mcData = registry(version)
   const w = world(version, rec.area)
   const physics = Physics(mcData, w)
   const rows = expand(rec)
@@ -339,7 +362,7 @@ const PACKET_FIELDS = ['pos', 'vel', 'elytraFlying']
  * Returns [{ t, type, diffs }].
  */
 function checkServerPackets (version, rec) {
-  const mcData = require('minecraft-data')(version)
+  const mcData = registry(version)
   const ctx = packetContext(version, mcData, rec)
   const out = []
   expand(rec).forEach(row => {
@@ -452,7 +475,7 @@ function recorded (name, spec) {
 
         it('handles server packets like vanilla', function () {
           for (const { version, rec } of runs) {
-            if (!rec.start.netState) this.skip()
+            if (!rec.start.netState || !packetsSupported(version)) this.skip()
             const bad = checkServerPackets(version, rec)
             expectation(group.packetKnownFailure ? { knownFailure: group.packetKnownFailure } : {}, bad.length === 0, () => `${name} on ${version}: ${bad.length} packets handled differently; first at tick ${bad[0].t} (${bad[0].type}):\n` +
               bad[0].diffs.map(d => `  ${d.field} vanilla ${d.expected} harness ${d.actual}`).join('\n'))
@@ -461,7 +484,7 @@ function recorded (name, spec) {
 
         it('sends byte-exact movement packets', function () {
           for (const { version, rec } of runs) {
-            if (!rec.start.netState) this.skip()
+            if (!rec.start.netState || !packetsSupported(version)) this.skip()
             const bad = checkClientPackets(version, rec)
             expectation(group.packetKnownFailure ? { knownFailure: group.packetKnownFailure } : {}, bad.length === 0, () => `${name} on ${version}: ${bad.length} ticks differ; first at tick ${bad[0].t}:\n  vanilla ${bad[0].expected.join(' ')}\n  built   ${bad[0].actual.join(' ')}`)
           }
@@ -472,7 +495,7 @@ function recorded (name, spec) {
 }
 
 function replayUntil (version, rec, tick, options) {
-  const mcData = require('minecraft-data')(version)
+  const mcData = registry(version)
   const w = world(version, rec.area)
   const physics = Physics(mcData, w)
   const state = makeState(rec, mcData)
