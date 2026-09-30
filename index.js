@@ -253,7 +253,21 @@ function Physics (mcData, world) {
   const SCAFFOLDING_STABLE = [[0, 0.875, 0, 1, 1, 1], [0, 0, 0, 0.125, 1, 0.125], [0.875, 0, 0, 1, 1, 0.125], [0, 0, 0.875, 0.125, 1, 1], [0.875, 0, 0.875, 1, 1, 1]]
   const SCAFFOLDING_UNSTABLE_BOTTOM = [[0, 0, 0, 1, 0.125, 1]]
 
+  function collisionContextOf (entity) {
+    return { bottom: entity.pos.y, descending: !!entity.control.sneak, fallDistance: entity.fallDistance || 0, walksOnPowderSnow: !!entity.leatherBoots }
+  }
+
+  const POWDER_SNOW_FALLING = [[0, 0, 0, 1, 0.8999999761581421, 1]]
+  const FULL_BLOCK = [[0, 0, 0, 1, 1, 1]]
+
   function collisionShapesOf (block, blockPos) {
+    if (block.type === powderSnowId && collisionContext) {
+      // PowderSnowBlock.getCollisionShape: solid under a player falling more than 2.5 blocks (0.9 tall), or under
+      // leather boots from above unless descending; else nothing
+      if (collisionContext.fallDistance > 2.5) return POWDER_SNOW_FALLING
+      if (collisionContext.walksOnPowderSnow && collisionContext.bottom > blockPos.y + 1 - 9.999999747378752e-6 && !collisionContext.descending) return FULL_BLOCK
+      return []
+    }
     if (block.type === scaffoldingId && collisionContext) {
       // ScaffoldingBlock.getCollisionShape: solid from above unless descending; a bottom piece shows its base slab
       const above = shapeTop => collisionContext.bottom > blockPos.y + shapeTop - 9.999999747378752e-6
@@ -452,7 +466,7 @@ function Physics (mcData, world) {
   }
 
   function moveEntity (entity, world, dx, dy, dz) {
-    collisionContext = { bottom: entity.pos.y, descending: !!entity.control.sneak }
+    collisionContext = collisionContextOf(entity)
     try {
       moveEntityInContext(entity, world, dx, dy, dz)
     } finally {
@@ -545,6 +559,7 @@ function Physics (mcData, world) {
       entity.onGround = entity.isCollidedVertically && dy < 0
       if (vanilla.supportingBlock) checkSupportingBlock(entity, world, playerBB, moved)
       waterAfterMove(entity, world)
+      updateFallDistance(entity, moved.y)
       if (vanilla.collisionEpsilonVelocity) {
         if (collidedX) vel.x = 0
         if (collidedZ) vel.z = 0
@@ -641,6 +656,7 @@ function Physics (mcData, world) {
     entity.isCollidedVertically = dy !== oldVelY
     entity.onGround = entity.isCollidedVertically && oldVelY < 0
     waterAfterMove(entity, world)
+    updateFallDistance(entity, dy)
 
     if (dx !== oldVelX) vel.x = 0
     if (dz !== oldVelZ) vel.z = 0
@@ -649,9 +665,20 @@ function Physics (mcData, world) {
     applyBlockCollisions(entity, world, playerBB)
   }
 
+  // Entity.checkFallDamage: the fall grows while moving down out of water and ends on the ground
+  function updateFallDistance (entity, dy) {
+    if (!entity.isInWater && dy < 0) entity.fallDistance = (entity.fallDistance || 0) - f32(dy)
+    if (entity.onGround) entity.fallDistance = 0
+  }
+
   // LivingEntity.checkFallDamage: a player not yet in water looks again where the move ended (and is pushed)
   function waterAfterMove (entity, world) {
     if (entity.isInWater) return
+    waterAfterMoveCheck(entity, world)
+    if (entity.isInWater) entity.fallDistance = 0
+  }
+
+  function waterAfterMoveCheck (entity, world) {
     if (vanilla.unifiedFluidInteraction) {
       // 26.1: the whole fluid interaction again, lava included
       updateFluids(entity, world)
@@ -795,12 +822,18 @@ function Physics (mcData, world) {
       }
       if (block.type === webId) {
         entity.stuckSpeedMultiplier = STUCK_IN_WEB
+        entity.fallDistance = 0
       } else if (block.type === berryBushId) {
         entity.stuckSpeedMultiplier = STUCK_IN_BERRY_BUSH
+        entity.fallDistance = 0
       } else if (block.type === powderSnowId) {
         // only while the player's feet are in powder snow
         const feet = world.getBlock(entity.pos)
-        if (feet && feet.type === powderSnowId) entity.stuckSpeedMultiplier = STUCK_IN_POWDER_SNOW
+        if (feet && feet.type === powderSnowId) {
+          entity.stuckSpeedMultiplier = STUCK_IN_POWDER_SNOW
+          entity.fallDistance = 0
+        }
+        entity.isInPowderSnow = true
       } else if (block.type === bubblecolumnId) {
         const down = !block.metadata
         const aboveBlock = world.getBlock(cursor.offset(0, 1, 0))
@@ -1277,6 +1310,7 @@ function Physics (mcData, world) {
       applyHeading(entity, strafe, forward, acceleration)
 
       if (isOnLadder(world, pos)) {
+        entity.fallDistance = 0
         // clamped to 0.15F; vertically to -0.15F since 1.14, -0.15 before
         const max = f32(physics.ladderMaxSpeed)
         vel.x = math.clamp(-max, vel.x, max)
@@ -1289,7 +1323,8 @@ function Physics (mcData, world) {
 
       moveEntity(entity, world, vel.x, vel.y, vel.z)
 
-      if (isOnLadder(world, pos) && (entity.isCollidedHorizontally ||
+      const climbsOutOfPowderSnow = entity.wasInPowderSnow && entity.leatherBoots
+      if ((isOnLadder(world, pos) || climbsOutOfPowderSnow) && (entity.isCollidedHorizontally ||
         (supportFeature('climbUsingJump') && entity.control.jump))) {
         vel.y = physics.ladderClimbSpeed // climb ladder
       }
@@ -1652,7 +1687,7 @@ function Physics (mcData, world) {
   function fitsPose (entity, world, pose) {
     const box = getPlayerBB(entity.pos, POSE_HEIGHT[pose]).contract(1.0e-7, 1.0e-7, 1.0e-7)
     const saved = collisionContext
-    collisionContext = { bottom: entity.pos.y, descending: !!entity.control.sneak }
+    collisionContext = collisionContextOf(entity)
     try {
       return !getSurroundingBBs(world, box).some(shape => shape.intersects(box))
     } finally {
@@ -1705,6 +1740,10 @@ function Physics (mcData, world) {
     boxHeight = vanilla.crouchPose ? POSE_HEIGHT[entity.pose] || physics.playerHeight : physics.playerHeight
     entity.movementsThisTick = vanilla.effectsAfterTravel ? [] : undefined
 
+    entity.wasInPowderSnow = !!entity.isInPowderSnow
+    entity.isInPowderSnow = false
+    if (entity.slowFalling > 0 || entity.levitation > 0) entity.fallDistance = 0
+
     if (vanilla.fluidHeights) {
       // 1.13+: the fluid heights in the box deflated by 0.001 (Entity.updateFluidHeightAndDoFluidPushing)
       const box = entityBox(entity)
@@ -1733,6 +1772,7 @@ function Physics (mcData, world) {
       entity.eyeInWater = eyes
       updateSwimming(entity, world)
     }
+    if (entity.isInWater) entity.fallDistance = 0
     if (vanilla.crouchLag) updateCrouching(entity, world)
     if (vanilla.sprintState) updateSprinting(entity, world)
 
@@ -1906,6 +1946,8 @@ class PlayerState {
     this.jumpHeld = bot.entity.jumpHeld ?? false
     this.pose = bot.entity.javaPose
     this.swimming = bot.entity.swimming ?? false
+    this.fallDistance = bot.entity.fallDistance ?? 0
+    this.isInPowderSnow = bot.entity.isInPowderSnow ?? false
     this.eyeInWater = bot.entity.eyeInWater ?? false
     this.crouching = bot.entity.crouching ?? false
     // The sprint state (vanilla's isSprinting): the sprint key starts it, the game's conditions stop it
@@ -2023,6 +2065,8 @@ class PlayerState {
     bot.entity.jumpHeld = this.jumpHeld
     bot.entity.javaPose = this.pose
     bot.entity.swimming = this.swimming
+    bot.entity.fallDistance = this.fallDistance
+    bot.entity.isInPowderSnow = this.isInPowderSnow
     bot.entity.eyeInWater = this.eyeInWater
     bot.entity.crouching = this.crouching
     bot.entity.sprinting = this.sprinting
