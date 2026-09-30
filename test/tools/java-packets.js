@@ -143,6 +143,8 @@ function handle (state, packet, ctx) {
       break
     case 'explosion':
       if (p.playerKnockback) state.vel = state.vel.offset(p.playerKnockback.x, p.playerKnockback.y, p.playerKnockback.z)
+      // before 1.21.2 the knockback came as playerMotionX/Y/Z floats
+      else if (p.playerMotionX !== undefined) state.vel = state.vel.offset(p.playerMotionX, p.playerMotionY, p.playerMotionZ)
       break
     case 'position': {
       if (typeof p.flags === 'number') {
