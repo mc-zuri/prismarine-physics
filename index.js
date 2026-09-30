@@ -165,6 +165,9 @@ function Physics (mcData, world) {
     fluidFallingBeforeMove: supportFeature('modernMove'),
     climbFloatVertical: supportFeature('modernMove'),
     crouchLag: supportFeature('crouchLag'),
+    backOffThinBox: supportFeature('playerPhysicsAttributes'),
+    backOffAboveGround: supportFeature('lavaFluidHeight'),
+    backOffOnlyDown: supportFeature('sprintNotWhileGliding'),
     pushOutOfBlocks: supportFeature('lavaFluidHeight'),
     thinLadder: supportFeature('velocityThreshold005'),
     bedBounce: supportFeature('bedBounce'),
@@ -505,6 +508,61 @@ function Physics (mcData, world) {
     pos.y += dy
   }
 
+  // Whether any block collision shape overlaps the box (Level.noCollision, negated)
+  function collidesWithBlocks (world, box) {
+    return getSurroundingBBs(world, box).some(shape => shape.intersects(box))
+  }
+
+  // Player.maybeBackOffFromEdge: a sneaking player on the ground (1.16+: or just above it) does not walk off an
+  // edge; the move is cut back by 0.05 until the box would stand on something. The test: before 1.13 the box moved
+  // down one block, 1.13-1.20.4 down the step height, 1.20.5+ a thin box under the feet (canFallAtLeast).
+  function backOffFromEdge (entity, world, x, y, z) {
+    if (!entity.control.sneak || entity.flying) return { x, z }
+    const step = stepHeightOf(entity)
+    const box = entityBox(entity)
+    const fallDistance = entity.fallDistance || 0
+    let canFall
+    if (vanilla.backOffThinBox) {
+      canFall = (dx, dz, height) => !collidesWithBlocks(world, new AABB(box.minX + 1.0e-7 + dx, box.minY - height - 1.0e-7, box.minZ + 1.0e-7 + dz, box.maxX - 1.0e-7 + dx, box.minY, box.maxZ - 1.0e-7 + dz))
+    } else {
+      const down = vanilla.voxelCollision ? -step : -1
+      canFall = (dx, dz) => !collidesWithBlocks(world, box.clone().offset(dx, down, dz))
+    }
+    let aboveGround = entity.onGround
+    if (!aboveGround && vanilla.backOffAboveGround && fallDistance < step) {
+      aboveGround = vanilla.backOffThinBox
+        ? !canFall(0, 0, step - fallDistance)
+        : collidesWithBlocks(world, box.clone().offset(0, fallDistance - step, 0))
+    }
+    if (!aboveGround || (vanilla.backOffOnlyDown && y > 0)) return { x, z }
+
+    if (vanilla.backOffThinBox) {
+      const sx = Math.sign(x) * 0.05
+      const sz = Math.sign(z) * 0.05
+      while (x !== 0 && canFall(x, 0, step)) {
+        if (Math.abs(x) <= 0.05) { x = 0; break }
+        x -= sx
+      }
+      while (z !== 0 && canFall(0, z, step)) {
+        if (Math.abs(z) <= 0.05) { z = 0; break }
+        z -= sz
+      }
+      while (x !== 0 && z !== 0 && canFall(x, z, step)) {
+        x = Math.abs(x) <= 0.05 ? 0 : x - sx
+        z = Math.abs(z) <= 0.05 ? 0 : z - sz
+      }
+      return { x, z }
+    }
+    const cut = v => (v < 0.05 && v >= -0.05) ? 0 : v > 0 ? v - 0.05 : v + 0.05
+    while (x !== 0 && canFall(x, 0)) x = cut(x)
+    while (z !== 0 && canFall(0, z)) z = cut(z)
+    while (x !== 0 && z !== 0 && canFall(x, z)) {
+      x = cut(x)
+      z = cut(z)
+    }
+    return { x, z }
+  }
+
   function moveEntity (entity, world, dx, dy, dz) {
     collisionContext = collisionContextOf(entity)
     try {
@@ -538,35 +596,9 @@ function Physics (mcData, world) {
     const oldVelY = dy
     let oldVelZ = dz
 
-    if (entity.control.sneak && entity.onGround) {
-      const step = 0.05
-
-      // In the 3 loops bellow, y offset should be -1, but that doesnt reproduce vanilla behavior.
-      for (; dx !== 0 && getSurroundingBBs(world, entityBox(entity).offset(dx, 0, 0)).length === 0; oldVelX = dx) {
-        if (dx < step && dx >= -step) dx = 0
-        else if (dx > 0) dx -= step
-        else dx += step
-      }
-
-      for (; dz !== 0 && getSurroundingBBs(world, entityBox(entity).offset(0, 0, dz)).length === 0; oldVelZ = dz) {
-        if (dz < step && dz >= -step) dz = 0
-        else if (dz > 0) dz -= step
-        else dz += step
-      }
-
-      while (dx !== 0 && dz !== 0 && getSurroundingBBs(world, entityBox(entity).offset(dx, 0, dz)).length === 0) {
-        if (dx < step && dx >= -step) dx = 0
-        else if (dx > 0) dx -= step
-        else dx += step
-
-        if (dz < step && dz >= -step) dz = 0
-        else if (dz > 0) dz -= step
-        else dz += step
-
-        oldVelX = dx
-        oldVelZ = dz
-      }
-    }
+    const backedOff = backOffFromEdge(entity, world, dx, dy, dz)
+    dx = oldVelX = backedOff.x
+    dz = oldVelZ = backedOff.z
 
     let playerBB = entityBox(entity)
     if (vanilla.modernMove) {
