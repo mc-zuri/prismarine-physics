@@ -182,6 +182,16 @@ function Physics (mcData, world) {
     return surroundingBBs
   }
 
+  // The player's box. Before 1.17 vanilla keeps the box across ticks, moves it and takes the position from its
+  // center; while the position is still that center (nobody moved the player), the kept box is the one to use.
+  function entityBox (entity) {
+    const box = entity.javaBox
+    const pos = entity.pos
+    if (box && (vanilla.positionFromBoxCenter || !vanilla.modernMove) && (box.minX + box.maxX) / 2 === pos.x &&
+      box.minY === pos.y && (box.minZ + box.maxZ) / 2 === pos.z) return box.clone()
+    return getPlayerBB(pos)
+  }
+
   // ---- collision as vanilla computes it ----
 
   // Shapes.collide / VoxelShape.collideX (1.13+): a face ahead counts within 1e-7, the other two axes must overlap by
@@ -345,19 +355,19 @@ function Physics (mcData, world) {
       const step = 0.05
 
       // In the 3 loops bellow, y offset should be -1, but that doesnt reproduce vanilla behavior.
-      for (; dx !== 0 && getSurroundingBBs(world, getPlayerBB(pos).offset(dx, 0, 0)).length === 0; oldVelX = dx) {
+      for (; dx !== 0 && getSurroundingBBs(world, entityBox(entity).offset(dx, 0, 0)).length === 0; oldVelX = dx) {
         if (dx < step && dx >= -step) dx = 0
         else if (dx > 0) dx -= step
         else dx += step
       }
 
-      for (; dz !== 0 && getSurroundingBBs(world, getPlayerBB(pos).offset(0, 0, dz)).length === 0; oldVelZ = dz) {
+      for (; dz !== 0 && getSurroundingBBs(world, entityBox(entity).offset(0, 0, dz)).length === 0; oldVelZ = dz) {
         if (dz < step && dz >= -step) dz = 0
         else if (dz > 0) dz -= step
         else dz += step
       }
 
-      while (dx !== 0 && dz !== 0 && getSurroundingBBs(world, getPlayerBB(pos).offset(dx, 0, dz)).length === 0) {
+      while (dx !== 0 && dz !== 0 && getSurroundingBBs(world, entityBox(entity).offset(dx, 0, dz)).length === 0) {
         if (dx < step && dx >= -step) dx = 0
         else if (dx > 0) dx -= step
         else dx += step
@@ -371,7 +381,7 @@ function Physics (mcData, world) {
       }
     }
 
-    let playerBB = getPlayerBB(pos)
+    let playerBB = entityBox(entity)
     if (vanilla.modernMove) {
       const box = playerBB
       const moved = collideModern(entity, world, { x: dx, y: dy, z: dz }, box)
@@ -383,6 +393,7 @@ function Physics (mcData, world) {
           pos.x = (playerBB.minX + playerBB.maxX) / 2
           pos.y = playerBB.minY
           pos.z = (playerBB.minZ + playerBB.maxZ) / 2
+          entity.javaBox = playerBB.clone()
         } else {
           pos.x += moved.x
           pos.y += moved.y
@@ -485,6 +496,7 @@ function Physics (mcData, world) {
     pos.x = (playerBB.minX + playerBB.maxX) / 2
     pos.y = playerBB.minY
     pos.z = (playerBB.minZ + playerBB.maxZ) / 2
+    entity.javaBox = playerBB.clone()
     entity.isCollidedHorizontally = dx !== oldVelX || dz !== oldVelZ
     entity.isCollidedVertically = dy !== oldVelY
     entity.onGround = entity.isCollidedVertically && oldVelY < 0
@@ -1089,6 +1101,8 @@ class PlayerState {
     this.fireworkRocketDuration = bot.fireworkRocketDuration
     // Bedrock engine state (float32 collision box, swim pose, pending block slowdowns); undefined on Java.
     this.bedrock = bot.bedrockPhysicsState
+    // The Java engine's kept bounding box (before 1.17 vanilla moves the box and centers the position on it).
+    this.javaBox = bot.javaPhysicsBox
     // Bedrock-only inputs (ignored by the Java engine): creative flight (the server-granted ability, mineflayer's
     // bot.abilities from UpdateAbilities, or bot.flying), the client's own fly toggle when tracked separately,
     // the ability fly speeds, and the item-use movement slowdown.
@@ -1195,6 +1209,7 @@ class PlayerState {
     bot.itemUseStarted = this.itemUseStarted
     if (bot.bedrockVehicle) bot.bedrockVehicle = this.vehicle
     if (this.bedrock !== undefined) bot.bedrockPhysicsState = this.bedrock
+    if (this.javaBox !== undefined) bot.javaPhysicsBox = this.javaBox
   }
 }
 
