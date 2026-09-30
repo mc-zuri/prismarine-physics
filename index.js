@@ -51,6 +51,7 @@ function Physics (mcData, world) {
   const STUCK_IN_BERRY_BUSH = [Math.fround(0.8), 0.75, Math.fround(0.8)]
   const STUCK_IN_POWDER_SNOW = [Math.fround(0.9), 1.5, Math.fround(0.9)]
   const bedIds = new Set(mcData.blocksArray.filter(b => b.name === 'bed' || b.name.endsWith('_bed')).map(b => b.id))
+  const pointedDripstoneId = blocksByName.pointed_dripstone ? blocksByName.pointed_dripstone.id : -1 // 1.17+
   const soulsandId = blocksByName.soul_sand.id
   const soulSoilId = blocksByName.soul_soil ? blocksByName.soul_soil.id : -1 // 1.16+
   const honeyblockId = blocksByName.honey_block ? blocksByName.honey_block.id : -1 // 1.15+
@@ -256,6 +257,32 @@ function Physics (mcData, world) {
   const SCAFFOLDING_STABLE = [[0, 0.875, 0, 1, 1, 1], [0, 0, 0, 0.125, 1, 0.125], [0.875, 0, 0, 1, 1, 0.125], [0, 0, 0.875, 0.125, 1, 1], [0.875, 0, 0.875, 1, 1, 1]]
   const SCAFFOLDING_UNSTABLE_BOTTOM = [[0, 0, 0, 1, 0.125, 1]]
 
+  // Mth.getSeed with Java's long arithmetic
+  function blockSeed (x, y, z) {
+    let l = BigInt.asIntN(64, BigInt(Math.imul(x, 3129871)) ^ (BigInt(z) * 116129781n) ^ BigInt(y))
+    l = BigInt.asIntN(64, l * l * 42317861n + l * 11n)
+    return l >> 16n
+  }
+
+  // BlockBehaviour offsetType XZ: a per-position shift of up to maxOffset
+  function horizontalOffset (x, z, maxOffset) {
+    const seed = blockSeed(x, 0, z)
+    const clamp = v => Math.max(-maxOffset, Math.min(maxOffset, v))
+    return [clamp((f32(Number(seed & 15n) / 15) - 0.5) * 0.5), clamp((f32(Number((seed >> 8n) & 15n) / 15) - 0.5) * 0.5)]
+  }
+
+  // PointedDripstoneBlock.getShape (its collision shape): a column by thickness, shifted by the block's offset
+  function pointedDripstoneShapes (block, blockPos) {
+    const props = block.getProperties()
+    const up = props.vertical_direction === 'up'
+    const column = { tip_merge: [6, 0, 16], tip: up ? [6, 0, 11] : [6, 5, 16], frustum: [8, 0, 16], middle: [10, 0, 16], base: [12, 0, 16] }[props.thickness] || [6, 0, 16]
+    const [size, minY, maxY] = column
+    const [ox, oz] = horizontalOffset(blockPos.x, blockPos.z, 0.125)
+    const lo = (16 - size) / 2 / 16
+    const hi = (16 + size) / 2 / 16
+    return [[lo + ox, minY / 16, lo + oz, hi + ox, maxY / 16, hi + oz]]
+  }
+
   function collisionContextOf (entity) {
     return { x: entity.pos.x, z: entity.pos.z, bottom: entity.pos.y, descending: !!entity.control.sneak, fallDistance: entity.fallDistance || 0, walksOnPowderSnow: !!entity.leatherBoots }
   }
@@ -278,6 +305,7 @@ function Physics (mcData, world) {
       const props = block.getProperties()
       return String(props.distance) !== '0' && (props.bottom === true || props.bottom === 'true') && above(0) ? SCAFFOLDING_UNSTABLE_BOTTOM : []
     }
+    if (block.type === pointedDripstoneId) return pointedDripstoneShapes(block, blockPos)
     if (vanilla.thinLadder && block.type === ladderId) {
       // before 1.9 a ladder is 0.125 thick (0.1875 since)
       return block.shapes.map(shape => shape.map(v => v === 0.8125 ? 0.875 : v === 0.1875 ? 0.125 : v))
