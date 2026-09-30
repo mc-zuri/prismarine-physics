@@ -241,9 +241,11 @@ function Physics (mcData, world) {
   const POSE_HEIGHT = { standing: Math.fround(1.8), crouching: Math.fround(1.5), swimming: Math.fround(0.6), fall_flying: Math.fround(0.6), spin_attack: Math.fround(0.6) }
   const POSE_EYE_HEIGHT = { standing: Math.fround(1.62), crouching: Math.fround(1.27), swimming: Math.fround(0.4), fall_flying: Math.fround(0.4), spin_attack: Math.fround(0.4) }
   let boxHeight = physics.playerHeight
+  let boxHalfWidth = physics.playerHalfWidth
+  let boxScale = 1 // 1.20.5+ the scale attribute scales the dimensions
 
   function getPlayerBB (pos, height = boxHeight) {
-    const w = physics.playerHalfWidth
+    const w = boxHalfWidth
     return new AABB(-w, 0, -w, w, height, w).offset(pos.x, pos.y, pos.z)
   }
 
@@ -804,7 +806,7 @@ function Physics (mcData, world) {
   function isSlidingDownHoney (entity, blockPos) {
     const pos = entity.pos
     if (entity.onGround || pos.y > blockPos.y + 0.9375 - 1.0e-7 || honeyOldY(entity.vel.y) >= -0.08) return false
-    const reach = 0.4375 + physics.playerHalfWidth
+    const reach = 0.4375 + boxHalfWidth
     return Math.abs(blockPos.x + 0.5 - pos.x) + 1.0e-7 > reach || Math.abs(blockPos.z + 0.5 - pos.z) + 1.0e-7 > reach
   }
 
@@ -1547,7 +1549,7 @@ function Physics (mcData, world) {
   // Whether the eyes are in water (Entity.updateFluidOnEyes / isEyeInFluid).
   function eyeInWater (entity, world) {
     const pos = entity.pos
-    const eyeHeight = vanilla.crouchPose ? POSE_EYE_HEIGHT[entity.pose || 'standing'] || f32(1.62) : f32(1.62)
+    const eyeHeight = f32((vanilla.crouchPose ? POSE_EYE_HEIGHT[entity.pose || 'standing'] || f32(1.62) : f32(1.62)) * boxScale)
     let eyeY = pos.y + eyeHeight
     if (vanilla.eyeFluidOffset) eyeY -= 0.1111111119389534 // 1.16-1.20
     const cell = new Vec3(Math.floor(pos.x), Math.floor(eyeY), Math.floor(pos.z))
@@ -1687,7 +1689,7 @@ function Physics (mcData, world) {
 
   // Player.canPlayerFitWithinBlocksAndEntitiesWhen: the pose's box, deflated by 1e-7, touches no block
   function fitsPose (entity, world, pose) {
-    const box = getPlayerBB(entity.pos, POSE_HEIGHT[pose]).contract(1.0e-7, 1.0e-7, 1.0e-7)
+    const box = getPlayerBB(entity.pos, f32(POSE_HEIGHT[pose] * boxScale)).contract(1.0e-7, 1.0e-7, 1.0e-7)
     const saved = collisionContext
     collisionContext = collisionContextOf(entity)
     try {
@@ -1753,7 +1755,9 @@ function Physics (mcData, world) {
     const vel = entity.vel
     const pos = entity.pos
     const startPos = pos.clone()
-    boxHeight = vanilla.crouchPose ? POSE_HEIGHT[entity.pose] || physics.playerHeight : physics.playerHeight
+    boxScale = vanilla.playerAttributes ? f32(attributeValue(entity, 'scale', 1)) : 1
+    boxHeight = f32((vanilla.crouchPose ? POSE_HEIGHT[entity.pose] || physics.playerHeight : physics.playerHeight) * boxScale)
+    boxHalfWidth = f32(f32(f32(0.6) * boxScale) / 2)
     entity.movementsThisTick = vanilla.effectsAfterTravel ? [] : undefined
 
     entity.wasInPowderSnow = !!entity.isInPowderSnow
@@ -1792,7 +1796,7 @@ function Physics (mcData, world) {
     if (vanilla.crouchLag) updateCrouching(entity, world)
     if (vanilla.pushOutOfBlocks) {
       // LocalPlayer.moveTowardsClosestSpace from the four corners 0.35 widths out
-      const w = Math.fround(0.6) * 0.35
+      const w = f32(f32(0.6) * boxScale) * 0.35
       moveTowardsClosestSpace(entity, world, pos.x - w, pos.z + w)
       moveTowardsClosestSpace(entity, world, pos.x - w, pos.z - w)
       moveTowardsClosestSpace(entity, world, pos.x + w, pos.z - w)
