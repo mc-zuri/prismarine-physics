@@ -798,6 +798,16 @@ function Physics (mcData, world) {
     return cells
   }
 
+  const honeyOldY = y => vanilla.effectsAfterTravel ? y / 0.9800000190734863 + 0.08 : y
+
+  // HoneyBlock.isSlidingDown: falling faster than 0.08 against a side of the block, below its top
+  function isSlidingDownHoney (entity, blockPos) {
+    const pos = entity.pos
+    if (entity.onGround || pos.y > blockPos.y + 0.9375 - 1.0e-7 || honeyOldY(entity.vel.y) >= -0.08) return false
+    const reach = 0.4375 + physics.playerHalfWidth
+    return Math.abs(blockPos.x + 0.5 - pos.x) + 1.0e-7 > reach || Math.abs(blockPos.z + 0.5 - pos.z) + 1.0e-7 > reach
+  }
+
   // The blocks the box touches act on the player. With visited (1.21.2+), a block counts once per tick, and only if it
   // touches endBox when one is given.
   function insideBlocks (entity, world, cells, visited, endBox) {
@@ -820,6 +830,18 @@ function Physics (mcData, world) {
           vel.x *= physics.honeyblockSpeed
           vel.z *= physics.honeyblockSpeed
         }
+      }
+      if (block.type === honeyblockId && isSlidingDownHoney(entity, cursor)) {
+        // HoneyBlock.doSlideMovement: sliding down a side at 0.05 (1.21.2+ after the travel, so undoing and redoing its
+        // gravity and drag)
+        const oldY = honeyOldY(vel.y)
+        if (oldY < -0.13) {
+          const scale = -0.05 / oldY
+          vel.x *= scale
+          vel.z *= scale
+        }
+        vel.y = vanilla.effectsAfterTravel ? (-0.05 - 0.08) * 0.9800000190734863 : -0.05
+        entity.fallDistance = 0
       }
       if (block.type === webId) {
         entity.stuckSpeedMultiplier = STUCK_IN_WEB
