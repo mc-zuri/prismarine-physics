@@ -176,5 +176,25 @@
     "name": "unifiedFluidInteraction",
     "description": "EntityFluidInteraction: water and lava in one pass, heights in double from the undeflated box bottom, both updated again after the move",
     "since": "26.1"
+  },
+  {
+    "name": "insideBlocksAlongPath",
+    "description": "Blocks act along the move: the cells of the start and end boxes, walked in the direction of travel (the end box alone before)",
+    "since": "1.21.9"
+  },
+  {
+    "name": "insideBlocksAxisSteps",
+    "description": "Blocks act for each axis step of the move (in the collided move order; the requested one from 1.21.9), not for the whole tick",
+    "since": "1.21.5"
+  },
+  {
+    "name": "insideBlocksEndIntersect",
+    "description": "A block acts only when the box at the end of the step touches it (or the step is longer than a block)",
+    "since": "1.21.10"
+  },
+  {
+    "name": "bubbleSurfaceByShape",
+    "description": "A bubble column is at the surface when the block above has no collision and no fluid (air before)",
+    "since": "1.21.5"
   }
 ]

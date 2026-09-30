@@ -43,6 +43,7 @@ function Physics (mcData, world) {
   const fenceIds = byTag(name => name.endsWith('fence'))
   const wallIds = byTag(name => name.endsWith('_wall') && !name.includes('sign') && !name.includes('banner') && !name.includes('torch') && !name.includes('head') && !name.includes('skull') && !name.includes('fan'))
   const gateIds = byTag(name => name.endsWith('fence_gate'))
+  const airId = blocksByName.air.id
   const soulsandId = blocksByName.soul_sand.id
   const soulSoilId = blocksByName.soul_soil ? blocksByName.soul_soil.id : -1 // 1.16+
   const honeyblockId = blocksByName.honey_block ? blocksByName.honey_block.id : -1 // 1.15+
@@ -160,6 +161,11 @@ function Physics (mcData, world) {
     lavaInsideBlocks: supportFeature('modernMove'),
     minimumFluidPush: supportFeature('lavaFluidHeight'),
     unifiedFluidInteraction: supportFeature('unifiedFluidInteraction'),
+    insideBlocksAlongPath: supportFeature('insideBlocksAlongPath'),
+    insideBlocksAxisSteps: supportFeature('insideBlocksAxisSteps'),
+    axisOrderByRequested: supportFeature('insideBlocksAlongPath'),
+    insideBlocksEndIntersect: supportFeature('insideBlocksEndIntersect'),
+    bubbleSurfaceByShape: supportFeature('bubbleSurfaceByShape'),
     supportingBlock: supportFeature('supportingBlock'),
     effectsAfterTravel: supportFeature('blockEffectsAfterTravel'),
     movementEfficiency: supportFeature('movementEfficiency'),
@@ -421,9 +427,11 @@ function Physics (mcData, world) {
           pos.z = (playerBB.minZ + playerBB.maxZ) / 2
           entity.javaBox = playerBB.clone()
         } else {
+          const from = pos.clone()
           pos.x += moved.x
           pos.y += moved.y
           pos.z += moved.z
+          if (entity.movementsThisTick) entity.movementsThisTick.push({ from, to: pos.clone(), requested: vanilla.axisOrderByRequested ? { x: dx, y: dy, z: dz } : moved })
         }
       } else {
         playerBB = box
@@ -560,41 +568,146 @@ function Physics (mcData, world) {
     }
   }
 
+  // The blocks inside the box (web, bubble columns, soul sand before 1.15), then the block speed factor. Since 1.21.2
+  // the blocks act after the whole travel (applyEffectsFromBlocks), not here.
   function applyBlockCollisions (entity, world, playerBB) {
-    const vel = entity.vel
-    // Finally, apply block collisions (web, soulsand...)
-    playerBB = playerBB.clone().contract(0.001, 0.001, 0.001)
-    const cursor = new Vec3(0, 0, 0)
-    for (cursor.y = Math.floor(playerBB.minY); cursor.y <= Math.floor(playerBB.maxY); cursor.y++) {
-      for (cursor.z = Math.floor(playerBB.minZ); cursor.z <= Math.floor(playerBB.maxZ); cursor.z++) {
-        for (cursor.x = Math.floor(playerBB.minX); cursor.x <= Math.floor(playerBB.maxX); cursor.x++) {
-          const block = world.getBlock(cursor)
-          if (block) {
-            if (supportFeature('velocityBlocksOnCollision')) {
-              if (block.type === soulsandId) {
-                vel.x *= physics.soulsandSpeed
-                vel.z *= physics.soulsandSpeed
-              } else if (block.type === honeyblockId) {
-                vel.x *= physics.honeyblockSpeed
-                vel.z *= physics.honeyblockSpeed
-              }
-            }
-            if (block.type === webId) {
-              entity.webPending = true
-            } else if (block.type === bubblecolumnId) {
-              const down = !block.metadata
-              const aboveBlock = world.getBlock(cursor.offset(0, 1, 0))
-              const bubbleDrag = (aboveBlock && aboveBlock.type === 0 /* air */) ? physics.bubbleColumnSurfaceDrag : physics.bubbleColumnDrag
-              if (down) {
-                vel.y = Math.max(bubbleDrag.maxDown, vel.y - bubbleDrag.down)
-              } else {
-                vel.y = Math.min(bubbleDrag.maxUp, vel.y + bubbleDrag.up)
-              }
-            }
-          }
+    if (!vanilla.effectsAfterTravel) insideBlocks(entity, world, cellsInBox(playerBB.clone().contract(0.001, 0.001, 0.001)))
+    speedFactor(entity, world)
+  }
+
+  // 1.21.2+ (Entity.checkInsideBlocks after the travel): each move of the tick is walked axis by axis in the order
+  // the collision took them, and a block acts once, when the box (deflated by 1e-5) at the end of a step touches it
+  // (any block passed through when a step is longer than a block).
+  function insideBlocksAlongMovements (entity, world, startPos) {
+    const movements = entity.movementsThisTick && entity.movementsThisTick.length
+      ? entity.movementsThisTick
+      : [{ from: startPos, to: entity.pos.clone() }]
+    entity.movementsThisTick = undefined
+    const visited = new Set()
+    const deflate = 9.999999747378752e-6
+    const check = (from, to) => {
+      // BlockGetter.forEachBlockIntersectedBetween: the cells of the box where the step began, then those where it
+      // ended, each walked from the corner the step leaves, along the step's axis order
+      const box = getPlayerBB(to).contract(deflate, deflate, deflate)
+      const step = to.minus(from)
+      const long = step.x * step.x + step.y * step.y + step.z * step.z > 0.9999900000002526 * 0.9999900000002526
+      const cells = !vanilla.insideBlocksAlongPath || step.x * step.x + step.y * step.y + step.z * step.z < f32(1.0e-5) * f32(1.0e-5)
+        ? cellsBetweenClosed(box)
+        : [...cellsInDirection(getPlayerBB(from).contract(deflate, deflate, deflate), step), ...cellsInDirection(box, step)]
+      insideBlocks(entity, world, cells, visited, long || !vanilla.insideBlocksEndIntersect ? null : box)
+    }
+    for (const { from, to, requested } of movements) {
+      const d = to.minus(from)
+      // 1.21.5+: axis by axis, in the order of the collided move (1.21.9+: of the requested one)
+      if (vanilla.insideBlocksAxisSteps && requested && (d.x !== 0 || d.y !== 0 || d.z !== 0)) {
+        let at = from
+        const order = Math.abs(requested.x) < Math.abs(requested.z) ? ['y', 'z', 'x'] : ['y', 'x', 'z']
+        for (const axis of order) {
+          if (d[axis] === 0) continue
+          const next = at.clone()
+          next[axis] += d[axis]
+          check(at, next)
+          at = next
+        }
+      } else {
+        check(from, to)
+      }
+    }
+  }
+
+  // BlockPos.betweenClosed: x fastest, then y, then z
+  function cellsBetweenClosed (box) {
+    const cells = []
+    for (let z = Math.floor(box.minZ); z <= Math.floor(box.maxZ); z++) {
+      for (let y = Math.floor(box.minY); y <= Math.floor(box.maxY); y++) {
+        for (let x = Math.floor(box.minX); x <= Math.floor(box.maxX); x++) cells.push(new Vec3(x, y, z))
+      }
+    }
+    return cells
+  }
+
+  // BlockPos.betweenCornersInDirection: from the corner the direction leaves, the axes in its step order (y, then the
+  // larger horizontal one), the first outermost
+  function cellsInDirection (box, direction) {
+    const min = { x: Math.floor(box.minX), y: Math.floor(box.minY), z: Math.floor(box.minZ) }
+    const max = { x: Math.floor(box.maxX), y: Math.floor(box.maxY), z: Math.floor(box.maxZ) }
+    const order = Math.abs(direction.x) < Math.abs(direction.z) ? ['y', 'z', 'x'] : ['y', 'x', 'z']
+    const range = axis => {
+      const values = []
+      for (let v = min[axis]; v <= max[axis]; v++) values.push(v)
+      return direction[axis] >= 0 ? values : values.reverse()
+    }
+    const [first, second, third] = order.map(range)
+    const cells = []
+    for (const a of first) {
+      for (const b of second) {
+        for (const c of third) {
+          const cell = new Vec3(0, 0, 0)
+          cell[order[0]] = a
+          cell[order[1]] = b
+          cell[order[2]] = c
+          cells.push(cell)
         }
       }
     }
+    return cells
+  }
+
+  // Entity.checkInsideBlocks before 1.21.2: x, then y, then z
+  function cellsInBox (box) {
+    const cells = []
+    for (let x = Math.floor(box.minX); x <= Math.floor(box.maxX); x++) {
+      for (let y = Math.floor(box.minY); y <= Math.floor(box.maxY); y++) {
+        for (let z = Math.floor(box.minZ); z <= Math.floor(box.maxZ); z++) cells.push(new Vec3(x, y, z))
+      }
+    }
+    return cells
+  }
+
+  // The blocks the box touches act on the player. With visited (1.21.2+), a block counts once per tick, and only if it
+  // touches endBox when one is given.
+  function insideBlocks (entity, world, cells, visited, endBox) {
+    const vel = entity.vel
+    for (const cursor of cells) {
+      const block = world.getBlock(cursor)
+      if (visited) {
+        if (!block || block.type === airId) continue
+        const key = cursor.x + ',' + cursor.y + ',' + cursor.z
+        if (visited.has(key)) continue
+        visited.add(key)
+        if (endBox && !endBox.intersects(new AABB(cursor.x, cursor.y, cursor.z, cursor.x + 1, cursor.y + 1, cursor.z + 1))) continue
+      }
+      if (!block) continue
+      if (supportFeature('velocityBlocksOnCollision')) {
+        if (block.type === soulsandId) {
+          vel.x *= physics.soulsandSpeed
+          vel.z *= physics.soulsandSpeed
+        } else if (block.type === honeyblockId) {
+          vel.x *= physics.honeyblockSpeed
+          vel.z *= physics.honeyblockSpeed
+        }
+      }
+      if (block.type === webId) {
+        entity.webPending = true
+      } else if (block.type === bubblecolumnId) {
+        const down = !block.metadata
+        const aboveBlock = world.getBlock(cursor.offset(0, 1, 0))
+        // at the surface: air above; 1.21.5+: no collision and no fluid above
+        const surface = vanilla.bubbleSurfaceByShape
+          ? !aboveBlock || (aboveBlock.shapes.length === 0 && !fluidOf(aboveBlock, 'water') && !fluidOf(aboveBlock, 'lava'))
+          : !aboveBlock || aboveBlock.type === airId
+        const bubbleDrag = surface ? physics.bubbleColumnSurfaceDrag : physics.bubbleColumnDrag
+        if (down) {
+          vel.y = Math.max(bubbleDrag.maxDown, vel.y - bubbleDrag.down)
+        } else {
+          vel.y = Math.min(bubbleDrag.maxUp, vel.y + bubbleDrag.up)
+        }
+      }
+    }
+  }
+
+  function speedFactor (entity, world) {
+    const vel = entity.vel
     if (vanilla.blockSpeedFactor) {
       // Entity.getBlockSpeedFactor at the end of the move (1.15+): the block the player is in, else (unless water)
       // the one below that affects its movement
@@ -1318,6 +1431,8 @@ function Physics (mcData, world) {
   physics.simulatePlayer = (entity, world) => {
     const vel = entity.vel
     const pos = entity.pos
+    const startPos = pos.clone()
+    entity.movementsThisTick = vanilla.effectsAfterTravel ? [] : undefined
 
     if (vanilla.fluidHeights) {
       // 1.13+: the fluid heights in the box deflated by 0.001 (Entity.updateFluidHeightAndDoFluidPushing)
@@ -1400,7 +1515,10 @@ function Physics (mcData, world) {
 
     moveEntityWithHeading(entity, world, strafe, forward)
 
-    if (vanilla.effectsAfterTravel) stepOn(entity, world)
+    if (vanilla.effectsAfterTravel) {
+      stepOn(entity, world)
+      insideBlocksAlongMovements(entity, world, startPos)
+    }
 
     if (!vanilla.lavaFluidHeight) {
       // Before 1.16 the lava state is that of where the tick ended: checked on demand (shrunk box) before 1.14, set by
