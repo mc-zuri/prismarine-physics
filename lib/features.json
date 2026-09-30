@@ -171,5 +171,10 @@
     "name": "lavaFluidHeight",
     "description": "Lava is detected by its fluid height like water (pushing 0.0023333), and a weak current is raised to 0.0045",
     "since": "1.16"
+  },
+  {
+    "name": "unifiedFluidInteraction",
+    "description": "EntityFluidInteraction: water and lava in one pass, heights in double from the undeflated box bottom, both updated again after the move",
+    "since": "26.1"
   }
 ]
