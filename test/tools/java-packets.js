@@ -143,6 +143,10 @@ function handle (state, packet, ctx) {
         }
       }
       break
+    case 'update_health':
+      // the food level (sprinting needs more than 6)
+      state.food = p.food
+      break
     case 'entity_effect':
     case 'remove_entity_effect':
       if (self(p.entityId)) {
