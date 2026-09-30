@@ -257,7 +257,12 @@ function makeState (rec, mcData) {
     swiftSneak: enchantment(setup, 'legs', 'swift_sneak'),
     elytraEquipped: !!(setup.equipment && setup.equipment.chest && setup.equipment.chest.id === 'elytra'),
     leatherBoots: !!(setup.equipment && setup.equipment.feet && setup.equipment.feet.id === 'leather_boots'),
-    fallDistance: s.fallDistance || 0
+    fallDistance: s.fallDistance || 0,
+    // creative flight: the abilities (flying and its speed) and whether the game mode allows it
+    flying: !!s.flying,
+    mayFly: s.gameMode === 'creative' || s.gameMode === 'spectator' || rec.gamemode === 'creative' || rec.gamemode === 'spectator',
+    gameMode: s.gameMode || rec.gamemode,
+    flySpeed: s.attributes && s.attributes['abilities.flyingSpeed']
   }
 }
 
@@ -363,6 +368,7 @@ function replay (version, rec, { mode = 'trajectory', fields = FIELDS, epsilon =
       state.isCrouching = before.shiftKeyDown
       state.pose = before.pose
       state.fallDistance = before.fallDistance || 0
+      state.flying = !!before.flying
     }
     // Inputs synced before this tick are those of the previous row (the state the tick started from).
     applyInput(state, { ...(i > 0 ? rows[i - 1] : rec.start), ...(rec.start.netState ? {} : { attributes: row.attributes, attributeModifiers: row.attributeModifiers }), usingItem: row.usingItem, fireworks: row.fireworks, in: row.in }, mcData)
