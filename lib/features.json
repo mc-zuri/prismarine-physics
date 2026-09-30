@@ -232,5 +232,15 @@
     "description": "The eyes are taken 0.11111111 lower when checking for water",
     "since": "1.16",
     "before": "1.21"
+  },
+  {
+    "name": "elytraDoubleCos",
+    "description": "The elytra lift takes cos(pitch) in double (Math.cos), not through Mth.cos as a float",
+    "since": "1.19"
+  },
+  {
+    "name": "elytraSquareOnly",
+    "description": "The elytra lift is cos(pitch)^2 without the look length factor",
+    "since": "1.21.4"
   }
 ]

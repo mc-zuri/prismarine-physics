@@ -163,6 +163,9 @@ function Physics (mcData, world) {
     fluidFallingBeforeMove: supportFeature('modernMove'),
     climbFloatVertical: supportFeature('modernMove'),
     crouchLag: supportFeature('crouchLag'),
+    elytraDoubleCos: supportFeature('elytraDoubleCos'),
+    elytraSquareOnly: supportFeature('elytraSquareOnly'),
+    clientStartsGliding: supportFeature('crouchLag'),
     crouchPose: supportFeature('modernMove'),
     sprintState: supportFeature('sprintState'),
     sprintState13: !supportFeature('modernMove'),
@@ -203,6 +206,21 @@ function Physics (mcData, world) {
   // 1.20.5+ player attributes: gravity, jump strength, step height; 1.21+: sneaking speed
   const gravityOf = entity => vanilla.playerAttributes ? attributeValue(entity, 'gravity', physics.gravity) : physics.gravity
   const stepHeightOf = entity => vanilla.playerAttributes ? f32(attributeValue(entity, 'stepHeight', physics.stepHeight)) : physics.stepHeight
+
+  // Entity.calculateViewVector from the vanilla rotation (Mth trig, float products)
+  function viewVector (entity) {
+    const pitch = f32(pitchDegrees(entity) * DEG_TO_RAD_F)
+    const yaw = f32(-yawDegrees(entity) * DEG_TO_RAD_F)
+    const cosYaw = mthCos(yaw)
+    const sinYaw = mthSin(yaw)
+    const cosPitch = mthCos(pitch)
+    const sinPitch = mthSin(pitch)
+    return new Vec3(f32(sinYaw * cosPitch), -sinPitch, f32(cosYaw * cosPitch))
+  }
+
+  function pitchDegrees (entity) {
+    return typeof entity.pitchDegrees === 'number' ? f32(entity.pitchDegrees) : f32(-entity.pitch * 180 / Math.PI)
+  }
 
   // The vanilla rotation in degrees (a float). Callers holding it pass yawDegrees / pitchDegrees: mineflayer's
   // radians lose the turns beyond one revolution, which Mth.sin's table index keeps.
@@ -1169,44 +1187,45 @@ function Physics (mcData, world) {
         vel.y = f32(physics.outOfLiquidImpulse) // jump out of liquid
       }
     } else if (entity.elytraFlying) {
-      const {
-        pitch,
-        sinPitch,
-        cosPitch,
-        lookDir
-      } = getLookingVector(entity)
+      // LivingEntity.updateFallFlyingMovement: the look vector and pitch in float, the lift from cos(pitch)^2 (a float
+      // through Mth.cos until 1.18, Math.cos since)
+      const look = viewVector(entity)
+      const pitch = f32(pitchDegrees(entity) * DEG_TO_RAD_F)
+      const lookHorizontal = Math.sqrt(look.x * look.x + look.z * look.z)
       const horizontalSpeed = Math.sqrt(vel.x * vel.x + vel.z * vel.z)
-      const cosPitchSquared = cosPitch * cosPitch
-      vel.y += effectiveGravity * (-1.0 + cosPitchSquared * 0.75)
-      // cosPitch is in [0, 1], so cosPitch > 0.0 is just to protect against
-      // divide by zero errors
-      if (vel.y < 0.0 && cosPitch > 0.0) {
-        const movingDownSpeedModifier = vel.y * (-0.1) * cosPitchSquared
-        vel.x += lookDir.x * movingDownSpeedModifier / cosPitch
-        vel.y += movingDownSpeedModifier
-        vel.z += lookDir.z * movingDownSpeedModifier / cosPitch
+      const lookLength = Math.sqrt(look.x * look.x + look.y * look.y + look.z * look.z)
+      let lift
+      if (vanilla.elytraDoubleCos) {
+        const cos = Math.cos(pitch)
+        lift = vanilla.elytraSquareOnly ? cos * cos : cos * cos * Math.min(1, lookLength / 0.4)
+      } else {
+        const cos = mthCos(pitch)
+        lift = f32(cos * cos * Math.min(1, lookLength / 0.4))
       }
-
-      if (pitch > 0.0 && cosPitch > 0.0) {
-        const lookDownSpeedModifier = horizontalSpeed * sinPitch * 0.04
-        vel.x += -lookDir.x * lookDownSpeedModifier / cosPitch
-        vel.y += lookDownSpeedModifier * 3.2
-        vel.z += -lookDir.z * lookDownSpeedModifier / cosPitch
+      vel.y += effectiveGravity * (-1.0 + lift * 0.75)
+      if (vel.y < 0 && lookHorizontal > 0) {
+        const down = vel.y * -0.1 * lift
+        vel.x += look.x * down / lookHorizontal
+        vel.y += down
+        vel.z += look.z * down / lookHorizontal
       }
-
-      if (cosPitch > 0.0) {
-        vel.x += (lookDir.x / cosPitch * horizontalSpeed - vel.x) * 0.1
-        vel.z += (lookDir.z / cosPitch * horizontalSpeed - vel.z) * 0.1
+      if (pitch < 0 && lookHorizontal > 0) {
+        const up = horizontalSpeed * -mthSin(pitch) * 0.04
+        vel.x += -look.x * up / lookHorizontal
+        vel.y += up * 3.2
+        vel.z += -look.z * up / lookHorizontal
       }
-
-      vel.x *= 0.99
-      vel.y *= 0.98
-      vel.z *= 0.99
+      if (lookHorizontal > 0) {
+        vel.x += (look.x / lookHorizontal * horizontalSpeed - vel.x) * 0.1
+        vel.z += (look.z / lookHorizontal * horizontalSpeed - vel.z) * 0.1
+      }
+      vel.x *= f32(0.99)
+      vel.y *= f32(0.98)
+      vel.z *= f32(0.99)
       moveEntity(entity, world, vel.x, vel.y, vel.z)
-
-      if (entity.onGround) {
-        entity.elytraFlying = false
-      }
+      // 1.15+ the client ends the glide on the ground at the start of the next tick (updateFallFlying); before, the
+      // server ends it, which is approximated by ending it on landing
+      if (!vanilla.clientStartsGliding && entity.onGround) entity.elytraFlying = false
     } else {
       // Normal movement
       let acceleration = 0.0
@@ -1616,6 +1635,13 @@ function Physics (mcData, world) {
 
     if (vanilla.sprintState) updateSprinting(entity, world)
 
+    // 1.15+: pressing jump in the air with an elytra starts gliding at once (LocalPlayer.aiStep, tryToStartFallFlying);
+    // before, the server starts it
+    if (vanilla.clientStartsGliding && entity.control.jump && !entity.jumpHeld && !entity.elytraFlying && entity.elytraEquipped &&
+      !entity.onGround && !entity.isInWater && !entity.levitation && !isOnLadder(world, entity.pos)) {
+      entity.elytraFlying = true
+    }
+
     // Reset velocity component if it falls under the threshold (1.21.5+: the player's horizontal speed as a whole)
     if (vanilla.playerHorizontalThreshold) {
       if (vel.x * vel.x + vel.z * vel.z < 9.0e-6) {
@@ -1663,7 +1689,8 @@ function Physics (mcData, world) {
     entity.xxa = strafe
     entity.zza = forward
 
-    entity.elytraFlying = entity.elytraFlying && entity.elytraEquipped && !entity.onGround && !entity.levitation
+    // 1.15+ only the server ends a glide (the flag it syncs); before, the engine ends it like the server would
+    if (!vanilla.clientStartsGliding) entity.elytraFlying = entity.elytraFlying && entity.elytraEquipped && !entity.onGround && !entity.levitation
 
     if (entity.fireworkRocketDuration > 0) {
       if (!entity.elytraFlying) {
@@ -1692,6 +1719,9 @@ function Physics (mcData, world) {
         ? isMaterialInBB(world, box.contract(0.001, 0.001, 0.001), lavaIds)
         : isMaterialInBB(world, box.contract(0.1, 0.4, 0.1), lavaIds)
     }
+
+    // The jump key the next tick compares with
+    entity.jumpHeld = !!entity.control.jump
 
     // The crouching state the next tick starts with: the sneak key held, unless gliding
     entity.isCrouching = !!entity.control.sneak && !entity.elytraFlying
@@ -1757,6 +1787,7 @@ class PlayerState {
     this.isInWeb = bot.entity.isInWeb
     this.stuckSpeedMultiplier = bot.entity.stuckSpeedMultiplier
     this.isCrouching = bot.entity.isCrouching ?? false
+    this.jumpHeld = bot.entity.jumpHeld ?? false
     // The sprint state (vanilla's isSprinting): the sprint key starts it, the game's conditions stop it
     this.sprinting = bot.entity.sprinting ?? false
     this.minorHorizontalCollision = bot.entity.minorHorizontalCollision ?? false
@@ -1869,6 +1900,7 @@ class PlayerState {
     bot.entity.isInWeb = this.isInWeb
     bot.entity.stuckSpeedMultiplier = this.stuckSpeedMultiplier
     bot.entity.isCrouching = this.isCrouching
+    bot.entity.jumpHeld = this.jumpHeld
     bot.entity.sprinting = this.sprinting
     bot.entity.minorHorizontalCollision = this.minorHorizontalCollision
     bot.entity.supportingBlockPos = this.supportingBlockPos
