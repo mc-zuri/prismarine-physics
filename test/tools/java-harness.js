@@ -77,6 +77,26 @@ function parseState (text) {
   return { name: text.slice(0, open), properties }
 }
 
+// A recorded block state as a prismarine stateId. 1.13+: "name[prop=value,...]". Before the flattening states are
+// id and metadata (legacy stateId = id << 4 | metadata): 1.8.9–1.12.2 recordings append the stored state
+// ("fence[east=true,...]@85:0", the bracket part being the rendered view), 1.7.10 ones give "ladder[metadata=2]".
+function parseStateId (text, mcData, Block, version) {
+  const at = text.lastIndexOf('@')
+  if (at >= 0) {
+    const [id, metadata] = text.slice(at + 1).split(':').map(Number)
+    return id * 16 + (metadata || 0)
+  }
+  const { name, properties } = parseState(text)
+  const block = mcData.blocksByName[name]
+  if (!block) throw new Error(`minecraft-data ${version} has no block ${name}`)
+  if (properties.metadata !== undefined) return block.id * 16 + Number(properties.metadata)
+  if (mcData.isOlderThan('1.13')) {
+    // A pre-flattening state without its stored metadata: the properties when prismarine-block can map them.
+    try { return Block.fromProperties(name, properties, 0).stateId } catch { return block.id * 16 }
+  }
+  return Block.fromProperties(name, properties, 0).stateId
+}
+
 // The recorded world of one area as a prismarine world: getBlock(pos) -> prismarine-block with its position.
 function world (version, areaName) {
   const loaded = load(version)
@@ -87,11 +107,7 @@ function world (version, areaName) {
     const mcData = require('minecraft-data')(version)
     const states = new Map()
     const stateId = text => {
-      if (!states.has(text)) {
-        const { name, properties } = parseState(text)
-        if (!mcData.blocksByName[name]) throw new Error(`minecraft-data ${version} has no block ${name}`)
-        states.set(text, Block.fromProperties(name, properties, 0).stateId)
-      }
+      if (!states.has(text)) states.set(text, parseStateId(text, mcData, Block, version))
       return states.get(text)
     }
     const cells = new Map()
