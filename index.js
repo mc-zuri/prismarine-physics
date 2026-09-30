@@ -57,8 +57,10 @@ function Physics (mcData, world) {
   const waterIds = [blocksByName.water.id, blocksByName.flowing_water ? blocksByName.flowing_water.id : -1]
   const lavaIds = [blocksByName.lava.id, blocksByName.flowing_lava ? blocksByName.flowing_lava.id : -1]
   const ladderId = blocksByName.ladder.id
-  const vineId = blocksByName.vine.id
   const scaffoldingId = blocksByName.scaffolding ? blocksByName.scaffolding.id : -1 // 1.14+
+  // BlockTags.CLIMBABLE (scaffolding apart): ladders, vines, and the nether (1.16+) and cave (1.17+) vines
+  const climbableIds = new Set(['ladder', 'vine', 'weeping_vines', 'weeping_vines_plant', 'twisting_vines', 'twisting_vines_plant', 'cave_vines', 'cave_vines_plant']
+    .filter(name => blocksByName[name]).map(name => blocksByName[name].id))
 
   // NOTE: Copper trapdoors is coming in 1.21.
   const trapdoorIds = new Set()
@@ -1015,7 +1017,7 @@ function Physics (mcData, world) {
   function isOnLadder (world, pos) {
     const block = world.getBlock(pos)
     if (!block) { return false }
-    if (block.type === ladderId || block.type === vineId) { return true }
+    if (climbableIds.has(block.type)) { return true }
     if (scaffoldingId !== -1 && block.type === scaffoldingId) { return true }
 
     // Since 1.9, when a trapdoor satisfies the following conditions, it also becomes climbable:
