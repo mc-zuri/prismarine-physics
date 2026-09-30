@@ -55,9 +55,9 @@
     "since": "1.13"
   },
   {
-    "name": "frictionAfterMove",
-    "description": "The ground friction applied after the move is looked up again under the new position",
-    "before": "1.14"
+    "name": "vec3NormalizeFloatSqrt",
+    "description": "Vec3.normalize takes the length through Mth.sqrt, a float",
+    "before": "1.17"
   },
   {
     "name": "squareMovementInput",

@@ -129,7 +129,7 @@ function Physics (mcData, world) {
     floatMoveRelative: supportFeature('floatMoveRelative'),
     yawPiOver180: supportFeature('moveRelativeYawPiOver180'),
     groundFriction: supportFeature('frictionCubeOfSlipperiness') ? f32(0.21600002) : supportFeature('frictionConstant16277137') ? f32(0.16277137) : f32(0.16277136),
-    frictionAfterMove: supportFeature('frictionAfterMove'),
+    normalizeFloatSqrt: supportFeature('vec3NormalizeFloatSqrt'),
     squareMovementInput: supportFeature('squareMovementInput'),
     playerHorizontalThreshold: supportFeature('playerHorizontalVelocityThreshold'),
     velocityThreshold: supportFeature('velocityThreshold005') ? 0.005 : 0.003,
@@ -635,7 +635,8 @@ function Physics (mcData, world) {
     const lengthSqr = xxa * xxa + zza * zza
     if (lengthSqr < 1.0e-7) return
     if (lengthSqr > 1) {
-      const length = Math.sqrt(lengthSqr)
+      // Vec3.normalize: the length through Mth.sqrt (a float) before 1.17
+      const length = vanilla.normalizeFloatSqrt ? f32(Math.sqrt(lengthSqr)) : Math.sqrt(lengthSqr)
       xxa /= length
       zza /= length
     }
@@ -852,11 +853,6 @@ function Physics (mcData, world) {
         vel.y -= physics.gravity * gravityMultiplier
       }
       vel.y *= physics.airdrag
-      if (vanilla.frictionAfterMove) {
-        // Before 1.14 the slipperiness is looked up again where the move ended.
-        const blockUnder = world.getBlock(pos.offset(0, -1, 0))
-        inertia = entity.onGround ? f32(f32(blockUnder ? (blockSlipperiness[blockUnder.type] || physics.defaultSlipperiness) : physics.defaultSlipperiness) * f32(0.91)) : f32(physics.airborneInertia)
-      }
       vel.x *= inertia
       vel.z *= inertia
     }
