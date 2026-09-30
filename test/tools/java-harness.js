@@ -239,6 +239,8 @@ function makeState (rec, mcData) {
     food: s.food,
     sprinting: s.sprinting,
     isCrouching: s.shiftKeyDown,
+    pose: s.pose,
+    crouching: s.crouching,
     fireworkRocketDuration: 0,
     attributes: attributesOf(s, mcData),
     yaw: yawOf(s.yaw),
@@ -354,6 +356,7 @@ function replay (version, rec, { mode = 'trajectory', fields = FIELDS, epsilon =
       // the state the tick carries over: sprinting, and the sneak key the next crouching comes from
       state.sprinting = before.sprinting
       state.isCrouching = before.shiftKeyDown
+      state.pose = before.pose
     }
     // Inputs synced before this tick are those of the previous row (the state the tick started from).
     applyInput(state, { ...(i > 0 ? rows[i - 1] : rec.start), ...(rec.start.netState ? {} : { attributes: row.attributes, attributeModifiers: row.attributeModifiers }), usingItem: row.usingItem, in: row.in }, mcData)
