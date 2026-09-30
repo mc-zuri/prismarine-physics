@@ -196,5 +196,11 @@
     "name": "bubbleSurfaceByShape",
     "description": "A bubble column is at the surface when the block above has no collision and no fluid (air before)",
     "since": "1.21.5"
+  },
+  {
+    "name": "worldBorderCollider",
+    "description": "The world border shape is always among the colliders of a move (only near the border since)",
+    "since": "1.14",
+    "before": "1.18"
   }
 ]

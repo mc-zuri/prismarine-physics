@@ -161,6 +161,7 @@ function Physics (mcData, world) {
     lavaInsideBlocks: supportFeature('modernMove'),
     minimumFluidPush: supportFeature('lavaFluidHeight'),
     unifiedFluidInteraction: supportFeature('unifiedFluidInteraction'),
+    worldBorderCollider: supportFeature('worldBorderCollider'),
     insideBlocksAlongPath: supportFeature('insideBlocksAlongPath'),
     insideBlocksAxisSteps: supportFeature('insideBlocksAxisSteps'),
     axisOrderByRequested: supportFeature('insideBlocksAlongPath'),
@@ -256,7 +257,7 @@ function Physics (mcData, world) {
         }
       }
     }
-    return Math.abs(dist) < EPSILON ? 0 : dist
+    return dist
   }
 
   function expandTowards (box, x, y, z) {
@@ -267,8 +268,14 @@ function Physics (mcData, world) {
   function collisionShapes (world, box, x, y, z) {
     const swept = expandTowards(box, x, y, z)
     const shapes = getSurroundingBBs(world, swept)
-    return vanilla.modernMove ? shapes.filter(shape => shape.intersects(swept)) : shapes
+    if (!vanilla.modernMove) return shapes
+    const inside = shapes.filter(shape => shape.intersects(swept))
+    // 1.14-1.16: the world border's shape is always among the colliders (while inside it), so a move under 1e-7 is
+    // dropped even in open space. It stands far away here (the engine does not model the border itself).
+    if (vanilla.worldBorderCollider) inside.push(WORLD_BORDER)
+    return inside
   }
+  const WORLD_BORDER = new AABB(3.0e7, -1.0e9, 3.0e7, 3.0e7 + 1, 1.0e9, 3.0e7 + 1)
 
   // Entity.collideWithShapes (1.14+): y first, then the larger horizontal axis.
   function collideWithShapes (x, y, z, box, shapes) {
@@ -296,6 +303,11 @@ function Physics (mcData, world) {
   }
 
   const horizontalSqr = v => v.x * v.x + v.z * v.z
+
+  function legacyShapes (world, queryBB) {
+    const shapes = getSurroundingBBs(world, queryBB)
+    return vanilla.voxelCollision ? shapes.filter(shape => shape.intersects(queryBB)) : shapes
+  }
 
   // Entity.collide (1.14+), with the step up onto blocks up to stepHeight.
   function collideModern (entity, world, move, box) {
@@ -459,7 +471,8 @@ function Physics (mcData, world) {
     }
 
     const queryBB = playerBB.clone().extend(dx, dy, dz)
-    const surroundingBBs = getSurroundingBBs(world, queryBB)
+    // 1.13: only the shapes inside the swept box (VoxelShapes drop a move under 1e-7 only against one)
+    const surroundingBBs = legacyShapes(world, queryBB)
     const oldBB = playerBB.clone()
 
     dy = collideAxis('y', playerBB, surroundingBBs, dy)
@@ -482,7 +495,7 @@ function Physics (mcData, world) {
 
       dy = physics.stepHeight
       const queryBB = oldBB.clone().extend(oldVelX, dy, oldVelZ)
-      const surroundingBBs = getSurroundingBBs(world, queryBB)
+      const surroundingBBs = legacyShapes(world, queryBB)
 
       const BB1 = oldBB.clone()
       const BB2 = oldBB.clone()
