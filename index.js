@@ -78,15 +78,15 @@ function Physics (mcData, world) {
     playerSpeed: 0.1,
     sprintSpeed: Math.fround(0.3), // the sprint modifier amount is (double) 0.3F
     sneakSpeed: 0.3,
-    stepHeight: 0.6, // how much height can the bot step on without jump
+    stepHeight: Math.fround(0.6), // how much height can the bot step on without jump (a float)
     negligeableVelocity: 0.003, // actually 0.005 for 1.8, but seems fine
     soulsandSpeed: 0.4,
     honeyblockSpeed: 0.4,
     honeyblockJumpSpeed: 0.4,
     ladderMaxSpeed: 0.15,
     ladderClimbSpeed: 0.2,
-    playerHalfWidth: 0.3,
-    playerHeight: 1.8,
+    playerHalfWidth: Math.fround(0.6) / 2, // the player's dimensions are floats: 0.6F wide, 1.8F tall
+    playerHeight: Math.fround(1.8),
     waterInertia: 0.8,
     lavaInertia: 0.5,
     liquidAcceleration: 0.02,
@@ -136,7 +136,14 @@ function Physics (mcData, world) {
     airSprintSpeed: supportFeature('airSprintSpeedFloatSum') ? f32(f32(0.02) + f32(0.006)) : f32(0.025999999),
     jumpBoostFloatSum: supportFeature('jumpBoostFloatSum'),
     jumpSprintDouble: supportFeature('jumpSprintBoostDouble'),
-    jumpKeepsVelocity: supportFeature('jumpKeepsHigherVelocity')
+    jumpKeepsVelocity: supportFeature('jumpKeepsHigherVelocity'),
+    voxelCollision: supportFeature('voxelShapeCollision'),
+    modernMove: supportFeature('modernMove'),
+    candidateStepHeights: supportFeature('candidateStepUpHeights'),
+    positionFromBoxCenter: supportFeature('positionFromBoxCenter'),
+    moveWhenBlocked: supportFeature('moveWhenFullyBlocked'),
+    collisionEpsilonVelocity: supportFeature('collisionEpsilonVelocityReset'),
+    webSpeed: f32(0.05) // a cobweb scales the move by (0.25, 0.05F, 0.25)
   }
 
   // The vanilla rotation in degrees (a float). Callers holding it pass yawDegrees / pitchDegrees: mineflayer's
@@ -152,12 +159,6 @@ function Physics (mcData, world) {
   function getPlayerBB (pos) {
     const w = physics.playerHalfWidth
     return new AABB(-w, 0, -w, w, physics.playerHeight, w).offset(pos.x, pos.y, pos.z)
-  }
-
-  function setPositionToBB (bb, pos) {
-    pos.x = bb.minX + physics.playerHalfWidth
-    pos.y = bb.minY
-    pos.z = bb.minZ + physics.playerHalfWidth
   }
 
   function getSurroundingBBs (world, queryBB) {
@@ -181,6 +182,135 @@ function Physics (mcData, world) {
     return surroundingBBs
   }
 
+  // ---- collision as vanilla computes it ----
+
+  // Shapes.collide / VoxelShape.collideX (1.13+): a face ahead counts within 1e-7, the other two axes must overlap by
+  // more than 1e-7, and a movement under 1e-7 is none. Before 1.13, AxisAlignedBB.calculateXOffset (no epsilon).
+  const EPSILON = 1.0e-7
+  const AXES = {
+    x: ['minX', 'maxX', 'minY', 'maxY', 'minZ', 'maxZ'],
+    y: ['minY', 'maxY', 'minX', 'maxX', 'minZ', 'maxZ'],
+    z: ['minZ', 'maxZ', 'minX', 'maxX', 'minY', 'maxY']
+  }
+  function collideAxis (axis, box, shapes, dist) {
+    if (!vanilla.voxelCollision) {
+      for (const shape of shapes) {
+        if (axis === 'x') dist = shape.computeOffsetX(box, dist)
+        else if (axis === 'y') dist = shape.computeOffsetY(box, dist)
+        else dist = shape.computeOffsetZ(box, dist)
+      }
+      return dist
+    }
+    const [min, max, min1, max1, min2, max2] = AXES[axis]
+    for (const shape of shapes) {
+      if (Math.abs(dist) < EPSILON) return 0
+      if (!(box[min1] + EPSILON < shape[max1] && box[max1] - EPSILON >= shape[min1] &&
+        box[min2] + EPSILON < shape[max2] && box[max2] - EPSILON >= shape[min2])) continue
+      if (dist > 0) {
+        if (box[max] - EPSILON < shape[min]) {
+          const d = shape[min] - box[max]
+          if (d >= -EPSILON) dist = Math.min(dist, d)
+        }
+      } else if (dist < 0) {
+        if (box[min] + EPSILON >= shape[max]) {
+          const d = shape[max] - box[min]
+          if (d <= EPSILON) dist = Math.max(dist, d)
+        }
+      }
+    }
+    return Math.abs(dist) < EPSILON ? 0 : dist
+  }
+
+  function expandTowards (box, x, y, z) {
+    return box.clone().extend(x, y, z)
+  }
+
+  // The block shapes a move of box by (x, y, z) can meet: those inside the swept box (1.14+ keeps only these).
+  function collisionShapes (world, box, x, y, z) {
+    const swept = expandTowards(box, x, y, z)
+    const shapes = getSurroundingBBs(world, swept)
+    return vanilla.modernMove ? shapes.filter(shape => shape.intersects(swept)) : shapes
+  }
+
+  // Entity.collideWithShapes (1.14+): y first, then the larger horizontal axis.
+  function collideWithShapes (x, y, z, box, shapes) {
+    if (shapes.length === 0) return { x, y, z }
+    box = box.clone()
+    if (y !== 0) {
+      y = collideAxis('y', box, shapes, y)
+      if (y !== 0) box.offset(0, y, 0)
+    }
+    const zFirst = Math.abs(x) < Math.abs(z)
+    if (zFirst && z !== 0) {
+      z = collideAxis('z', box, shapes, z)
+      if (z !== 0) box.offset(0, 0, z)
+    }
+    if (x !== 0) {
+      x = collideAxis('x', box, shapes, x)
+      if (!zFirst && x !== 0) box.offset(x, 0, 0)
+    }
+    if (!zFirst && z !== 0) z = collideAxis('z', box, shapes, z)
+    return { x, y, z }
+  }
+
+  function collideBoundingBox (world, x, y, z, box) {
+    return collideWithShapes(x, y, z, box, collisionShapes(world, box, x, y, z))
+  }
+
+  const horizontalSqr = v => v.x * v.x + v.z * v.z
+
+  // Entity.collide (1.14+), with the step up onto blocks up to stepHeight.
+  function collideModern (entity, world, move, box) {
+    const moved = (move.x === 0 && move.y === 0 && move.z === 0) ? { ...move } : collideBoundingBox(world, move.x, move.y, move.z, box)
+    const collidedX = move.x !== moved.x
+    const collidedZ = move.z !== moved.z
+    const landing = move.y !== moved.y && move.y < 0
+    const step = physics.stepHeight
+    if (!(step > 0 && (landing || entity.onGround) && (collidedX || collidedZ))) return moved
+
+    if (vanilla.candidateStepHeights) {
+      // 1.21+: try each height a collider's face offers within the step, lowest first.
+      const base = landing ? box.clone().offset(0, moved.y, 0) : box
+      let query = expandTowards(base, move.x, step, move.z)
+      if (!landing) query = expandTowards(query, 0, -9.999999747378752e-6, 0)
+      const shapes = collisionShapes(world, query, 0, 0, 0)
+      const collidedY = f32(moved.y)
+      const heights = new Set()
+      for (const shape of shapes) {
+        for (const coord of [shape.minY, shape.maxY]) {
+          const height = f32(coord - base.minY)
+          if (height < 0 || height === collidedY) continue
+          if (height > step) break
+          heights.add(height)
+        }
+      }
+      for (const height of [...heights].sort((a, b) => a - b)) {
+        const stepped = collideWithShapes(move.x, height, move.z, base, shapes)
+        if (horizontalSqr(stepped) > horizontalSqr(moved)) {
+          const dropped = box.minY - base.minY
+          return { x: stepped.x, y: stepped.y - dropped, z: stepped.z }
+        }
+      }
+      return moved
+    }
+
+    let stepped = collideBoundingBox(world, move.x, step, move.z, box)
+    const up = collideBoundingBox(world, 0, step, 0, expandTowards(box, move.x, 0, move.z))
+    if (up.y < step) {
+      const across = collideBoundingBox(world, move.x, 0, move.z, box.clone().offset(up.x, up.y, up.z))
+      const total = { x: across.x + up.x, y: across.y + up.y, z: across.z + up.z }
+      if (horizontalSqr(total) > horizontalSqr(stepped)) stepped = total
+    }
+    if (horizontalSqr(stepped) > horizontalSqr(moved)) {
+      const down = collideBoundingBox(world, 0, -stepped.y + move.y, 0, box.clone().offset(stepped.x, stepped.y, stepped.z))
+      return { x: stepped.x + down.x, y: stepped.y + down.y, z: stepped.z + down.z }
+    }
+    return moved
+  }
+
+  // Mth.equal
+  const nearlyEqual = (a, b) => Math.abs(b - a) < f32(1.0e-5)
+
   physics.adjustPositionHeight = (pos) => {
     const playerBB = getPlayerBB(pos)
     const queryBB = playerBB.clone().extend(0, -1, 0)
@@ -199,7 +329,7 @@ function Physics (mcData, world) {
 
     if (entity.isInWeb) {
       dx *= 0.25
-      dy *= 0.05
+      dy *= vanilla.webSpeed
       dz *= 0.25
       vel.x = 0
       vel.y = 0
@@ -242,23 +372,55 @@ function Physics (mcData, world) {
     }
 
     let playerBB = getPlayerBB(pos)
+    if (vanilla.modernMove) {
+      const box = playerBB
+      const moved = collideModern(entity, world, { x: dx, y: dy, z: dz }, box)
+      const movedSqr = moved.x * moved.x + moved.y * moved.y + moved.z * moved.z
+      const requestedSqr = dx * dx + dy * dy + dz * dz
+      playerBB = box.clone().offset(moved.x, moved.y, moved.z)
+      if (movedSqr > 1.0e-7 || (vanilla.moveWhenBlocked && requestedSqr - movedSqr < 1.0e-7)) {
+        if (vanilla.positionFromBoxCenter) {
+          pos.x = (playerBB.minX + playerBB.maxX) / 2
+          pos.y = playerBB.minY
+          pos.z = (playerBB.minZ + playerBB.maxZ) / 2
+        } else {
+          pos.x += moved.x
+          pos.y += moved.y
+          pos.z += moved.z
+        }
+      } else {
+        playerBB = box
+      }
+      const collidedX = !nearlyEqual(dx, moved.x)
+      const collidedZ = !nearlyEqual(dz, moved.z)
+      entity.isCollidedHorizontally = collidedX || collidedZ
+      entity.isCollidedVertically = dy !== moved.y
+      entity.onGround = entity.isCollidedVertically && dy < 0
+      if (vanilla.collisionEpsilonVelocity) {
+        if (collidedX) vel.x = 0
+        if (collidedZ) vel.z = 0
+      } else {
+        // 1.14-1.18: each axis resets from the velocity before either reset (x comes back when both collide)
+        const before = vel.clone()
+        if (dx !== moved.x) { vel.x = 0; vel.y = before.y; vel.z = before.z }
+        if (dz !== moved.z) { vel.x = before.x; vel.y = before.y; vel.z = 0 }
+      }
+      if (dy !== moved.y) afterFallOn(entity, world, vel)
+      applyBlockCollisions(entity, world, playerBB)
+      return
+    }
+
     const queryBB = playerBB.clone().extend(dx, dy, dz)
     const surroundingBBs = getSurroundingBBs(world, queryBB)
     const oldBB = playerBB.clone()
 
-    for (const blockBB of surroundingBBs) {
-      dy = blockBB.computeOffsetY(playerBB, dy)
-    }
+    dy = collideAxis('y', playerBB, surroundingBBs, dy)
     playerBB.offset(0, dy, 0)
 
-    for (const blockBB of surroundingBBs) {
-      dx = blockBB.computeOffsetX(playerBB, dx)
-    }
+    dx = collideAxis('x', playerBB, surroundingBBs, dx)
     playerBB.offset(dx, 0, 0)
 
-    for (const blockBB of surroundingBBs) {
-      dz = blockBB.computeOffsetZ(playerBB, dz)
-    }
+    dz = collideAxis('z', playerBB, surroundingBBs, dz)
     playerBB.offset(0, 0, dz)
 
     // Step on block if height < stepHeight
@@ -278,30 +440,18 @@ function Physics (mcData, world) {
       const BB2 = oldBB.clone()
       const BB_XZ = BB1.clone().extend(dx, 0, dz)
 
-      let dy1 = dy
-      let dy2 = dy
-      for (const blockBB of surroundingBBs) {
-        dy1 = blockBB.computeOffsetY(BB_XZ, dy1)
-        dy2 = blockBB.computeOffsetY(BB2, dy2)
-      }
+      const dy1 = collideAxis('y', BB_XZ, surroundingBBs, dy)
+      const dy2 = collideAxis('y', BB2, surroundingBBs, dy)
       BB1.offset(0, dy1, 0)
       BB2.offset(0, dy2, 0)
 
-      let dx1 = oldVelX
-      let dx2 = oldVelX
-      for (const blockBB of surroundingBBs) {
-        dx1 = blockBB.computeOffsetX(BB1, dx1)
-        dx2 = blockBB.computeOffsetX(BB2, dx2)
-      }
+      const dx1 = collideAxis('x', BB1, surroundingBBs, oldVelX)
+      const dx2 = collideAxis('x', BB2, surroundingBBs, oldVelX)
       BB1.offset(dx1, 0, 0)
       BB2.offset(dx2, 0, 0)
 
-      let dz1 = oldVelZ
-      let dz2 = oldVelZ
-      for (const blockBB of surroundingBBs) {
-        dz1 = blockBB.computeOffsetZ(BB1, dz1)
-        dz2 = blockBB.computeOffsetZ(BB2, dz2)
-      }
+      const dz1 = collideAxis('z', BB1, surroundingBBs, oldVelZ)
+      const dz2 = collideAxis('z', BB2, surroundingBBs, oldVelZ)
       BB1.offset(0, 0, dz1)
       BB2.offset(0, 0, dz2)
 
@@ -320,9 +470,7 @@ function Physics (mcData, world) {
         playerBB = BB2
       }
 
-      for (const blockBB of surroundingBBs) {
-        dy = blockBB.computeOffsetY(playerBB, dy)
-      }
+      dy = collideAxis('y', playerBB, surroundingBBs, dy)
       playerBB.offset(0, dy, 0)
 
       if (oldVelXCol * oldVelXCol + oldVelZCol * oldVelZCol >= dx * dx + dz * dz) {
@@ -333,26 +481,34 @@ function Physics (mcData, world) {
       }
     }
 
-    // Update flags
-    setPositionToBB(playerBB, pos)
+    // Update flags: before 1.14 the position is the center of the moved box
+    pos.x = (playerBB.minX + playerBB.maxX) / 2
+    pos.y = playerBB.minY
+    pos.z = (playerBB.minZ + playerBB.maxZ) / 2
     entity.isCollidedHorizontally = dx !== oldVelX || dz !== oldVelZ
     entity.isCollidedVertically = dy !== oldVelY
     entity.onGround = entity.isCollidedVertically && oldVelY < 0
 
-    const blockAtFeet = world.getBlock(pos.offset(0, -0.2, 0))
-
     if (dx !== oldVelX) vel.x = 0
     if (dz !== oldVelZ) vel.z = 0
-    if (dy !== oldVelY) {
-      if (blockAtFeet && blockAtFeet.type === slimeBlockId && !entity.control.sneak) {
-        vel.y = -vel.y
-      } else {
-        vel.y = 0
-      }
-    }
+    if (dy !== oldVelY) afterFallOn(entity, world, vel)
+    applyBlockCollisions(entity, world, playerBB)
+  }
 
+  // Block.updateEntityAfterFallOn: slime bounces a falling player back up unless sneaking; others stop it.
+  function afterFallOn (entity, world, vel) {
+    const blockAtFeet = world.getBlock(entity.pos.offset(0, -0.2, 0))
+    if (blockAtFeet && blockAtFeet.type === slimeBlockId && !entity.control.sneak) {
+      if (vel.y < 0) vel.y = -vel.y
+    } else {
+      vel.y = 0
+    }
+  }
+
+  function applyBlockCollisions (entity, world, playerBB) {
+    const vel = entity.vel
     // Finally, apply block collisions (web, soulsand...)
-    playerBB.contract(0.001, 0.001, 0.001)
+    playerBB = playerBB.clone().contract(0.001, 0.001, 0.001)
     const cursor = new Vec3(0, 0, 0)
     for (cursor.y = Math.floor(playerBB.minY); cursor.y <= Math.floor(playerBB.maxY); cursor.y++) {
       for (cursor.z = Math.floor(playerBB.minZ); cursor.z <= Math.floor(playerBB.maxZ); cursor.z++) {

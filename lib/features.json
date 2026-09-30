@@ -77,7 +77,7 @@
   {
     "name": "airSprintSpeedFloatSum",
     "description": "Sprinting air speed is 0.02F + 0.006F in float",
-    "since": "1.19",
+    "since": "22w19a",
     "before": "1.19.4"
   },
   {
@@ -100,5 +100,36 @@
     "name": "jumpKeepsHigherVelocity",
     "description": "A jump keeps a higher upward velocity",
     "since": "1.21.2"
+  },
+  {
+    "name": "voxelShapeCollision",
+    "description": "Collisions use VoxelShapes: faces count within 1e-7, other axes must overlap by more than 1e-7, moves under 1e-7 are dropped",
+    "since": "1.13"
+  },
+  {
+    "name": "modernMove",
+    "description": "Entity.collide: y then the larger horizontal axis first, the combined step-up, the move applied only above 1e-7 squared, Mth.equal horizontal collision",
+    "since": "1.14"
+  },
+  {
+    "name": "candidateStepUpHeights",
+    "description": "The step up tries the heights of the colliders faces within the step, lowest first",
+    "since": "1.21"
+  },
+  {
+    "name": "positionFromBoxCenter",
+    "description": "After a move the position is the center of the moved bounding box",
+    "since": "1.14",
+    "before": "1.17"
+  },
+  {
+    "name": "moveWhenFullyBlocked",
+    "description": "A move also applies when the collided movement is within 1e-7 of the requested one",
+    "since": "1.21.2"
+  },
+  {
+    "name": "collisionEpsilonVelocityReset",
+    "description": "The velocity is reset on the axes that collided by more than 1e-5 (Mth.equal); before, on any difference, the z reset restoring x",
+    "since": "1.19"
   }
 ]
