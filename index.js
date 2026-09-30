@@ -847,8 +847,8 @@ function Physics (mcData, world) {
     return Math.abs(blockPos.x + 0.5 - pos.x) + 1.0e-7 > reach || Math.abs(blockPos.z + 0.5 - pos.z) + 1.0e-7 > reach
   }
 
-  // The blocks the box touches act on the player. With visited (1.21.2+), a block counts once per tick, and only if it
-  // touches endBox when one is given.
+  // The blocks the box touches act on the player. With visited (1.21.2+), a block counts once per tick; bubble columns
+  // act only if they touch endBox when one is given.
   function insideBlocks (entity, world, cells, visited, endBox) {
     const vel = entity.vel
     for (const cursor of cells) {
@@ -858,8 +858,9 @@ function Physics (mcData, world) {
         const key = cursor.x + ',' + cursor.y + ',' + cursor.z
         if (visited.has(key)) continue
         visited.add(key)
-        if (endBox && !endBox.intersects(new AABB(cursor.x, cursor.y, cursor.z, cursor.x + 1, cursor.y + 1, cursor.z + 1))) continue
       }
+      // 1.21.10+: whether the step's end box touches the block (only bubble columns require it)
+      const touches = !endBox || endBox.intersects(new AABB(cursor.x, cursor.y, cursor.z, cursor.x + 1, cursor.y + 1, cursor.z + 1))
       if (!block) continue
       if (supportFeature('velocityBlocksOnCollision')) {
         if (block.type === soulsandId) {
@@ -896,7 +897,7 @@ function Physics (mcData, world) {
           entity.fallDistance = 0
         }
         entity.isInPowderSnow = true
-      } else if (block.type === bubblecolumnId) {
+      } else if (block.type === bubblecolumnId && touches) {
         const down = !block.metadata
         const aboveBlock = world.getBlock(cursor.offset(0, 1, 0))
         // at the surface: air above; 1.21.5+: no collision and no fluid above
