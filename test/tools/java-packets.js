@@ -89,12 +89,29 @@ function handle (state, packet, ctx) {
   const responses = []
   switch (packet.name) {
     case 'entity_velocity':
-      if (self(p.entityId)) state.vel = new Vec3(p.velocity.x, p.velocity.y, p.velocity.z)
+      if (self(p.entityId)) {
+        // before 1.21.9 the velocity travels in 1/8000 blocks per tick (shorts); since, as a packed double vector
+        const scale = ctx.mcData.isOlderThan('1.21.9') ? 8000 : 1
+        state.vel = new Vec3(p.velocity.x / scale, p.velocity.y / scale, p.velocity.z / scale)
+      }
       break
     case 'explosion':
       if (p.playerKnockback) state.vel = state.vel.offset(p.playerKnockback.x, p.playerKnockback.y, p.playerKnockback.z)
       break
     case 'position': {
+      if (typeof p.flags === 'number') {
+        // Before 1.21.2: bit flags (x, y, z, yaw, pitch relative); a relative axis keeps its velocity, an absolute one
+        // stops it, and the reply reports onGround false.
+        const rel = bit => (p.flags & bit) !== 0
+        const v = state.vel
+        state.pos = new Vec3(rel(1) ? state.pos.x + p.x : p.x, rel(2) ? state.pos.y + p.y : p.y, rel(4) ? state.pos.z + p.z : p.z)
+        state.vel = new Vec3(rel(1) ? v.x : 0, rel(2) ? v.y : 0, rel(4) ? v.z : 0)
+        state.yawDegrees = Math.fround(rel(8) ? state.yawDegrees + p.yaw : p.yaw)
+        state.pitchDegrees = Math.fround(rel(16) ? state.pitchDegrees + p.pitch : p.pitch)
+        responses.push({ name: 'teleport_confirm', params: { teleportId: p.teleportId } })
+        responses.push({ name: 'position_look', params: { x: state.pos.x, y: state.pos.y, z: state.pos.z, yaw: state.yawDegrees, pitch: state.pitchDegrees, onGround: false } })
+        break
+      }
       // PositionMoveRotation.calculateAbsolute: relative flags add to the current value; yawDelta rotates velocity.
       const r = p.flags
       state.pos = new Vec3(r.x ? state.pos.x + p.x : p.x, r.y ? state.pos.y + p.y : p.y, r.z ? state.pos.z + p.z : p.z)
