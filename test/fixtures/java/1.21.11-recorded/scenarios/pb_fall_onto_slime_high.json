@@ -38,6 +38,7 @@
     "on:slime_block"
   ],
   "touched": [
+    "on:stone",
     "on:slime_block"
   ],
   "frames": 145,
@@ -54,9 +55,9 @@
     ],
     "yaw": 0.0,
     "pitch": 0.0,
-    "onGround": false,
+    "onGround": true,
     "isCollidedHorizontally": false,
-    "isCollidedVertically": false,
+    "isCollidedVertically": true,
     "minorHorizontalCollision": false,
     "isInWater": false,
     "isInLava": false,
@@ -103,16 +104,16 @@
     "netState": {
       "entityId": 1,
       "lastPos": [
-        0.5,
-        101.0,
-        517.5
+        -2.0,
+        121.0,
+        508.5
       ],
       "lastYaw": 0.0,
       "lastPitch": 0.0,
-      "lastOnGround": false,
+      "lastOnGround": true,
       "lastHorizontalCollision": false,
       "wasSprinting": false,
-      "positionReminder": 12,
+      "positionReminder": 8,
       "lastSentInput": [
         false,
         false,

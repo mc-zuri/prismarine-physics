@@ -1,0 +1,150 @@
+{
+  "schema": 1,
+  "version": "1.21.6",
+  "name": "pb_wall_walk_corner",
+  "tier": 1,
+  "tags": [
+    "collision"
+  ],
+  "area": "collisionWalls",
+  "origin": [
+    0,
+    100,
+    107
+  ],
+  "at": [
+    7.5,
+    101.0,
+    99.5
+  ],
+  "gamemode": "survival",
+  "setup": {},
+  "steps": [
+    {
+      "op": "press",
+      "keys": [
+        "forward"
+      ],
+      "ticks": 25
+    },
+    {
+      "op": "stable",
+      "n": 10
+    },
+    {
+      "op": "ticks",
+      "ticks": 5
+    }
+  ],
+  "expect": [
+    "against:stone"
+  ],
+  "touched": [
+    "on:stone",
+    "against:stone",
+    "under:stone"
+  ],
+  "frames": 40,
+  "start": {
+    "pos": [
+      7.5,
+      101.0,
+      99.5
+    ],
+    "vel": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "yaw": 225.0,
+    "pitch": 0.0,
+    "onGround": true,
+    "isCollidedHorizontally": false,
+    "isCollidedVertically": true,
+    "minorHorizontalCollision": false,
+    "isInWater": false,
+    "isInLava": false,
+    "isInWeb": false,
+    "stuckSpeedMultiplier": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "isUnderWater": false,
+    "swimming": false,
+    "sprinting": false,
+    "crouching": false,
+    "shiftKeyDown": false,
+    "pose": "standing",
+    "elytraFlying": false,
+    "flying": false,
+    "fallDistance": 0.0,
+    "jumpTicks": 0,
+    "jumpQueued": false,
+    "xxa": 0.0,
+    "yya": 0.0,
+    "zza": 0.0,
+    "speed": 0.1,
+    "effects": [],
+    "attributes": {
+      "movement_speed": 0.10000000149011612,
+      "jump_strength": 0.41999998688697815,
+      "gravity": 0.08,
+      "step_height": 0.6,
+      "sneaking_speed": 0.3,
+      "movement_efficiency": 0.0,
+      "water_movement_efficiency": 0.0,
+      "scale": 1.0,
+      "safe_fall_distance": 3.0,
+      "abilities.flyingSpeed": 0.05000000074505806
+    },
+    "attributeModifiers": {},
+    "fireworks": [],
+    "usingItem": false,
+    "useItemRemainingTicks": 0,
+    "food": 20,
+    "gameMode": "survival"
+  },
+  "ticks": [
+    {"t":1,"in":{"forward":true,"yaw":225.0,"pitch":0.0},"pos":[7.569289824244243,101.0,99.43069688689975],"vel":[0.03783224843167181,-0.0784000015258789,-0.03783950414789568],"yaw":225.0,"pitch":0.0,"onGround":false,"isCollidedHorizontally":false,"isCollidedVertically":false,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1},
+    {"t":2,"in":{"forward":true,"yaw":225.0,"pitch":0.0},"pos":[7.620980037008514,101.0,99.37899676064815],"vel":[0.047038094971116405,-0.0784000015258789,-0.04704711624484372],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1},
+    {"t":3,"in":{"forward":true,"yaw":225.0,"pitch":0.0},"pos":[7.737307956223874,101.0,99.26264653130305],"vel":[0.0635150512690264,-0.0784000015258789,-0.0635272326012775],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1},
+    {"t":4,"in":{"forward":true,"yaw":225.0,"pitch":0.0},"pos":[7.870112831737143,101.0,99.12981618560151],"vel":[0.07251147045264299,-0.0784000015258789,-0.07252537717704849],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1},
+    {"t":5,"in":{"forward":true,"yaw":225.0,"pitch":0.0},"pos":[8.011914126434029,101.0,98.98798769532421],"vel":[0.07742351589744463,-0.0784000015258789,-0.07743836468607584],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1},
+    {"t":6,"in":{"forward":true,"yaw":225.0,"pitch":0.0},"pos":[8.158627466575716,101.0,98.84124621753787],"vel":[0.08010549302182501,-0.0784000015258789,-0.08012085617758322],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1},
+    {"t":7,"in":{"forward":true,"yaw":225.0,"pitch":0.0},"pos":[8.308022783841784,101.0,98.69182224826004],"vel":[0.08156985270182593,-0.0784000015258789,-0.0815854967020681],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1},
+    {"t":8,"in":{"forward":true,"yaw":225.0,"pitch":0.0},"pos":[8.458882460787853,101.0,98.54093363845772],"vel":[0.08236939317997516,-0.0784000015258789,-0.08238519052132337],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1},
+    {"t":9,"in":{"forward":true,"yaw":225.0,"pitch":0.0},"pos":[8.610541678212071,101.0,98.38924533483615],"vel":[0.08280594233175097,-0.0784000015258789,-0.0828218233973528],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1},
+    {"t":10,"in":{"forward":true,"yaw":225.0,"pitch":0.0},"pos":[8.762637444788066,101.0,98.30000001192093],"vel":[0.08304429819630622,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":true,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1},
+    {"t":11,"in":{"forward":true,"yaw":225.0,"pitch":0.0},"pos":[8.914971567228616,101.0,98.30000001192093],"vel":[0.08317444051346976,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":true,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1},
+    {"t":12,"in":{"forward":true,"yaw":225.0,"pitch":0.0},"pos":[9.067435831986328,101.0,98.30000001192093],"vel":[0.08324549822689459,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":true,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1},
+    {"t":13,"in":{"forward":true,"yaw":225.0,"pitch":0.0},"pos":[9.219971154457467,101.0,98.30000001192093],"vel":[0.08328429574293097,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":true,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1},
+    {"t":14,"in":{"forward":true,"yaw":225.0,"pitch":0.0},"pos":[9.37254527444464,101.0,98.30000001192093],"vel":[0.08330547918914737,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":true,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1},
+    {"t":15,"in":{"forward":true,"yaw":225.0,"pitch":0.0},"pos":[9.52514057787803,101.0,98.30000001192093],"vel":[0.08331704535212496,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":true,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1},
+    {"t":16,"in":{"forward":true,"yaw":225.0,"pitch":0.0},"pos":[9.677747447474399,101.0,98.30000001192093],"vel":[0.08332336047784425,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":true,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1},
+    {"t":17,"in":{"forward":true,"yaw":225.0,"pitch":0.0},"pos":[9.699999988079071,101.0,98.30000001192093],"vel":[0.0,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":true,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1},
+    {"t":18,"in":{"forward":true,"yaw":225.0,"pitch":0.0},"pos":[9.699999988079071,101.0,98.30000001192093],"vel":[0.0,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":true,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1},
+    {"t":19,"in":{"forward":true,"yaw":225.0,"pitch":0.0},"pos":[9.699999988079071,101.0,98.30000001192093],"vel":[0.0,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":true,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1},
+    {"t":20,"in":{"forward":true,"yaw":225.0,"pitch":0.0},"pos":[9.699999988079071,101.0,98.30000001192093],"vel":[0.0,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":true,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1},
+    {"t":21,"in":{"forward":true,"yaw":225.0,"pitch":0.0},"pos":[9.699999988079071,101.0,98.30000001192093],"vel":[0.0,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":true,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1},
+    {"t":22,"in":{"forward":true,"yaw":225.0,"pitch":0.0},"pos":[9.699999988079071,101.0,98.30000001192093],"vel":[0.0,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":true,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1},
+    {"t":23,"in":{"forward":true,"yaw":225.0,"pitch":0.0},"pos":[9.699999988079071,101.0,98.30000001192093],"vel":[0.0,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":true,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1},
+    {"t":24,"in":{"forward":true,"yaw":225.0,"pitch":0.0},"pos":[9.699999988079071,101.0,98.30000001192093],"vel":[0.0,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":true,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1},
+    {"t":25,"in":{"forward":true,"yaw":225.0,"pitch":0.0},"pos":[9.699999988079071,101.0,98.30000001192093],"vel":[0.0,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":true,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1},
+    {"t":26,"in":{"yaw":225.0,"pitch":0.0},"pos":[9.699999988079071,101.0,98.30000001192093],"vel":[0.0,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.0,"speed":0.1},
+    {"t":27,"in":{"yaw":225.0,"pitch":0.0},"pos":[9.699999988079071,101.0,98.30000001192093],"vel":[0.0,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.0,"speed":0.1},
+    {"t":28,"in":{"yaw":225.0,"pitch":0.0},"pos":[9.699999988079071,101.0,98.30000001192093],"vel":[0.0,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.0,"speed":0.1},
+    {"t":29,"in":{"yaw":225.0,"pitch":0.0},"pos":[9.699999988079071,101.0,98.30000001192093],"vel":[0.0,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.0,"speed":0.1},
+    {"t":30,"in":{"yaw":225.0,"pitch":0.0},"pos":[9.699999988079071,101.0,98.30000001192093],"vel":[0.0,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.0,"speed":0.1},
+    {"t":31,"in":{"yaw":225.0,"pitch":0.0},"pos":[9.699999988079071,101.0,98.30000001192093],"vel":[0.0,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.0,"speed":0.1},
+    {"t":32,"in":{"yaw":225.0,"pitch":0.0},"pos":[9.699999988079071,101.0,98.30000001192093],"vel":[0.0,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.0,"speed":0.1},
+    {"t":33,"in":{"yaw":225.0,"pitch":0.0},"pos":[9.699999988079071,101.0,98.30000001192093],"vel":[0.0,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.0,"speed":0.1},
+    {"t":34,"in":{"yaw":225.0,"pitch":0.0},"pos":[9.699999988079071,101.0,98.30000001192093],"vel":[0.0,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.0,"speed":0.1},
+    {"t":35,"in":{"yaw":225.0,"pitch":0.0},"pos":[9.699999988079071,101.0,98.30000001192093],"vel":[0.0,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.0,"speed":0.1},
+    {"t":36,"in":{"yaw":225.0,"pitch":0.0},"pos":[9.699999988079071,101.0,98.30000001192093],"vel":[0.0,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.0,"speed":0.1},
+    {"t":37,"in":{"yaw":225.0,"pitch":0.0},"pos":[9.699999988079071,101.0,98.30000001192093],"vel":[0.0,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.0,"speed":0.1},
+    {"t":38,"in":{"yaw":225.0,"pitch":0.0},"pos":[9.699999988079071,101.0,98.30000001192093],"vel":[0.0,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.0,"speed":0.1},
+    {"t":39,"in":{"yaw":225.0,"pitch":0.0},"pos":[9.699999988079071,101.0,98.30000001192093],"vel":[0.0,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.0,"speed":0.1},
+    {"t":40,"in":{"yaw":225.0,"pitch":0.0},"pos":[9.699999988079071,101.0,98.30000001192093],"vel":[0.0,-0.0784000015258789,0.0],"yaw":225.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.0,"speed":0.1}
+  ]
+}

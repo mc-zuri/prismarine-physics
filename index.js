@@ -155,6 +155,10 @@ function Physics (mcData, world) {
     climbFloatVertical: supportFeature('modernMove'),
     crouchLag: supportFeature('crouchLag'),
     blockSpeedFactor: supportFeature('blockSpeedFactor'),
+    fluidHeights: supportFeature('proportionalLiquidGravity'),
+    lavaFluidHeight: supportFeature('lavaFluidHeight'),
+    lavaInsideBlocks: supportFeature('modernMove'),
+    minimumFluidPush: supportFeature('lavaFluidHeight'),
     supportingBlock: supportFeature('supportingBlock'),
     effectsAfterTravel: supportFeature('blockEffectsAfterTravel'),
     movementEfficiency: supportFeature('movementEfficiency'),
@@ -425,6 +429,7 @@ function Physics (mcData, world) {
       entity.isCollidedVertically = dy !== moved.y
       entity.onGround = entity.isCollidedVertically && dy < 0
       if (vanilla.supportingBlock) checkSupportingBlock(entity, world, playerBB, moved)
+      waterAfterMove(entity, world)
       if (vanilla.collisionEpsilonVelocity) {
         if (collidedX) vel.x = 0
         if (collidedZ) vel.z = 0
@@ -519,12 +524,20 @@ function Physics (mcData, world) {
     entity.isCollidedHorizontally = dx !== oldVelX || dz !== oldVelZ
     entity.isCollidedVertically = dy !== oldVelY
     entity.onGround = entity.isCollidedVertically && oldVelY < 0
+    waterAfterMove(entity, world)
 
     if (dx !== oldVelX) vel.x = 0
     if (dz !== oldVelZ) vel.z = 0
     if (dy !== oldVelY) afterFallOn(entity, world, vel)
     stepOn(entity, world)
     applyBlockCollisions(entity, world, playerBB)
+  }
+
+  // LivingEntity.checkFallDamage: a player not yet in water looks again where the move ended (and is pushed)
+  function waterAfterMove (entity, world) {
+    if (entity.isInWater) return
+    if (vanilla.fluidHeights) entity.isInWater = updateFluid(entity, world, entityBox(entity), 'water', 0.014).found
+    else entity.isInWater = isInWaterApplyCurrent(world, getPlayerBB(entity.pos).contract(0.001, 0.401, 0.001), entity.vel)
   }
 
   // Block.updateEntityAfterFallOn: slime bounces a falling player back up unless sneaking; others stop it.
@@ -1103,6 +1116,127 @@ function Physics (mcData, world) {
     return waterBlocks
   }
 
+  // ---- fluids as FluidState sees them (1.13+) ----
+
+  // { amount, falling } of the block's fluid of that kind, or null
+  function fluidOf (block, kind) {
+    if (!block) return null
+    if (kind === 'water') {
+      if (waterLike.has(block.type) || block.isWaterlogged) return { amount: 8, falling: false }
+      if (!waterIds.includes(block.type)) return null
+    } else if (!lavaIds.includes(block.type)) return null
+    const level = block.metadata
+    return level === 0 ? { amount: 8, falling: false } : level >= 8 ? { amount: 8, falling: true } : { amount: 8 - level, falling: false }
+  }
+
+  const ownHeight = fluid => fluid ? f32(fluid.amount / 9) : 0
+
+  // FlowingFluid.getHeight: 1 under the same fluid, else its own height
+  function fluidHeight (world, pos, fluid, kind) {
+    return fluidOf(world.getBlock(pos.offset(0, 1, 0)), kind) ? 1 : ownHeight(fluid)
+  }
+
+  const HORIZONTAL = [[0, -1], [1, 0], [0, 1], [-1, 0]] // north, east, south, west
+
+  // FlowingFluid.getFlow
+  function fluidFlow (world, pos, fluid, kind) {
+    let x = 0
+    let z = 0
+    const own = ownHeight(fluid)
+    for (const [dx, dz] of HORIZONTAL) {
+      const neighborPos = pos.offset(dx, 0, dz)
+      const neighborBlock = world.getBlock(neighborPos)
+      const neighbor = fluidOf(neighborBlock, kind)
+      // affectsFlow: the same fluid or none
+      if (!neighbor && isOtherFluid(neighborBlock, kind)) continue
+      let height = ownHeight(neighbor)
+      let d = 0
+      if (height === 0) {
+        if (!neighborBlock || neighborBlock.shapes.length === 0) {
+          const belowBlock = world.getBlock(neighborPos.offset(0, -1, 0))
+          const below = fluidOf(belowBlock, kind)
+          if (below || !isOtherFluid(belowBlock, kind)) {
+            height = ownHeight(below)
+            if (height > 0) d = f32(own - f32(height - f32(0.8888889)))
+          }
+        }
+      } else if (height > 0) {
+        d = f32(own - height)
+      }
+      if (d !== 0) {
+        x += f32(dx * d)
+        z += f32(dz * d)
+      }
+    }
+    let flow = new Vec3(x, 0, z)
+    if (fluid.falling) {
+      for (const [dx, dz] of HORIZONTAL) {
+        if (isSolidFace(world, pos.offset(dx, 0, dz), kind) || isSolidFace(world, pos.offset(dx, 1, dz), kind)) {
+          flow = normalize(flow).translate(0, -6, 0)
+          break
+        }
+      }
+    }
+    return normalize(flow)
+  }
+
+  function isOtherFluid (block, kind) {
+    return !!fluidOf(block, kind === 'water' ? 'lava' : 'water')
+  }
+
+  function isSolidFace (world, pos, kind) {
+    const block = world.getBlock(pos)
+    if (!block || fluidOf(block, kind)) return false
+    if (block.type === blocksByName.ice.id) return false
+    return block.shapes.length === 1 && block.shapes[0].every((v, i) => v === (i < 3 ? 0 : 1))
+  }
+
+  // Vec3.normalize (the length in float before 1.17)
+  function normalize (v) {
+    const lengthSqr = v.x * v.x + v.y * v.y + v.z * v.z
+    const length = vanilla.normalizeFloatSqrt ? f32(Math.sqrt(lengthSqr)) : Math.sqrt(lengthSqr)
+    return length < 1.0e-4 ? new Vec3(0, 0, 0) : new Vec3(v.x / length, v.y / length, v.z / length)
+  }
+
+  // Entity.updateFluidHeightAndDoFluidPushing: whether the fluid reaches the box (deflated by 0.001), how high above
+  // its bottom, and the current's push on the velocity.
+  function updateFluid (entity, world, box, kind, speed) {
+    box = box.clone().contract(0.001, 0.001, 0.001)
+    let height = 0
+    let found = false
+    let flow = new Vec3(0, 0, 0)
+    let count = 0
+    const cursor = new Vec3(0, 0, 0)
+    for (cursor.x = Math.floor(box.minX); cursor.x < Math.ceil(box.maxX); cursor.x++) {
+      for (cursor.y = Math.floor(box.minY); cursor.y < Math.ceil(box.maxY); cursor.y++) {
+        for (cursor.z = Math.floor(box.minZ); cursor.z < Math.ceil(box.maxZ); cursor.z++) {
+          const fluid = fluidOf(world.getBlock(cursor), kind)
+          if (!fluid) continue
+          const top = f32(cursor.y + fluidHeight(world, cursor, fluid, kind))
+          if (top < box.minY) continue
+          found = true
+          height = Math.max(top - box.minY, height)
+          let push = fluidFlow(world, cursor.clone(), fluid, kind)
+          if (height < 0.4) push = push.scaled(height)
+          flow = flow.plus(push)
+          count++
+        }
+      }
+    }
+    if (flow.norm() > 0) {
+      if (count > 0) flow = flow.scaled(1 / count)
+      flow = flow.scaled(speed)
+      const vel = entity.vel
+      if (vanilla.minimumFluidPush && Math.abs(vel.x) < 0.003 && Math.abs(vel.z) < 0.003 && flow.norm() < 0.0045000000000000005) {
+        flow = normalize(flow).scaled(0.0045000000000000005)
+      }
+      vel.x += flow.x
+      vel.y += flow.y
+      vel.z += flow.z
+    }
+    return { found, height }
+  }
+
   function isInWaterApplyCurrent (world, bb, vel) {
     const acceleration = new Vec3(0, 0, 0)
     const waterBlocks = getWaterInBB(world, bb)
@@ -1125,11 +1259,24 @@ function Physics (mcData, world) {
     const vel = entity.vel
     const pos = entity.pos
 
-    const waterBB = getPlayerBB(pos).contract(0.001, 0.401, 0.001)
-    const lavaBB = getPlayerBB(pos).contract(0.1, 0.4, 0.1)
-
-    entity.isInWater = isInWaterApplyCurrent(world, waterBB, vel)
-    entity.isInLava = isMaterialInBB(world, lavaBB, lavaIds)
+    if (vanilla.fluidHeights) {
+      // 1.13+: the fluid heights in the box deflated by 0.001 (Entity.updateFluidHeightAndDoFluidPushing)
+      const box = entityBox(entity)
+      entity.isInWater = updateFluid(entity, world, box, 'water', 0.014).found
+      if (vanilla.lavaFluidHeight) {
+        entity.isInLava = updateFluid(entity, world, box, 'lava', 0.0023333333333333335).height > 0
+      } else if (vanilla.lavaInsideBlocks) {
+        // 1.14-1.15: set by the lava blocks inside the box after the last move
+        entity.isInLava = isMaterialInBB(world, box.clone().contract(0.001, 0.001, 0.001), lavaIds)
+      } else {
+        entity.isInLava = isMaterialInBB(world, box.clone().contract(0.1, 0.4, 0.1), lavaIds)
+      }
+    } else {
+      const waterBB = getPlayerBB(pos).contract(0.001, 0.401, 0.001)
+      const lavaBB = getPlayerBB(pos).contract(0.1, 0.4, 0.1)
+      entity.isInWater = isInWaterApplyCurrent(world, waterBB, vel)
+      entity.isInLava = isMaterialInBB(world, lavaBB, lavaIds)
+    }
 
     // Reset velocity component if it falls under the threshold (1.21.5+: the player's horizontal speed as a whole)
     if (vanilla.playerHorizontalThreshold) {

@@ -56,7 +56,7 @@
     ],
     "vel": [
       0.0,
-      0.0,
+      -0.0784000015258789,
       0.0
     ],
     "yaw": 270.0,
@@ -119,7 +119,7 @@
       "lastOnGround": true,
       "lastHorizontalCollision": false,
       "wasSprinting": false,
-      "positionReminder": 9,
+      "positionReminder": 15,
       "lastSentInput": [
         false,
         false,

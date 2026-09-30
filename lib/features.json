@@ -166,5 +166,10 @@
     "name": "blockEffectsAfterTravel",
     "description": "Block effects (stepOn, checkInsideBlocks) run after the whole travel (applyEffectsFromBlocks), not inside the move",
     "since": "1.21.2"
+  },
+  {
+    "name": "lavaFluidHeight",
+    "description": "Lava is detected by its fluid height like water (pushing 0.0023333), and a weak current is raised to 0.0045",
+    "since": "1.16"
   }
 ]
