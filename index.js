@@ -44,6 +44,12 @@ function Physics (mcData, world) {
   const wallIds = byTag(name => name.endsWith('_wall') && !name.includes('sign') && !name.includes('banner') && !name.includes('torch') && !name.includes('head') && !name.includes('skull') && !name.includes('fan'))
   const gateIds = byTag(name => name.endsWith('fence_gate'))
   const airId = blocksByName.air.id
+  const berryBushId = blocksByName.sweet_berry_bush ? blocksByName.sweet_berry_bush.id : -1 // 1.14+
+  const powderSnowId = blocksByName.powder_snow ? blocksByName.powder_snow.id : -1 // 1.17+
+  // Entity.makeStuckInBlock multipliers (x, y, z)
+  const STUCK_IN_WEB = [0.25, Math.fround(0.05), 0.25]
+  const STUCK_IN_BERRY_BUSH = [Math.fround(0.8), 0.75, Math.fround(0.8)]
+  const STUCK_IN_POWDER_SNOW = [Math.fround(0.9), 1.5, Math.fround(0.9)]
   const soulsandId = blocksByName.soul_sand.id
   const soulSoilId = blocksByName.soul_soil ? blocksByName.soul_soil.id : -1 // 1.16+
   const honeyblockId = blocksByName.honey_block ? blocksByName.honey_block.id : -1 // 1.15+
@@ -171,8 +177,7 @@ function Physics (mcData, world) {
     effectsAfterTravel: supportFeature('blockEffectsAfterTravel'),
     movementEfficiency: supportFeature('movementEfficiency'),
     blockBelowHalf: supportFeature('blockBelowHalfBlock'),
-    blockBelowOnPos: supportFeature('blockBelowOnPos'),
-    webSpeed: f32(0.05) // a cobweb scales the move by (0.25, 0.05F, 0.25)
+    blockBelowOnPos: supportFeature('blockBelowOnPos')
   }
 
   // The vanilla rotation in degrees (a float). Callers holding it pass yawDegrees / pitchDegrees: mineflayer's
@@ -377,15 +382,17 @@ function Physics (mcData, world) {
     const vel = entity.vel
     const pos = entity.pos
 
-    // A cobweb touched at the end of the last move (webPending, the stuck speed multiplier) slows this one and stops
-    // the velocity; isInWeb tells whether this move was slowed. Callers that only keep isInWeb pass it as pending.
-    const stuck = entity.webPending !== undefined ? entity.webPending : entity.isInWeb
+    // A cobweb, berry bush or powder snow touched at the end of the last move (the stuck speed multiplier) scales this
+    // one and stops the velocity; isInWeb tells whether this move was slowed. Callers that only keep isInWeb pass it
+    // as a cobweb still to act.
+    let stuck = entity.stuckSpeedMultiplier
+    if (stuck === undefined) stuck = entity.isInWeb ? STUCK_IN_WEB : null
     entity.isInWeb = !!stuck
-    entity.webPending = false
+    entity.stuckSpeedMultiplier = null
     if (stuck) {
-      dx *= 0.25
-      dy *= vanilla.webSpeed
-      dz *= 0.25
+      dx *= stuck[0]
+      dy *= stuck[1]
+      dz *= stuck[2]
       vel.x = 0
       vel.y = 0
       vel.z = 0
@@ -701,7 +708,13 @@ function Physics (mcData, world) {
         }
       }
       if (block.type === webId) {
-        entity.webPending = true
+        entity.stuckSpeedMultiplier = STUCK_IN_WEB
+      } else if (block.type === berryBushId) {
+        entity.stuckSpeedMultiplier = STUCK_IN_BERRY_BUSH
+      } else if (block.type === powderSnowId) {
+        // only while the player's feet are in powder snow
+        const feet = world.getBlock(entity.pos)
+        if (feet && feet.type === powderSnowId) entity.stuckSpeedMultiplier = STUCK_IN_POWDER_SNOW
       } else if (block.type === bubblecolumnId) {
         const down = !block.metadata
         const aboveBlock = world.getBlock(cursor.offset(0, 1, 0))
@@ -1604,7 +1617,7 @@ class PlayerState {
     this.isInWater = bot.entity.isInWater
     this.isInLava = bot.entity.isInLava
     this.isInWeb = bot.entity.isInWeb
-    this.webPending = bot.entity.webPending
+    this.stuckSpeedMultiplier = bot.entity.stuckSpeedMultiplier
     this.isCrouching = bot.entity.isCrouching ?? false
     // The block the player stands on (1.20+) and whether its last landing found none
     this.supportingBlockPos = bot.entity.supportingBlockPos ?? null
@@ -1713,7 +1726,7 @@ class PlayerState {
     bot.entity.isInWater = this.isInWater
     bot.entity.isInLava = this.isInLava
     bot.entity.isInWeb = this.isInWeb
-    bot.entity.webPending = this.webPending
+    bot.entity.stuckSpeedMultiplier = this.stuckSpeedMultiplier
     bot.entity.isCrouching = this.isCrouching
     bot.entity.supportingBlockPos = this.supportingBlockPos
     bot.entity.onGroundNoBlocks = this.onGroundNoBlocks
