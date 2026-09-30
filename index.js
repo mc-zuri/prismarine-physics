@@ -184,6 +184,7 @@ function Physics (mcData, world) {
     lavaFluidHeight: supportFeature('lavaFluidHeight'),
     lavaInsideBlocks: supportFeature('modernMove'),
     minimumFluidPush: supportFeature('lavaFluidHeight'),
+    eyeInWaterLag: supportFeature('lavaFluidHeight'),
     unifiedFluidInteraction: supportFeature('unifiedFluidInteraction'),
     worldBorderCollider: supportFeature('worldBorderCollider'),
     insideBlocksAlongPath: supportFeature('insideBlocksAlongPath'),
@@ -1574,7 +1575,7 @@ function Physics (mcData, world) {
     const food = entity.food === undefined || entity.food > 6
     const blind = entity.blindness > 0
     const inWater = entity.isInWater
-    const underWater = vanilla.fluidHeights && inWater && eyeInWater(entity, world)
+    const underWater = isUnderWater(entity)
     const collided = entity.isCollidedHorizontally && !(vanilla.minorCollision && entity.minorHorizontalCollision)
     const slow = isMovingSlowly(entity)
     let sprinting = !!entity.sprinting
@@ -1590,7 +1591,13 @@ function Physics (mcData, world) {
       const possible = !blind && food
       const shallow = inWater && !underWater
       if (!sprinting && hasForward && possible && !shallow && !entity.usingItem && !(entity.elytraFlying && !underWater) && (!slow || underWater) && control.sprint) sprinting = true
-      if (sprinting && (!possible || shallow || !hasForward || collided)) sprinting = false
+      if (sprinting) {
+        if (entity.swimming) {
+          if (!food || blind || !inWater || (!hasForward && !entity.onGround && !control.sneak)) sprinting = false
+        } else if (!possible || shallow || !hasForward || collided) {
+          sprinting = false
+        }
+      }
     } else {
       // 1.13-1.21.4: at least 0.8 forward to start (any under water), any forward to keep
       const using = entity.usingItem ? ITEM_USE_SLOWDOWN : 1
@@ -1604,10 +1611,27 @@ function Physics (mcData, world) {
       if ((!inWater || underWater) && canStart && control.sprint) sprinting = true
       if (sprinting) {
         const stop = vanilla.sprintState13 ? forward < 0.8 || !food : !hasForward || !food
-        if (stop || collided || (inWater && !underWater)) sprinting = false
+        if (entity.swimming) {
+          if ((!entity.onGround && !control.sneak && stop) || !inWater) sprinting = false
+        } else if (stop || collided || (inWater && !underWater)) {
+          sprinting = false
+        }
       }
     }
     entity.sprinting = sprinting
+  }
+
+  const isUnderWater = entity => vanilla.fluidHeights && entity.isInWater && !!entity.wasEyeInWater
+
+  // Entity.updateSwimming (1.13+): keeps swimming while sprinting in water; starts when sprinting with the eyes under
+  // water and water where the player stands (the sprint state of the tick before)
+  function updateSwimming (entity, world) {
+    const sprinting = !!entity.sprinting
+    if (entity.swimming) {
+      entity.swimming = sprinting && entity.isInWater
+    } else {
+      entity.swimming = sprinting && isUnderWater(entity) && !!fluidOf(world.getBlock(entity.pos), 'water')
+    }
   }
 
   // ---- pose (1.14+) ----
@@ -1641,7 +1665,7 @@ function Physics (mcData, world) {
   // Player.updatePlayerPose at the end of the tick
   function updatePose (entity, world) {
     if (!fitsPose(entity, world, 'swimming')) return
-    const desired = entity.elytraFlying ? 'fall_flying' : entity.control.sneak ? 'crouching' : 'standing'
+    const desired = entity.swimming ? 'swimming' : entity.elytraFlying ? 'fall_flying' : entity.control.sneak ? 'crouching' : 'standing'
     const pose = fitsPose(entity, world, desired) ? desired : fitsPose(entity, world, 'crouching') ? 'crouching' : 'swimming'
     if (pose !== entity.pose) entity.javaBox = null // the box is rebuilt for the new size
     entity.pose = pose
@@ -1697,6 +1721,13 @@ function Physics (mcData, world) {
       entity.isInLava = isMaterialInBB(world, lavaBB, lavaIds)
     }
 
+    if (vanilla.fluidHeights) {
+      // Entity.updateFluidOnEyes: 1.16+ isUnderWater uses the eyes of the tick before
+      const eyes = eyeInWater(entity, world)
+      entity.wasEyeInWater = vanilla.eyeInWaterLag ? !!entity.eyeInWater : eyes
+      entity.eyeInWater = eyes
+      updateSwimming(entity, world)
+    }
     if (vanilla.crouchLag) updateCrouching(entity, world)
     if (vanilla.sprintState) updateSprinting(entity, world)
 
@@ -1772,6 +1803,15 @@ function Physics (mcData, world) {
         vel.z += lookDir.z * 0.1 + (lookDir.z * 1.5 - vel.z) * 0.5
         --entity.fireworkRocketDuration
       }
+    }
+
+    if (entity.swimming) {
+      // Player.travel: a swimmer is pulled toward where it looks (0.085 when looking down more than 0.2, else 0.06),
+      // upward only when jumping or with water above the head
+      const lookY = viewVector(entity).y
+      const pull = lookY < -0.2 ? 0.085 : 0.06
+      const above = world.getBlock(new Vec3(pos.x, pos.y + 1.0 - 0.1, pos.z))
+      if (lookY <= 0 || entity.control.jump || fluidOf(above, 'water') || fluidOf(above, 'lava')) vel.y += (lookY - vel.y) * pull
     }
 
     moveEntityWithHeading(entity, world, strafe, forward)
@@ -1860,6 +1900,8 @@ class PlayerState {
     this.isCrouching = bot.entity.isCrouching ?? false
     this.jumpHeld = bot.entity.jumpHeld ?? false
     this.pose = bot.entity.javaPose
+    this.swimming = bot.entity.swimming ?? false
+    this.eyeInWater = bot.entity.eyeInWater ?? false
     this.crouching = bot.entity.crouching ?? false
     // The sprint state (vanilla's isSprinting): the sprint key starts it, the game's conditions stop it
     this.sprinting = bot.entity.sprinting ?? false
@@ -1975,6 +2017,8 @@ class PlayerState {
     bot.entity.isCrouching = this.isCrouching
     bot.entity.jumpHeld = this.jumpHeld
     bot.entity.javaPose = this.pose
+    bot.entity.swimming = this.swimming
+    bot.entity.eyeInWater = this.eyeInWater
     bot.entity.crouching = this.crouching
     bot.entity.sprinting = this.sprinting
     bot.entity.minorHorizontalCollision = this.minorHorizontalCollision
