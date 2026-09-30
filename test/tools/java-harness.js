@@ -260,6 +260,8 @@ function applyInput (state, row, mcData) {
   state.attributes = attributesOf(row, mcData)
   Object.assign(state, levels(row.effects))
   state.food = row.food
+  // an item use the key started (or the game ended) before the tick moved: that of the tick itself
+  state.usingItem = !!row.usingItem
   for (const key of Object.keys(state.control)) state.control[key] = false
   for (const [key, down] of Object.entries(row.in)) if (KEYS[key] && down) state.control[KEYS[key]] = true
   state.yaw = yawOf(row.in.yaw)
@@ -352,7 +354,7 @@ function replay (version, rec, { mode = 'trajectory', fields = FIELDS, epsilon =
       state.isCrouching = before.shiftKeyDown
     }
     // Inputs synced before this tick are those of the previous row (the state the tick started from).
-    applyInput(state, { ...(i > 0 ? rows[i - 1] : rec.start), ...(rec.start.netState ? {} : { attributes: row.attributes, attributeModifiers: row.attributeModifiers }), in: row.in }, mcData)
+    applyInput(state, { ...(i > 0 ? rows[i - 1] : rec.start), ...(rec.start.netState ? {} : { attributes: row.attributes, attributeModifiers: row.attributeModifiers }), usingItem: row.usingItem, in: row.in }, mcData)
     applyEvents(state, w, row.events, packetContext(version, mcData, rec))
     physics.simulatePlayer(state, w)
     const diffs = differences(state, row, fields, epsilon)
@@ -531,7 +533,7 @@ function replayUntil (version, rec, tick, options) {
   const state = makeState(rec, mcData)
   const rows = expand(rec)
   for (let i = 0; i < tick; i++) {
-    applyInput(state, { ...(i > 0 ? rows[i - 1] : rec.start), ...(rec.start.netState ? {} : { attributes: rows[i].attributes, attributeModifiers: rows[i].attributeModifiers }), in: rows[i].in }, mcData)
+    applyInput(state, { ...(i > 0 ? rows[i - 1] : rec.start), ...(rec.start.netState ? {} : { attributes: rows[i].attributes, attributeModifiers: rows[i].attributeModifiers }), usingItem: rows[i].usingItem, in: rows[i].in }, mcData)
     applyEvents(state, w, rows[i].events, packetContext(version, mcData, rec))
     physics.simulatePlayer(state, w)
   }
