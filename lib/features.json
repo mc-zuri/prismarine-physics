@@ -136,5 +136,10 @@
     "name": "waterMovementEfficiency",
     "description": "Depth strider acts through the water_movement_efficiency attribute (0.33333334F per level, no division by 3)",
     "since": "1.21"
+  },
+  {
+    "name": "crouchLag",
+    "description": "The sneak slowdown comes from the crouching state, taken from the sneak key of the tick before",
+    "since": "1.15"
   }
 ]

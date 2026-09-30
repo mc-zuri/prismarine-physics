@@ -148,6 +148,7 @@ function Physics (mcData, world) {
     proportionalLiquidGravity: supportFeature('proportionalLiquidGravity'),
     fluidFallingBeforeMove: supportFeature('modernMove'),
     climbFloatVertical: supportFeature('modernMove'),
+    crouchLag: supportFeature('crouchLag'),
     webSpeed: f32(0.05) // a cobweb scales the move by (0.25, 0.05F, 0.25)
   }
 
@@ -671,7 +672,9 @@ function Physics (mcData, world) {
     const control = entity.control
     let xxa = (control.left ? 1 : 0) - (control.right ? 1 : 0)
     let zza = (control.forward ? 1 : 0) - (control.back ? 1 : 0)
-    const slow = control.sneak ? sneakFactor(entity) : 1
+    // Since 1.15 the slowdown comes from the crouching state, which the tick takes from the sneak key of the tick
+    // before (LocalPlayer.aiStep reads it before the input updates); before, from the key itself.
+    const slow = (vanilla.crouchLag ? entity.isCrouching : control.sneak) ? sneakFactor(entity) : 1
     if (vanilla.squareMovementInput) {
       // KeyboardInput normalizes the impulse; LocalPlayer.modifyInput scales it and stretches it to the unit square.
       if (xxa === 0 && zza === 0) return { xxa: 0, zza: 0 }
@@ -1073,6 +1076,9 @@ function Physics (mcData, world) {
 
     moveEntityWithHeading(entity, world, strafe, forward)
 
+    // The crouching state the next tick starts with: the sneak key held, unless gliding
+    entity.isCrouching = !!entity.control.sneak && !entity.elytraFlying
+
     return entity
   }
 
@@ -1132,6 +1138,7 @@ class PlayerState {
     this.isInWater = bot.entity.isInWater
     this.isInLava = bot.entity.isInLava
     this.isInWeb = bot.entity.isInWeb
+    this.isCrouching = bot.entity.isCrouching ?? false
     this.isCollidedHorizontally = bot.entity.isCollidedHorizontally
     this.isCollidedVertically = bot.entity.isCollidedVertically
     this.elytraFlying = bot.entity.elytraFlying
@@ -1236,6 +1243,7 @@ class PlayerState {
     bot.entity.isInWater = this.isInWater
     bot.entity.isInLava = this.isInLava
     bot.entity.isInWeb = this.isInWeb
+    bot.entity.isCrouching = this.isCrouching
     bot.entity.isCollidedHorizontally = this.isCollidedHorizontally
     bot.entity.isCollidedVertically = this.isCollidedVertically
     bot.entity.elytraFlying = this.elytraFlying
