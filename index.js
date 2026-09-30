@@ -164,6 +164,7 @@ function Physics (mcData, world) {
     fluidFallingBeforeMove: supportFeature('modernMove'),
     climbFloatVertical: supportFeature('modernMove'),
     crouchLag: supportFeature('crouchLag'),
+    thinLadder: supportFeature('velocityThreshold005'),
     bedBounce: supportFeature('bedBounce'),
     elytraDoubleCos: supportFeature('elytraDoubleCos'),
     elytraSquareOnly: supportFeature('elytraSquareOnly'),
@@ -259,6 +260,10 @@ function Physics (mcData, world) {
       if (above(1) && !collisionContext.descending) return SCAFFOLDING_STABLE
       const props = block.getProperties()
       return String(props.distance) !== '0' && (props.bottom === true || props.bottom === 'true') && above(0) ? SCAFFOLDING_UNSTABLE_BOTTOM : []
+    }
+    if (vanilla.thinLadder && block.type === ladderId) {
+      // before 1.9 a ladder is 0.125 thick (0.1875 since)
+      return block.shapes.map(shape => shape.map(v => v === 0.8125 ? 0.875 : v === 0.1875 ? 0.125 : v))
     }
     return block.shapes
   }
