@@ -257,7 +257,7 @@ function Physics (mcData, world) {
   const SCAFFOLDING_UNSTABLE_BOTTOM = [[0, 0, 0, 1, 0.125, 1]]
 
   function collisionContextOf (entity) {
-    return { bottom: entity.pos.y, descending: !!entity.control.sneak, fallDistance: entity.fallDistance || 0, walksOnPowderSnow: !!entity.leatherBoots }
+    return { x: entity.pos.x, z: entity.pos.z, bottom: entity.pos.y, descending: !!entity.control.sneak, fallDistance: entity.fallDistance || 0, walksOnPowderSnow: !!entity.leatherBoots }
   }
 
   const POWDER_SNOW_FALLING = [[0, 0, 0, 1, 0.8999999761581421, 1]]
@@ -365,12 +365,21 @@ function Physics (mcData, world) {
     const shapes = getSurroundingBBs(world, swept)
     if (!vanilla.modernMove) return shapes
     const inside = shapes.filter(shape => shape.intersects(swept))
-    // 1.14-1.16: the world border's shape is always among the colliders (while inside it), so a move under 1e-7 is
-    // dropped even in open space. It stands far away here (the engine does not model the border itself).
-    if (vanilla.worldBorderCollider) inside.push(WORLD_BORDER)
+    // The world border (the default one, 29999984 out) collides too: always while inside it on 1.14-1.17 (so a move
+    // under 1e-7 is dropped even in open space), only near it since (WorldBorder.isInsideCloseToBorder)
+    if (vanilla.worldBorderCollider || (collisionContext && closeToBorder(collisionContext, swept))) inside.push(...WORLD_BORDER)
     return inside
   }
-  const WORLD_BORDER = new AABB(3.0e7, -1.0e9, 3.0e7, 3.0e7 + 1, 1.0e9, 3.0e7 + 1)
+  const BORDER = 29999984
+  const WORLD_BORDER = [
+    new AABB(-Infinity, -Infinity, -Infinity, -BORDER, Infinity, Infinity), new AABB(BORDER, -Infinity, -Infinity, Infinity, Infinity, Infinity),
+    new AABB(-Infinity, -Infinity, -Infinity, Infinity, Infinity, -BORDER), new AABB(-Infinity, -Infinity, BORDER, Infinity, Infinity, Infinity)
+  ]
+  function closeToBorder (context, box) {
+    const margin = Math.max(Math.max(box.maxX - box.minX, box.maxZ - box.minZ), 1)
+    const distance = Math.min(context.x + BORDER, BORDER - context.x, context.z + BORDER, BORDER - context.z)
+    return distance < margin * 2 && context.x >= -BORDER - margin && context.x < BORDER + margin && context.z >= -BORDER - margin && context.z < BORDER + margin
+  }
 
   // Entity.collideWithShapes (1.14+): y first, then the larger horizontal axis.
   function collideWithShapes (x, y, z, box, shapes) {

@@ -199,7 +199,7 @@
   },
   {
     "name": "worldBorderCollider",
-    "description": "The world border shape is always among the colliders of a move (only near the border since)",
+    "description": "The world border shape is always among the colliders of a move while inside it (only near the border since)",
     "since": "1.14",
     "before": "1.18"
   },
