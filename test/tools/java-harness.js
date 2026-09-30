@@ -114,7 +114,9 @@ function parseStateId (text, mcData, Block, version) {
   if (!block) throw new Error(`minecraft-data ${version} has no block ${name}`)
   if (properties.metadata !== undefined) return block.id * 16 + Number(properties.metadata)
   if (mcData.isOlderThan('1.13')) {
-    // A pre-flattening state without its stored metadata: the properties when prismarine-block can map them.
+    // A pre-flattening state without its stored metadata is metadata 0 (prismarine-block's legacy fromProperties
+    // matches names loosely: 1.7.10 'grass' came out as tall grass).
+    if (Object.keys(properties).length === 0) return block.id * 16
     try { return Block.fromProperties(name, properties, 0).stateId } catch { return block.id * 16 }
   }
   return Block.fromProperties(name, properties, 0).stateId
