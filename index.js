@@ -1623,18 +1623,39 @@ function Physics (mcData, world) {
     const collided = entity.isCollidedHorizontally && !(vanilla.minorCollision && entity.minorHorizontalCollision)
     const slow = isMovingSlowly(entity)
     let sprinting = !!entity.sprinting
+    // the double tap of forward: the window since the last press, and whether forward was held the tick before
+    let trigger = entity.sprintTriggerTime > 0 ? entity.sprintTriggerTime - 1 : 0
+    const hadForward = !!entity.hadForward
+    const prevSneak = !!entity.isCrouching // the sneak key the last tick ended with
+    const doubleTap = () => {
+      if (trigger > 0 && !control.sprint) return true
+      if (!control.sprint) trigger = 7
+      return control.sprint
+    }
 
     if (!vanilla.fluidHeights) {
       // before 1.13: the forward input (0.3 while sneaking) must be at least 0.8
       const forward = f32(f32(forwardKeys * (control.sneak ? f32(0.3) : 1)) * (entity.usingItem ? ITEM_USE_SLOWDOWN : 1))
-      if (!sprinting && forward >= 0.8 && food && !blind && !entity.usingItem && control.sprint) sprinting = true
+      if (entity.usingItem) trigger = 0
+      const canStart = !sprinting && forward >= 0.8 && food && !blind && !entity.usingItem
+      if (entity.onGround && !prevSneak && !hadForward && canStart && doubleTap()) sprinting = true
+      if (!sprinting && canStart && control.sprint) sprinting = true
+      entity.hadForward = forward >= 0.8
       if (sprinting && (forward < 0.8 || entity.isCollidedHorizontally || !food)) sprinting = false
     } else if (vanilla.sprintByForwardImpulse) {
       // 1.21.5+: any forward impulse; not in shallow water, not sneaking unless under water
       const hasForward = forwardKeys > 0
       const possible = !blind && food
       const shallow = inWater && !underWater
-      if (!sprinting && hasForward && possible && !shallow && !entity.usingItem && !(entity.elytraFlying && !underWater) && (!slow || underWater) && control.sprint) sprinting = true
+      if (prevSneak || entity.usingItem || control.back) trigger = 0
+      if (!sprinting && hasForward && possible && !shallow && !entity.usingItem && !(entity.elytraFlying && !underWater) && (!slow || underWater)) {
+        if (!hadForward) {
+          if (trigger > 0) sprinting = true
+          else trigger = 7
+        }
+        if (control.sprint) sprinting = true
+      }
+      entity.hadForward = hasForward
       if (sprinting) {
         if (entity.swimming) {
           if (!food || blind || !inWater || (!hasForward && !entity.onGround && !control.sneak)) sprinting = false
@@ -1652,7 +1673,10 @@ function Physics (mcData, world) {
       const enough = underWater ? hasForward : forward >= 0.8
       const canStart = !sprinting && enough && food && !blind && !entity.usingItem && !(vanilla.sprintNotWhileGliding && entity.elytraFlying) &&
         (!vanilla.sprintStopsWhenSlow || !slow || underWater)
+      if (entity.usingItem || prevSneak) trigger = 0
+      if ((entity.onGround || underWater) && !prevSneak && !hadForward && canStart && doubleTap()) sprinting = true
       if ((!inWater || underWater) && canStart && control.sprint) sprinting = true
+      entity.hadForward = enough
       if (sprinting) {
         const stop = vanilla.sprintState13 ? forward < 0.8 || !food : !hasForward || !food
         if (entity.swimming) {
@@ -1663,6 +1687,7 @@ function Physics (mcData, world) {
       }
     }
     entity.sprinting = sprinting
+    entity.sprintTriggerTime = trigger
   }
 
   const isUnderWater = entity => vanilla.fluidHeights && entity.isInWater && !!entity.wasEyeInWater
@@ -2006,6 +2031,8 @@ class PlayerState {
     this.pose = bot.entity.javaPose
     this.swimming = bot.entity.swimming ?? false
     this.fallDistance = bot.entity.fallDistance ?? 0
+    this.sprintTriggerTime = bot.entity.sprintTriggerTime ?? 0
+    this.hadForward = bot.entity.hadForward ?? false
     this.isInPowderSnow = bot.entity.isInPowderSnow ?? false
     this.eyeInWater = bot.entity.eyeInWater ?? false
     this.crouching = bot.entity.crouching ?? false
@@ -2125,6 +2152,8 @@ class PlayerState {
     bot.entity.javaPose = this.pose
     bot.entity.swimming = this.swimming
     bot.entity.fallDistance = this.fallDistance
+    bot.entity.sprintTriggerTime = this.sprintTriggerTime
+    bot.entity.hadForward = this.hadForward
     bot.entity.isInPowderSnow = this.isInPowderSnow
     bot.entity.eyeInWater = this.eyeInWater
     bot.entity.crouching = this.crouching
