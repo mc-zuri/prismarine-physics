@@ -10,8 +10,11 @@ function bedrock () {
   return require('./lib/bedrock/index.ts')
 }
 
+// A feature lists the major versions it applies to, or a range of game versions: since (inclusive) / before.
 function makeSupportFeature (mcData) {
-  return feature => features.some(({ name, versions }) => name === feature && versions.includes(mcData.version.majorVersion))
+  return feature => features.some(({ name, versions, since, before }) => name === feature && (versions
+    ? versions.includes(mcData.version.majorVersion)
+    : (!since || mcData.isNewerOrEqualTo(since)) && (!before || mcData.isOlderThan(before))))
 }
 
 function Physics (mcData, world) {
@@ -118,6 +121,33 @@ function Physics (mcData, world) {
   } else {
     throw new Error('No liquid gravity settings, have you made sure the liquid gravity features are up to date?')
   }
+
+  // How vanilla rounds: which versions compute what in float (see lib/features.json).
+  const f32 = math.f32
+  const vanilla = {
+    mthSinDouble: supportFeature('mthSinDouble'),
+    floatMoveRelative: supportFeature('floatMoveRelative'),
+    yawPiOver180: supportFeature('moveRelativeYawPiOver180'),
+    groundFriction: supportFeature('frictionCubeOfSlipperiness') ? f32(0.21600002) : supportFeature('frictionConstant16277137') ? f32(0.16277137) : f32(0.16277136),
+    frictionAfterMove: supportFeature('frictionAfterMove'),
+    squareMovementInput: supportFeature('squareMovementInput'),
+    playerHorizontalThreshold: supportFeature('playerHorizontalVelocityThreshold'),
+    velocityThreshold: supportFeature('velocityThreshold005') ? 0.005 : 0.003,
+    airSprintSpeed: supportFeature('airSprintSpeedFloatSum') ? f32(f32(0.02) + f32(0.006)) : f32(0.025999999),
+    jumpBoostFloatSum: supportFeature('jumpBoostFloatSum'),
+    jumpSprintDouble: supportFeature('jumpSprintBoostDouble'),
+    jumpKeepsVelocity: supportFeature('jumpKeepsHigherVelocity')
+  }
+
+  // The vanilla rotation in degrees (a float). Callers holding it pass yawDegrees / pitchDegrees: mineflayer's
+  // radians lose the turns beyond one revolution, which Mth.sin's table index keeps.
+  function yawDegrees (entity) {
+    return typeof entity.yawDegrees === 'number' ? f32(entity.yawDegrees) : f32((Math.PI - entity.yaw) * 180 / Math.PI)
+  }
+  const DEG_TO_RAD_F = f32(0.017453292)
+  const PI_F = f32(Math.PI)
+  const mthSin = radians => math.mthSin(radians, vanilla.mthSinDouble)
+  const mthCos = radians => math.mthCos(radians, vanilla.mthSinDouble)
 
   function getPlayerBB (pos) {
     const w = physics.playerHalfWidth
@@ -426,22 +456,80 @@ function Physics (mcData, world) {
     }
   }
 
-  function applyHeading (entity, strafe, forward, multiplier) {
-    let speed = Math.sqrt(strafe * strafe + forward * forward)
-    if (speed < 0.01) return new Vec3(0, 0, 0)
-
-    speed = multiplier / Math.max(speed, 1)
-
-    strafe *= speed
-    forward *= speed
-
-    const yaw = Math.PI - entity.yaw
-    const sin = Math.sin(yaw)
-    const cos = Math.cos(yaw)
-
+  // Entity.moveRelative: the input (xxa to the left, zza forward) scaled to speed and turned by the yaw. Before 1.14
+  // all in float (moveFlying); since, a double input vector normalized when longer than 1, turned by float sin/cos.
+  function applyHeading (entity, xxa, zza, speed) {
     const vel = entity.vel
-    vel.x -= strafe * cos + forward * sin
-    vel.z += forward * cos - strafe * sin
+    const yaw = yawDegrees(entity)
+    if (vanilla.floatMoveRelative) {
+      let f = f32(f32(xxa * xxa) + f32(zza * zza))
+      if (f < f32(1.0e-4)) return
+      f = f32(Math.sqrt(f))
+      if (f < 1) f = 1
+      f = f32(speed / f)
+      xxa = f32(xxa * f)
+      zza = f32(zza * f)
+      const radians = vanilla.yawPiOver180 ? f32(f32(yaw * PI_F) / 180) : f32(yaw * DEG_TO_RAD_F)
+      const sin = mthSin(radians)
+      const cos = mthCos(radians)
+      vel.x += f32(f32(xxa * cos) - f32(zza * sin))
+      vel.z += f32(f32(zza * cos) + f32(xxa * sin))
+      return
+    }
+    const lengthSqr = xxa * xxa + zza * zza
+    if (lengthSqr < 1.0e-7) return
+    if (lengthSqr > 1) {
+      const length = Math.sqrt(lengthSqr)
+      xxa /= length
+      zza /= length
+    }
+    xxa *= speed
+    zza *= speed
+    const radians = f32(yaw * DEG_TO_RAD_F)
+    const sin = mthSin(radians)
+    const cos = mthCos(radians)
+    vel.x += xxa * cos - zza * sin
+    vel.z += zza * cos + xxa * sin
+  }
+
+  // The movement input as vanilla hands it to travel (xxa to the left, zza forward, floats).
+  function movementInput (entity) {
+    const control = entity.control
+    let xxa = (control.left ? 1 : 0) - (control.right ? 1 : 0)
+    let zza = (control.forward ? 1 : 0) - (control.back ? 1 : 0)
+    const slow = control.sneak ? sneakFactor(entity) : 1
+    if (vanilla.squareMovementInput) {
+      // KeyboardInput normalizes the impulse; LocalPlayer.modifyInput scales it and stretches it to the unit square.
+      if (xxa === 0 && zza === 0) return { xxa: 0, zza: 0 }
+      let length = f32(Math.sqrt(f32(f32(xxa * xxa) + f32(zza * zza))))
+      xxa = f32(xxa / length)
+      zza = f32(zza / length)
+      const input = f32(0.98)
+      xxa = f32(xxa * input)
+      zza = f32(zza * input)
+      if (slow !== 1) {
+        xxa = f32(xxa * slow)
+        zza = f32(zza * slow)
+      }
+      length = f32(Math.sqrt(f32(f32(xxa * xxa) + f32(zza * zza))))
+      if (length <= 0) return { xxa, zza }
+      const unit = f32(1 / length)
+      const ux = f32(xxa * unit)
+      const uz = f32(zza * unit)
+      const ax = Math.abs(ux)
+      const az = Math.abs(uz)
+      const ratio = az > ax ? f32(ax / az) : f32(az / ax)
+      const toSquare = f32(Math.sqrt(f32(1 + f32(ratio * ratio))))
+      const scale = Math.min(f32(length * toSquare), 1)
+      return { xxa: f32(ux * scale), zza: f32(uz * scale) }
+    }
+    xxa = f32(xxa * slow)
+    zza = f32(zza * slow)
+    return { xxa: f32(xxa * f32(0.98)), zza: f32(zza * f32(0.98)) }
+  }
+
+  function sneakFactor (entity) {
+    return f32(physics.sneakSpeed)
   }
 
   const climbableTrapdoorFeature = supportFeature('climbableTrapdoor')
@@ -552,7 +640,8 @@ function Physics (mcData, world) {
       let acceleration = 0.0
       let inertia = 0.0
       const blockUnder = world.getBlock(pos.offset(0, -1, 0))
-      if (entity.onGround && blockUnder) {
+      const slipperiness = f32(blockUnder ? (blockSlipperiness[blockUnder.type] || physics.defaultSlipperiness) : physics.defaultSlipperiness)
+      if (entity.onGround) {
         let playerSpeedAttribute
         if (entity.attributes && entity.attributes[physics.movementSpeedAttribute]) {
           // Use server-side player attributes
@@ -574,18 +663,15 @@ function Physics (mcData, world) {
           }
         }
         // Calculate what the speed is (0.1 if no modification)
-        const attributeSpeed = attribute.getAttributeValue(playerSpeedAttribute)
-        inertia = (blockSlipperiness[blockUnder.type] || physics.defaultSlipperiness) * 0.91
-        acceleration = attributeSpeed * (0.1627714 / (inertia * inertia * inertia))
+        const attributeSpeed = f32(attribute.getAttributeValue(playerSpeedAttribute))
+        inertia = f32(slipperiness * f32(0.91))
+        // 1.14+: getFrictionInfluencedSpeed, speed * (0.21600002F / f^3) of the slipperiness; before, of it times 0.91
+        const f = vanilla.floatMoveRelative ? inertia : slipperiness
+        acceleration = f32(attributeSpeed * f32(vanilla.groundFriction / f32(f32(f * f) * f)))
         if (acceleration < 0) acceleration = 0 // acceleration should not be negative
       } else {
-        acceleration = physics.airborneAcceleration
-        inertia = physics.airborneInertia
-
-        if (entity.control.sprint) {
-          const airSprintFactor = physics.airborneAcceleration * 0.3
-          acceleration += airSprintFactor
-        }
+        acceleration = entity.control.sprint ? vanilla.airSprintSpeed : f32(physics.airborneAcceleration)
+        inertia = f32(physics.airborneInertia)
       }
 
       applyHeading(entity, strafe, forward, acceleration)
@@ -610,6 +696,11 @@ function Physics (mcData, world) {
         vel.y -= physics.gravity * gravityMultiplier
       }
       vel.y *= physics.airdrag
+      if (vanilla.frictionAfterMove) {
+        // Before 1.14 the slipperiness is looked up again where the move ended.
+        const blockUnder = world.getBlock(pos.offset(0, -1, 0))
+        inertia = entity.onGround ? f32(f32(blockUnder ? (blockSlipperiness[blockUnder.type] || physics.defaultSlipperiness) : physics.defaultSlipperiness) * f32(0.91)) : f32(physics.airborneInertia)
+      }
       vel.x *= inertia
       vel.z *= inertia
     }
@@ -721,10 +812,17 @@ function Physics (mcData, world) {
     entity.isInWater = isInWaterApplyCurrent(world, waterBB, vel)
     entity.isInLava = isMaterialInBB(world, lavaBB, lavaIds)
 
-    // Reset velocity component if it falls under the threshold
-    if (Math.abs(vel.x) < physics.negligeableVelocity) vel.x = 0
-    if (Math.abs(vel.y) < physics.negligeableVelocity) vel.y = 0
-    if (Math.abs(vel.z) < physics.negligeableVelocity) vel.z = 0
+    // Reset velocity component if it falls under the threshold (1.21.5+: the player's horizontal speed as a whole)
+    if (vanilla.playerHorizontalThreshold) {
+      if (vel.x * vel.x + vel.z * vel.z < 9.0e-6) {
+        vel.x = 0
+        vel.z = 0
+      }
+    } else {
+      if (Math.abs(vel.x) < vanilla.velocityThreshold) vel.x = 0
+      if (Math.abs(vel.z) < vanilla.velocityThreshold) vel.z = 0
+    }
+    if (Math.abs(vel.y) < vanilla.velocityThreshold) vel.y = 0
 
     // Handle inputs
     if (entity.control.jump || entity.jumpQueued) {
@@ -733,14 +831,19 @@ function Physics (mcData, world) {
         vel.y += 0.04
       } else if (entity.onGround && entity.jumpTicks === 0) {
         const blockBelow = world.getBlock(entity.pos.floored().offset(0, -0.5, 0))
-        vel.y = Math.fround(0.42) * ((blockBelow && blockBelow.type === honeyblockId) ? physics.honeyblockJumpSpeed : 1)
-        if (entity.jumpBoost > 0) {
-          vel.y += 0.1 * entity.jumpBoost
-        }
+        const power = f32(f32(0.42) * ((blockBelow && blockBelow.type === honeyblockId) ? f32(physics.honeyblockJumpSpeed) : 1))
+        const boost = entity.jumpBoost > 0 ? f32(f32(0.1) * entity.jumpBoost) : 0
+        const jump = vanilla.jumpBoostFloatSum ? f32(power + boost) : power + boost
+        vel.y = vanilla.jumpKeepsVelocity ? Math.max(jump, vel.y) : jump
         if (entity.control.sprint) {
-          const yaw = Math.PI - entity.yaw
-          vel.x -= Math.sin(yaw) * 0.2
-          vel.z += Math.cos(yaw) * 0.2
+          const radians = f32(yawDegrees(entity) * DEG_TO_RAD_F)
+          if (vanilla.jumpSprintDouble) {
+            vel.x += -mthSin(radians) * 0.2
+            vel.z += mthCos(radians) * 0.2
+          } else {
+            vel.x += f32(-mthSin(radians) * f32(0.2))
+            vel.z += f32(mthCos(radians) * f32(0.2))
+          }
         }
         entity.jumpTicks = physics.autojumpCooldown
       }
@@ -749,13 +852,7 @@ function Physics (mcData, world) {
     }
     entity.jumpQueued = false
 
-    let strafe = (entity.control.right - entity.control.left) * 0.98
-    let forward = (entity.control.forward - entity.control.back) * 0.98
-
-    if (entity.control.sneak) {
-      strafe *= physics.sneakSpeed
-      forward *= physics.sneakSpeed
-    }
+    const { xxa: strafe, zza: forward } = movementInput(entity)
 
     entity.elytraFlying = entity.elytraFlying && entity.elytraEquipped && !entity.onGround && !entity.levitation
 

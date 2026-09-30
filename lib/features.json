@@ -28,5 +28,77 @@
     "name": "climbableTrapdoor",
     "description": "Trapdoors placed directly above ladders become climbable",
     "versions": ["1.9", "1.10", "1.11", "1.12", "1.13", "1.14", "1.15", "1.16", "1.17", "1.18", "1.19", "1.20"]
+  },
+  {
+    "name": "mthSinDouble",
+    "description": "Mth.sin/cos take a double and index the table as a long (26.1 sources, 1.21.11)",
+    "since": "1.21.11"
+  },
+  {
+    "name": "floatMoveRelative",
+    "description": "moveRelative (moveFlying) computes the input in float, and ground speed divides by the cube of slipperiness * 0.91",
+    "before": "1.14"
+  },
+  {
+    "name": "moveRelativeYawPiOver180",
+    "description": "moveFlying turns the yaw into radians as yaw * 3.1415927F / 180.0F",
+    "before": "1.9"
+  },
+  {
+    "name": "frictionCubeOfSlipperiness",
+    "description": "Ground speed is speed * (0.21600002F / slipperiness^3)",
+    "since": "1.14"
+  },
+  {
+    "name": "frictionConstant16277137",
+    "description": "Ground speed constant 0.16277137F (0.16277136F before)",
+    "since": "1.13"
+  },
+  {
+    "name": "frictionAfterMove",
+    "description": "The ground friction applied after the move is looked up again under the new position",
+    "before": "1.14"
+  },
+  {
+    "name": "squareMovementInput",
+    "description": "The movement input is normalized, scaled by 0.98 and the sneak factor, then stretched to the unit square (LocalPlayer.modifyInput)",
+    "since": "1.21.5"
+  },
+  {
+    "name": "playerHorizontalVelocityThreshold",
+    "description": "The player drops its horizontal velocity when its squared length is below 9.0E-6",
+    "since": "1.21.5"
+  },
+  {
+    "name": "velocityThreshold005",
+    "description": "Velocity components below 0.005 are dropped (0.003 since 1.9)",
+    "before": "1.9"
+  },
+  {
+    "name": "airSprintSpeedFloatSum",
+    "description": "Sprinting air speed is 0.02F + 0.006F in float",
+    "since": "1.19",
+    "before": "1.19.4"
+  },
+  {
+    "name": "jumpBoostFloatSum",
+    "description": "The jump boost is added to the jump power in float",
+    "since": "1.14",
+    "before": "1.17"
+  },
+  {
+    "name": "jumpBoostFloatSum",
+    "description": "The jump boost is added to the jump power in float",
+    "since": "1.20"
+  },
+  {
+    "name": "jumpSprintBoostDouble",
+    "description": "The sprint jump boost is Mth.sin(yaw) * 0.2 in double",
+    "since": "1.20.5"
+  },
+  {
+    "name": "jumpKeepsHigherVelocity",
+    "description": "A jump keeps a higher upward velocity",
+    "since": "1.21.2"
   }
 ]
