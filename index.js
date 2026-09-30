@@ -195,6 +195,24 @@ function Physics (mcData, world) {
     return new AABB(-w, 0, -w, w, physics.playerHeight, w).offset(pos.x, pos.y, pos.z)
   }
 
+  // The moving player, for blocks whose collision depends on it (EntityCollisionContext): where its feet are when the
+  // move starts and whether it is descending (sneaking).
+  let collisionContext = null
+
+  const SCAFFOLDING_STABLE = [[0, 0.875, 0, 1, 1, 1], [0, 0, 0, 0.125, 1, 0.125], [0.875, 0, 0, 1, 1, 0.125], [0, 0, 0.875, 0.125, 1, 1], [0.875, 0, 0.875, 1, 1, 1]]
+  const SCAFFOLDING_UNSTABLE_BOTTOM = [[0, 0, 0, 1, 0.125, 1]]
+
+  function collisionShapesOf (block, blockPos) {
+    if (block.type === scaffoldingId && collisionContext) {
+      // ScaffoldingBlock.getCollisionShape: solid from above unless descending; a bottom piece shows its base slab
+      const above = shapeTop => collisionContext.bottom > blockPos.y + shapeTop - 9.999999747378752e-6
+      if (above(1) && !collisionContext.descending) return SCAFFOLDING_STABLE
+      const props = block.getProperties()
+      return String(props.distance) !== '0' && (props.bottom === true || props.bottom === 'true') && above(0) ? SCAFFOLDING_UNSTABLE_BOTTOM : []
+    }
+    return block.shapes
+  }
+
   function getSurroundingBBs (world, queryBB) {
     const surroundingBBs = []
     const cursor = new Vec3(0, 0, 0)
@@ -204,7 +222,7 @@ function Physics (mcData, world) {
           const block = world.getBlock(cursor)
           if (block) {
             const blockPos = block.position
-            for (const shape of block.shapes) {
+            for (const shape of collisionShapesOf(block, blockPos)) {
               const blockBB = new AABB(shape[0], shape[1], shape[2], shape[3], shape[4], shape[5])
               blockBB.offset(blockPos.x, blockPos.y, blockPos.z)
               surroundingBBs.push(blockBB)
@@ -379,6 +397,15 @@ function Physics (mcData, world) {
   }
 
   function moveEntity (entity, world, dx, dy, dz) {
+    collisionContext = { bottom: entity.pos.y, descending: !!entity.control.sneak }
+    try {
+      moveEntityInContext(entity, world, dx, dy, dz)
+    } finally {
+      collisionContext = null
+    }
+  }
+
+  function moveEntityInContext (entity, world, dx, dy, dz) {
     const vel = entity.vel
     const pos = entity.pos
 
@@ -1177,7 +1204,10 @@ function Physics (mcData, world) {
         const max = f32(physics.ladderMaxSpeed)
         vel.x = math.clamp(-max, vel.x, max)
         vel.z = math.clamp(-max, vel.z, max)
-        vel.y = Math.max(vel.y, entity.control.sneak ? 0 : vanilla.climbFloatVertical ? -max : -physics.ladderMaxSpeed)
+        vel.y = Math.max(vel.y, vanilla.climbFloatVertical ? -max : -physics.ladderMaxSpeed)
+        // sneaking stops the slide down, except inside scaffolding
+        const inBlock = world.getBlock(pos)
+        if (vel.y < 0 && entity.control.sneak && !(inBlock && inBlock.type === scaffoldingId)) vel.y = 0
       }
 
       moveEntity(entity, world, vel.x, vel.y, vel.z)
