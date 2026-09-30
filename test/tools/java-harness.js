@@ -8,6 +8,17 @@
 'use strict'
 const fs = require('fs')
 const path = require('path')
+// PHYSREC_MCDATA names a node-minecraft-data package with versions the installed one lacks (26.2+). Every
+// require('minecraft-data') from here on resolves to it, so prismarine-block, prismarine-chat and minecraft-protocol
+// see the same data as the engine.
+if (process.env.PHYSREC_MCDATA) {
+  const Module = require('module')
+  const target = require.resolve(path.resolve(process.env.PHYSREC_MCDATA))
+  const resolve = Module._resolveFilename
+  Module._resolveFilename = function (request, ...rest) {
+    return request === 'minecraft-data' ? target : resolve.call(this, request, ...rest)
+  }
+}
 const assert = require('assert')
 const { Vec3 } = require('vec3')
 const { Physics } = require('../..')
