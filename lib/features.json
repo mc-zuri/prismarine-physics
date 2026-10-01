@@ -112,9 +112,14 @@
     "since": "1.21"
   },
   {
+    "name": "entityAttachments",
+    "description": "Passengers sit on EntityAttachments points (the player's vehicle attachment 0.6 in double); before, on float riding offsets",
+    "since": "1.20.5"
+  },
+  {
     "name": "javaBoats",
     "description": "A boat the player rides is driven by the client (AbstractBoat.tick as of 1.21.2+)",
-    "since": "1.21.2"
+    "since": "1.20"
   },
   {
     "name": "autoJump",

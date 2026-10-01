@@ -163,6 +163,7 @@ function Physics (mcData, world) {
     legacyWorldBorder: supportFeature('legacyWorldBorder'),
     autoJump: supportFeature('autoJump'),
     javaBoats: supportFeature('javaBoats'),
+    entityAttachments: supportFeature('entityAttachments'),
     autoJumpJumpFactor: supportFeature('autoJumpJumpFactor'),
     autoJumpFloatFastInvSqrt: supportFeature('autoJumpFloatFastInvSqrt'),
     autoJumpExactInvSqrt: supportFeature('autoJumpExactInvSqrt'),
@@ -2493,14 +2494,16 @@ function Physics (mcData, world) {
   // AbstractBoat.floatBoat: gravity and buoyancy, and the friction of where the boat is
   function floatBoat (boat, world, oldStatus) {
     const vel = boat.vel
-    let gravity = -0.04
+    // (before 1.20.5 the gravity is -0.04F, the buoyancy 0.04F / 0.65)
+    let gravity = vanilla.playerAttributes ? -0.04 : -0.03999999910593033
     let buoyancy = 0
     let friction = f32(0.05)
     if (oldStatus === 'in_air' && boat.status !== 'in_air' && boat.status !== 'on_land') {
       boat.waterLevel = boat.pos.y + BOAT_HEIGHT
       const y = (boatWaterLevelAbove(boat, world) - BOAT_HEIGHT) + 0.101
       const moved = boatBox(boat).offset(0, y - boat.pos.y, 0)
-      if (!collidesWithBlocks(world, moved)) {
+      // (1.21+: only where the boat fits)
+      if (!vanilla.candidateStepHeights || !collidesWithBlocks(world, moved)) {
         boat.pos.y = y
         vel.y = 0
         boat.lastYd = 0
@@ -2527,7 +2530,7 @@ function Physics (mcData, world) {
     vel.y += gravity
     vel.z *= friction
     boat.deltaRotation = f32(boat.deltaRotation * friction)
-    if (buoyancy > 0) vel.y = (vel.y + buoyancy * (0.04 / 0.65)) * 0.75
+    if (buoyancy > 0) vel.y = (vel.y + buoyancy * (vanilla.playerAttributes ? 0.04 / 0.65 : 0.06153846016296973)) * 0.75
   }
 
   // AbstractBoat.controlBoat: the keys of the tick before turn it and paddle it along its yaw
@@ -2605,7 +2608,8 @@ function Physics (mcData, world) {
   function positionBoatRider (entity, boat) {
     const rideHeight = /raft$/.test(boat.type) ? f32(BOAT_HEIGHT * f32(0.8888889)) : f32(BOAT_HEIGHT / f32(3))
     entity.pos.x = boat.pos.x
-    entity.pos.y = (boat.pos.y + rideHeight) - 0.6
+    // (before 1.20.5 the passenger's own riding offset, -0.6F, is a float)
+    entity.pos.y = vanilla.entityAttachments ? (boat.pos.y + rideHeight) - 0.6 : (rideHeight + boat.pos.y) + f32(-0.6)
     entity.pos.z = boat.pos.z
     let yaw = f32(yawDegrees(entity) + boat.deltaRotation)
     const relative = wrapDegrees(f32(yaw - boat.yaw))
