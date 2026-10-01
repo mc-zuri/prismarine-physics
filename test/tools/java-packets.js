@@ -102,14 +102,26 @@ function movementPackets (after, input, net, version, extra = {}) {
   const before = extra.before || {}
   // LocalPlayer.aiStep: the flight toggle (abilities), the glide start and the riding jump go out before the tick's
   // own packets
-  if (after.flying !== undefined && !!after.flying !== !!before.flying && extra.mayFly) packets.push({ name: 'abilities', params: { flags: after.flying ? 2 : 0 } })
-  if (after.elytraFlying && !before.elytraFlying && extra.clientStartsGliding) packets.push({ name: 'entity_action', params: { entityId: net.entityId, actionId: 'start_fall_flying', jumpBoost: 0 } })
+  if (after.flying !== undefined && !!after.flying !== !!before.flying && extra.mayFly) {
+    if (version && isOlder(version, '1.16')) {
+      // before 1.16 the client sends all its abilities (creative: invulnerable, may fly, instabuild) and both speeds
+      const speeds = before.attributes || {}
+      const flyingSpeed = speeds['abilities.flyingSpeed'] !== undefined ? speeds['abilities.flyingSpeed'] : Math.fround(0.05)
+      packets.push({ name: 'abilities', params: { flags: 1 | 4 | 8 | (after.flying ? 2 : 0), flyingSpeed, walkingSpeed: Math.fround(0.1) } })
+    } else packets.push({ name: 'abilities', params: { flags: after.flying ? 2 : 0 } })
+  }
+  // Since 1.15 the client starts gliding itself; before, it only asks: jump newly pressed in the air while falling, not
+  // gliding or flying, an elytra worn.
+  const asksToGlide = extra.clientStartsGliding
+    ? after.elytraFlying && !before.elytraFlying
+    : extra.chest === 'elytra' && input.jump && !(extra.prevKeys && extra.prevKeys.jump) && !before.onGround && before.vel && before.vel[1] < 0 && !before.elytraFlying && !after.flying
+  if (asksToGlide) packets.push({ name: 'entity_action', params: { entityId: net.entityId, actionId: 'start_fall_flying', jumpBoost: 0 } })
   const beforeVehicle = before.vehicle
   if (beforeVehicle && after.vehicle && JUMPABLE.has(beforeVehicle.type) && extra.prevKeys && extra.prevKeys.jump && !input.jump) {
     packets.push({ name: 'entity_action', params: { entityId: net.entityId, actionId: 'start_riding_jump', jumpBoost: Math.floor(Math.fround(beforeVehicle.jumpRidingScale * 100)) } })
   }
-  if (after.vehicle) return ridingPackets(packets, next, after, input, net, legacy, extra)
-  if (legacy) return legacyMovementPackets(packets, next, after, input, net, extra)
+  if (after.vehicle) return ridingPackets(packets, next, after, input, net, legacy, extra, version)
+  if (legacy) return legacyMovementPackets(packets, next, after, input, net, extra, version)
   const keys = [!!input.forward, !!input.back, !!input.left, !!input.right, !!input.jump, !!input.sneak, !!input.sprint]
   if (!net.lastSentInput || keys.some((k, i) => k !== net.lastSentInput[i])) {
     const inputs = {}

@@ -496,7 +496,8 @@ function checkClientPackets (version, rec) {
         prevKeys,
         mayFly: (rec.start.gameMode || rec.gamemode) === 'creative',
         clientStartsGliding: !registry(version).isOlderThan('1.15'),
-        mainhand: setup.equipment && setup.equipment.mainhand && setup.equipment.mainhand.id
+        mainhand: setup.equipment && setup.equipment.mainhand && setup.equipment.mainhand.id,
+        chest: setup.equipment && setup.equipment.chest && setup.equipment.chest.id
       }
       const built = packets.movementPackets(row, input, before.netState, version, extra).packets
       const actual = built.map(p => packets.encode(version, 'toServer', p.name, p.params))
