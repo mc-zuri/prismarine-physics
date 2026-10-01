@@ -278,13 +278,15 @@ const TO_RAD = Math.PI / 180
  * effectNames }. Only the player's own packets change it; packets about other entities must leave it alone.
  * Returns the packets the client sends back while handling it ([{ name, params }]).
  */
-// The attribute an update_attributes property names. Before 1.20.5 it travels by name; since, by registry id, which
+// The attribute an update_attributes property names. Before 1.20.5 it travels by name (key before 1.16); since, by registry id, which
 // minecraft-protocol decodes with a mapper that may be stale: map the decoded name back to its id and take the
 // attribute from the registry (minecraft-data's attributes are in registry order).
 function attributeResource (prop, mcData) {
   if (prop.name !== undefined) return prop.name
   const type = mcData.protocol.play.toClient.types.packet_entity_update_attributes
   const mappings = JSON.stringify(type).match(/"mappings":({[^}]*})/)
+  // (a plain string key before 1.16, e.g. generic.movementSpeed)
+  if (!mappings) return prop.key
   const id = mappings ? Object.entries(JSON.parse(mappings[1])).find(([, name]) => name === prop.key) : undefined
   const attribute = id && mcData.attributesArray[Number(id[0])]
   return attribute ? attribute.resource : undefined
