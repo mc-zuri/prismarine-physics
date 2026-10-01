@@ -343,6 +343,7 @@ function vehicleFrom (v, keys, id, mount, mountAttributes, rider, steerItem) {
     // the rider's input and yaw of the tick before (a horse moves on them)
     riderInput: rider ? { xxa: Math.fround(rider.xxa || 0), zza: Math.fround(rider.zza || 0) } : undefined,
     riderYaw: rider ? rider.yaw : undefined,
+    riderSprinting: rider ? !!rider.sprinting : undefined,
     // a pig the rider steers with a carrot on a stick, a strider with a warped fungus on one
     steered: !!(steerItem && ((v.type === 'pig' && steerItem === 'carrot_on_a_stick') || (v.type === 'strider' && steerItem === 'warped_fungus_on_a_stick'))),
     input: { left: !!keys.left, right: !!keys.right, up: !!keys.forward, down: !!keys.back }
@@ -470,7 +471,7 @@ function replay (version, rec, { mode = 'trajectory', fields = FIELDS, epsilon =
       const engineVehicle = state.vehicle
       if (before.vehicle) state.vehicle = vehicleFrom(before.vehicle, before.in || {}, before.netState && before.netState.vehicleId, rec.setup && rec.setup.mount && rec.setup.mount.entity, rec.setup && rec.setup.mount && rec.setup.mount.attributes, before, rec.setup && rec.setup.equipment && rec.setup.equipment.mainhand && rec.setup.equipment.mainhand.id)
       if (state.vehicle && engineVehicle && engineVehicle !== state.vehicle) {
-        for (const key of ['pendingJump', 'standing', 'standCounter', 'standAnim', 'standAnimO', 'allowStandSliding', 'lastYd']) {
+        for (const key of ['pendingJump', 'dashCooldown', 'standing', 'standCounter', 'standAnim', 'standAnimO', 'allowStandSliding', 'lastYd']) {
           if (state.vehicle[key] === undefined && engineVehicle[key] !== undefined) state.vehicle[key] = engineVehicle[key]
         }
       }
