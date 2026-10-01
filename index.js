@@ -160,6 +160,7 @@ function Physics (mcData, world) {
     legacyPlayerSize: supportFeature('legacyPlayerSize'),
     legacyViewVector: supportFeature('legacyViewVector'),
     elytraLegacyLift: supportFeature('elytraLegacyLift'),
+    legacyWorldBorder: supportFeature('legacyWorldBorder'),
     moveWhenBlocked: supportFeature('moveWhenFullyBlocked'),
     collisionEpsilonVelocity: supportFeature('collisionEpsilonVelocityReset'),
     waterSprintSlowdown: supportFeature('proportionalLiquidGravity'),
@@ -442,6 +443,26 @@ function Physics (mcData, world) {
     new AABB(-Infinity, -Infinity, -Infinity, -BORDER, Infinity, Infinity), new AABB(BORDER, -Infinity, -Infinity, Infinity, Infinity, Infinity),
     new AABB(-Infinity, -Infinity, -Infinity, Infinity, Infinity, -BORDER), new AABB(-Infinity, -Infinity, BORDER, Infinity, Infinity, Infinity)
   ]
+  // World.getCollisionBoxes (1.8-1.13): for a player inside the world border, the cells outside it are stone.
+  function legacyBorderShapes (box) {
+    const context = collisionContext
+    if (!context || !(context.x > -BORDER - 1 && context.x < BORDER + 1 && context.z > -BORDER - 1 && context.z < BORDER + 1)) return []
+    const x0 = Math.floor(box.minX) - 1
+    const x1 = Math.ceil(box.maxX) + 1
+    const z0 = Math.floor(box.minZ) - 1
+    const z1 = Math.ceil(box.maxZ) + 1
+    if (x0 + 1 > -BORDER && x1 - 1 < BORDER && z0 + 1 > -BORDER && z1 - 1 < BORDER) return []
+    const out = []
+    const y0 = Math.floor(box.minY) - 1
+    const y1 = Math.ceil(box.maxY) + 1
+    for (let x = x0; x < x1; x++) {
+      for (let z = z0; z < z1; z++) {
+        if (x + 1 > -BORDER && x < BORDER && z + 1 > -BORDER && z < BORDER) continue
+        for (let y = y0; y < y1; y++) out.push(new AABB(x, y, z, x + 1, y + 1, z + 1))
+      }
+    }
+    return out
+  }
   function closeToBorder (context, box) {
     const margin = Math.max(Math.max(box.maxX - box.minX, box.maxZ - box.minZ), 1)
     const distance = Math.min(context.x + BORDER, BORDER - context.x, context.z + BORDER, BORDER - context.z)
@@ -477,6 +498,7 @@ function Physics (mcData, world) {
 
   function legacyShapes (world, queryBB) {
     const shapes = getSurroundingBBs(world, queryBB)
+    if (vanilla.legacyWorldBorder) shapes.push(...legacyBorderShapes(queryBB))
     return vanilla.voxelCollision ? shapes.filter(shape => shape.intersects(queryBB)) : shapes
   }
 

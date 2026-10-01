@@ -112,6 +112,12 @@
     "since": "1.21"
   },
   {
+    "name": "legacyWorldBorder",
+    "description": "World.getCollisionBoxes: for an entity inside the world border, the cells outside it collide as stone",
+    "since": "1.8",
+    "before": "1.14"
+  },
+  {
     "name": "elytraLegacyLift",
     "description": "EntityLivingBase.travel gliding before 1.13: motionY += -0.08 + lift * 0.06",
     "before": "1.13"
