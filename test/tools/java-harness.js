@@ -403,9 +403,12 @@ function entityTimeline (rec) {
 
 // The tick's entities: the ones around the player, and a vehicle the server moves (a minecart) where the client has it
 const SERVER_DRIVEN = /minecart$/
-function useEntities (state, entities) {
+// (the entities spawned after the player tick after it: it collides with where they were the tick before, they push
+// it from where they are after their own tick)
+function useEntities (state, entities, before) {
   const vehicleId = state.vehicle && state.vehicle.id
-  state.entities = entities.filter(e => e.id !== vehicleId).map(e => ({ id: e.id, type: e.type, pos: new Vec3(...e.pos), vel: new Vec3(...e.vel), box: e.box }))
+  const previous = new Map((before || []).map(e => [e.id, e]))
+  state.entities = entities.filter(e => e.id !== vehicleId).map(e => ({ id: e.id, type: e.type, pos: new Vec3(...e.pos), vel: new Vec3(...e.vel), box: e.box, solidBox: (previous.get(e.id) || e).box }))
   const ridden = entities.find(e => e.id === vehicleId)
   if (ridden && SERVER_DRIVEN.test(state.vehicle.type)) {
     state.vehicle.pos = new Vec3(...ridden.pos)
@@ -520,7 +523,7 @@ function replay (version, rec, { mode = 'trajectory', fields = FIELDS, epsilon =
     // Inputs synced before this tick are those of the previous row (the state the tick started from).
     applyInput(state, { ...(i > 0 ? rows[i - 1] : rec.start), ...(rec.start.netState && packetsSupported(version) ? {} : { attributes: row.attributes, attributeModifiers: row.attributeModifiers }), usingItem: row.usingItem, fireworks: row.fireworks, riptideLaunch: riptideLaunch(rec, rows, i), in: row.in }, mcData)
     applyEvents(state, w, row.events, packetContext(version, mcData, rec))
-    if (timeline) useEntities(state, timeline[i])
+    if (timeline) useEntities(state, timeline[i], i > 0 ? timeline[i - 1] : rec.start.entities)
     physics.simulatePlayer(state, w)
     const diffs = differences(state, row, fields, epsilon)
     if (diffs.length) divergences.push({ t: row.t, input: row.in, diffs })
@@ -742,7 +745,7 @@ function replayUntil (version, rec, tick, options) {
   for (let i = 0; i < tick; i++) {
     applyInput(state, { ...(i > 0 ? rows[i - 1] : rec.start), ...(rec.start.netState && packetsSupported(version) ? {} : { attributes: rows[i].attributes, attributeModifiers: rows[i].attributeModifiers }), usingItem: rows[i].usingItem, fireworks: rows[i].fireworks, riptideLaunch: riptideLaunch(rec, rows, i), in: rows[i].in }, mcData)
     applyEvents(state, w, rows[i].events, packetContext(version, mcData, rec))
-    if (timeline) useEntities(state, timeline[i])
+    if (timeline) useEntities(state, timeline[i], i > 0 ? timeline[i - 1] : rec.start.entities)
     physics.simulatePlayer(state, w)
   }
   return state
