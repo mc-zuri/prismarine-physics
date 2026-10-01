@@ -2688,14 +2688,17 @@ function Physics (mcData, world) {
     return wrapped
   }
 
-  // ---- horses (AbstractHorse ridden by the player) ----
+  // ---- mounts the player drives: horses (AbstractHorse), a pig steered with its stick (ItemSteerable) ----
 
+  // seat: the passenger attachment (1.20.5+); below: before, the seat under the top (getPassengersRidingOffsetY)
+  const HORSE = { width: f32(1.3964844), height: f32(1.6), seat: f32(1.44375), below: f32(0.15625), step: 1, jumps: true }
   const HORSES = {
-    horse: { width: f32(1.3964844), height: f32(1.6), seat: f32(1.44375) },
-    donkey: { width: f32(1.3964844), height: f32(1.5), seat: f32(1.1125) },
-    mule: { width: f32(1.3964844), height: f32(1.6), seat: f32(1.2125) },
-    skeleton_horse: { width: f32(1.3964844), height: f32(1.6), seat: f32(1.31875) },
-    zombie_horse: { width: f32(1.3964844), height: f32(1.6), seat: f32(1.31875) }
+    horse: HORSE,
+    donkey: { ...HORSE, height: f32(1.5), seat: f32(1.1125) },
+    mule: { ...HORSE, seat: f32(1.2125) },
+    skeleton_horse: { ...HORSE, seat: f32(1.31875) },
+    zombie_horse: { ...HORSE, seat: f32(1.31875) },
+    pig: { width: f32(0.9), height: f32(0.9), seat: f32(0.86875), below: f32(0.03125), step: 0.6, steered: true }
   }
 
   // LocalPlayer.aiStep: holding jump on a horse charges the jump (0.1 a tick to 0.9, then easing back toward 0.8);
@@ -2744,8 +2747,11 @@ function Physics (mcData, world) {
       const speedKey = mcData.attributesByName.movementSpeed.resource
       horse.attributes = { [speedKey]: { value: horse.movementSpeed, modifiers: [] } }
       horse.control = {}
-      horse.stepHeight = horse.stepHeight || 1
-      horse.airSpeed = f32(f32(horse.movementSpeed) * f32(0.1))
+      horse.stepHeight = horse.stepHeight || dims.step
+      // getRiddenSpeed: a horse's movement speed; a steered pig's times 0.225 (and its boost)
+      const speed = dims.steered ? f32(horse.movementSpeed * 0.225 * (horse.boostFactor || 1)) : f32(horse.movementSpeed)
+      horse.attributes[speedKey] = { value: speed, modifiers: [] }
+      horse.airSpeed = f32(speed * f32(0.1))
       // Entity.baseTick: the fluids around it
       const water = updateFluid(horse, world, getPlayerBB(horse.pos), 'water', 0.014)
       horse.isInWater = water.found
@@ -2764,9 +2770,10 @@ function Physics (mcData, world) {
       if (Math.abs(vel.y) < 0.003) vel.y = 0
       if (Math.abs(vel.z) < 0.003) vel.z = 0
       // getRiddenInput: none while it rears on the ground (unless the rider's jump let it slide)
-      const input = horse.riderInput || { xxa: 0, zza: 0 }
+      // (a steered pig always goes forward)
+      const input = dims.steered ? { xxa: 0, zza: 1 } : horse.riderInput || { xxa: 0, zza: 0 }
       const rearing = horse.onGround && !(horse.pendingJump > 0) && horse.standing && !horse.allowStandSliding
-      const strafe = rearing ? 0 : f32(input.xxa * f32(0.5))
+      const strafe = rearing || dims.steered ? 0 : f32(input.xxa * f32(0.5))
       let forward = rearing ? 0 : f32(input.zza)
       if (forward <= 0) forward = f32(forward * f32(0.25))
       // tickRidden: the rider's rotation (half its pitch) and the pending jump
@@ -2834,21 +2841,21 @@ function Physics (mcData, world) {
       entity.pos.y = (horse.pos.y + (dims.seat + 0.15 * anim)) - 0.6
     } else {
       // before 1.20.5: float offsets, the seat 0.15625 under the top
-      const seat = f32(f32(dims.height - f32(0.15625)) + f32(f32(0.15) * anim))
+      const seat = f32(f32(dims.height - dims.below) + f32(f32(0.15) * anim))
       entity.pos.y = (seat + horse.pos.y) + f32(-0.6)
     }
   }
 
   physics.simulatePlayer = (entity, world) => {
     const vehicle = entity.vehicle
-    if (vanilla.javaBoats && vehicle && HORSES[vehicle.type]) {
+    if (vanilla.javaBoats && vehicle && HORSES[vehicle.type] && (!HORSES[vehicle.type].steered || vehicle.steered)) {
       // the horse faces where its rider looks now (the keys are those of the rider's last tick)
       vehicle.riderYaw = yawDegrees(entity)
       tickHorse(vehicle, world)
       entity.vel.x = 0
       entity.vel.y = 0
       entity.vel.z = 0
-      chargeRidingJump(entity, vehicle)
+      if (HORSES[vehicle.type].jumps) chargeRidingJump(entity, vehicle)
       simulateOwn(entity, world)
       positionHorseRider(entity, vehicle)
       vehicle.riderInput = { xxa: entity.xxa, zza: entity.zza }
