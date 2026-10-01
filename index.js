@@ -2950,6 +2950,18 @@ function Physics (mcData, world) {
       vehicle.riderSprinting = !!entity.sprinting
       return entity
     }
+    if (vanilla.javaBoats && vehicle && /minecart$/.test(vehicle.type)) {
+      // a minecart is the server's: the caller keeps it where the client has it; the rider ticks from rest and sits
+      // on it (its attachment 0.1875 up, the player's 0.6 down)
+      entity.vel.x = 0
+      entity.vel.y = 0
+      entity.vel.z = 0
+      simulateOwn(entity, world)
+      entity.pos.x = vehicle.pos.x
+      entity.pos.y = vanilla.entityAttachments ? (vehicle.pos.y + f32(0.1875)) - 0.6 : vehicle.pos.y + f32(0.1875) + f32(-0.6)
+      entity.pos.z = vehicle.pos.z
+      return entity
+    }
     const boat = entity.vehicle
     if (!vanilla.javaBoats || !boat || !isBoatType(boat.type)) {
       simulateOwn(entity, world)
