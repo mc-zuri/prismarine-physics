@@ -369,6 +369,10 @@ function handle (state, packet, ctx) {
       if (self(p.entityId) && p.entityStatus === 9 && food && state.food !== undefined) state.food = Math.min(20, state.food + food.foodPoints)
       break
     }
+    case 'set_passengers':
+      // the player no longer among the vehicle's passengers: it rides no more
+      if (state.vehicle && state.vehicle.id === p.entityId && !p.passengers.includes(ctx.entityId)) state.vehicle = undefined
+      break
     case 'update_health':
       // the food level (sprinting needs more than 6)
       state.food = p.food
@@ -419,7 +423,7 @@ function rotate (v, pitch, yaw) {
 }
 
 // The packets handle() reads.
-const HANDLED = new Set(['entity_velocity', 'explosion', 'position', 'player_rotation', 'entity_update_attributes', 'entity_status', 'update_health', 'entity_effect', 'remove_entity_effect', 'entity_metadata', 'block_change', 'multi_block_change'])
+const HANDLED = new Set(['set_passengers', 'entity_velocity', 'explosion', 'position', 'player_rotation', 'entity_update_attributes', 'entity_status', 'update_health', 'entity_effect', 'remove_entity_effect', 'entity_metadata', 'block_change', 'multi_block_change'])
 
 // A server packet decoded for handle(). A packet the handlers do not read may fail to decode where minecraft-data's
 // protocol lags (26.3 item components): it is passed on by name only. One they read must decode.
