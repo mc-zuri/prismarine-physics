@@ -634,10 +634,19 @@ function Physics (mcData, world) {
     const vel = entity.vel
     const pos = entity.pos
     if (entity.gameMode === 'spectator') {
-      // noPhysics: a spectator moves through everything and touches nothing
-      pos.x += dx
-      pos.y += dy
-      pos.z += dz
+      // noPhysics: a spectator moves through everything and touches nothing (before 1.17 the kept box moves and the
+      // position is its center)
+      if (vanilla.positionFromBoxCenter || !vanilla.modernMove) {
+        const box = entityBox(entity).offset(dx, dy, dz)
+        pos.x = (box.minX + box.maxX) / 2
+        pos.y = box.minY
+        pos.z = (box.minZ + box.maxZ) / 2
+        keepBox(entity, box)
+      } else {
+        pos.x += dx
+        pos.y += dy
+        pos.z += dz
+      }
       entity.isCollidedHorizontally = false
       entity.isCollidedVertically = false
       entity.onGround = false
