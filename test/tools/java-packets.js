@@ -357,6 +357,11 @@ function handle (state, packet, ctx) {
       else if (p.playerMotionX !== undefined) state.vel = state.vel.offset(p.playerMotionX, p.playerMotionY, p.playerMotionZ)
       break
     case 'position': {
+      // (1.19-1.19.3: the teleport may dismount the player, the vehicle staying where it was)
+      if (p.dismountVehicle && state.vehicle) {
+        if (state.entities) state.entities.push({ id: state.vehicle.id, type: state.vehicle.type, pos: state.vehicle.pos.clone() })
+        state.vehicle = undefined
+      }
       if (typeof p.flags === 'number') {
         // Before 1.21.2: bit flags (x, y, z, yaw, pitch relative); a relative axis keeps its velocity, an absolute one
         // stops it, and the reply reports onGround false.
