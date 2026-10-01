@@ -162,6 +162,7 @@ function Physics (mcData, world) {
     elytraLegacyLift: supportFeature('elytraLegacyLift'),
     legacyWorldBorder: supportFeature('legacyWorldBorder'),
     autoJump: supportFeature('autoJump'),
+    javaBoats: supportFeature('javaBoats'),
     autoJumpJumpFactor: supportFeature('autoJumpJumpFactor'),
     autoJumpFloatFastInvSqrt: supportFeature('autoJumpFloatFastInvSqrt'),
     autoJumpExactInvSqrt: supportFeature('autoJumpExactInvSqrt'),
@@ -967,6 +968,10 @@ function Physics (mcData, world) {
     if (vanilla.unifiedFluidInteraction) {
       // 26.1: the whole fluid interaction again, lava included
       updateFluids(entity, world)
+      return
+    }
+    if (inBoatAboveWater(entity)) {
+      entity.isInWater = false
       return
     }
     if (vanilla.fluidHeights) entity.isInWater = updateFluid(entity, world, entityBox(entity), 'water', 0.014).found
@@ -1846,7 +1851,7 @@ function Physics (mcData, world) {
   // Water then lava, with their currents (1.16+)
   function updateFluids (entity, world) {
     const box = entityBox(entity)
-    const water = updateFluid(entity, world, box, 'water', 0.014)
+    const water = inBoatAboveWater(entity) ? { found: false, height: 0 } : updateFluid(entity, world, box, 'water', 0.014)
     entity.isInWater = water.found
     entity.waterHeight = water.height
     const lava = updateFluid(entity, world, box, 'lava', 0.0023333333333333335)
@@ -2191,7 +2196,7 @@ function Physics (mcData, world) {
     if (entity.onGround) moveEntity(entity, world, 0, 1.1999999284744263, 0)
   }
 
-  physics.simulatePlayer = (entity, world) => {
+  const simulateOwn = (entity, world) => {
     const vel = entity.vel
     const pos = entity.pos
     if (entity.riptideLaunch) riptide(entity, world)
@@ -2367,6 +2372,269 @@ function Physics (mcData, world) {
     if (vanilla.crouchPose) updatePose(entity, world)
     else if (vanilla.legacyPlayerSize) updateLegacySize(entity, world)
 
+    return entity
+  }
+
+  // ---- boats (AbstractBoat) ----
+
+  const BOAT_WIDTH = f32(1.375)
+  const BOAT_HEIGHT = f32(0.5625)
+  const isBoatType = type => /boat$|raft$/.test(type)
+  const UNDER = new Set(['under_water', 'under_flowing_water'])
+
+  // Entity.updateInWaterStateAndDoWaterCurrentPushing: in a boat that is not under water the passenger is not in it
+  function inBoatAboveWater (entity) {
+    return !!(vanilla.javaBoats && entity.vehicle && isBoatType(entity.vehicle.type) && !UNDER.has(entity.vehicle.status))
+  }
+
+  function boatBox (boat) {
+    const half = BOAT_WIDTH / 2
+    return new AABB(boat.pos.x - half, boat.pos.y, boat.pos.z - half, boat.pos.x + half, boat.pos.y + BOAT_HEIGHT, boat.pos.z + half)
+  }
+
+  const waterHeightAt = (world, pos) => {
+    const fluid = fluidOf(world.getBlock(pos), 'water')
+    return fluid ? { height: fluidHeight(world, pos, fluid, 'water'), source: fluid.amount === 8 && !fluid.falling } : null
+  }
+
+  // AbstractBoat.getStatus: under water (the top 0.001 under a water surface), in water (the bottom under one), on
+  // land (the friction of the blocks just under it), else in the air; the water level as it finds it
+  function boatStatus (boat, world) {
+    const box = boatBox(boat)
+    const top = box.maxY + 0.001
+    let under = false
+    const cursor = new Vec3(0, 0, 0)
+    for (cursor.x = Math.floor(box.minX); cursor.x < Math.ceil(box.maxX); cursor.x++) {
+      for (cursor.y = Math.floor(box.maxY); cursor.y < Math.ceil(top); cursor.y++) {
+        for (cursor.z = Math.floor(box.minZ); cursor.z < Math.ceil(box.maxZ); cursor.z++) {
+          const water = waterHeightAt(world, cursor)
+          if (water && top < f32(cursor.y + water.height)) {
+            if (!water.source) { boat.waterLevel = box.maxY; return 'under_flowing_water' }
+            under = true
+          }
+        }
+      }
+    }
+    if (under) { boat.waterLevel = box.maxY; return 'under_water' }
+    let inWater = false
+    boat.waterLevel = -Number.MAX_VALUE
+    for (cursor.x = Math.floor(box.minX); cursor.x < Math.ceil(box.maxX); cursor.x++) {
+      for (cursor.y = Math.floor(box.minY); cursor.y < Math.ceil(box.minY + 0.001); cursor.y++) {
+        for (cursor.z = Math.floor(box.minZ); cursor.z < Math.ceil(box.maxZ); cursor.z++) {
+          const water = waterHeightAt(world, cursor)
+          if (water) {
+            const level = f32(cursor.y + water.height)
+            boat.waterLevel = Math.max(level, boat.waterLevel)
+            inWater = inWater || box.minY < level
+          }
+        }
+      }
+    }
+    if (inWater) return 'in_water'
+    const friction = boatGroundFriction(boat, world, box)
+    if (friction > 0) {
+      boat.landFriction = friction
+      return 'on_land'
+    }
+    return 'in_air'
+  }
+
+  // AbstractBoat.getGroundFriction: the mean friction of the blocks whose shapes touch the 0.001 slab under the boat
+  function boatGroundFriction (boat, world, box) {
+    const slab = new AABB(box.minX, box.minY - 0.001, box.minZ, box.maxX, box.minY, box.maxZ)
+    const x0 = Math.floor(slab.minX) - 1
+    const x1 = Math.ceil(slab.maxX) + 1
+    const y0 = Math.floor(slab.minY) - 1
+    const y1 = Math.ceil(slab.maxY) + 1
+    const z0 = Math.floor(slab.minZ) - 1
+    const z1 = Math.ceil(slab.maxZ) + 1
+    let sum = 0
+    let count = 0
+    for (let x = x0; x < x1; x++) {
+      for (let z = z0; z < z1; z++) {
+        const edges = (x === x0 || x === x1 - 1 ? 1 : 0) + (z === z0 || z === z1 - 1 ? 1 : 0)
+        if (edges === 2) continue
+        for (let y = y0; y < y1; y++) {
+          if (edges > 0 && (y === y0 || y === y1 - 1)) continue
+          const block = world.getBlock(new Vec3(x, y, z))
+          if (!block || block.name === 'lily_pad' || block.name === 'waterlily') continue
+          const touches = collisionShapesOf(block, block.position).some(s => new AABB(x + s[0], y + s[1], z + s[2], x + s[3], y + s[4], z + s[5]).intersects(slab))
+          if (touches) {
+            sum = f32(sum + f32(blockSlipperiness[block.type] || physics.defaultSlipperiness))
+            count++
+          }
+        }
+      }
+    }
+    return f32(sum / count)
+  }
+
+  // AbstractBoat.getWaterLevelAbove
+  function boatWaterLevelAbove (boat, world) {
+    const box = boatBox(boat)
+    const y1 = Math.ceil(box.maxY - (boat.lastYd || 0))
+    const cursor = new Vec3(0, 0, 0)
+    for (let y = Math.floor(box.maxY); y < y1; y++) {
+      let height = 0
+      let full = false
+      for (let x = Math.floor(box.minX); x < Math.ceil(box.maxX) && !full; x++) {
+        for (let z = Math.floor(box.minZ); z < Math.ceil(box.maxZ); z++) {
+          cursor.set(x, y, z)
+          const water = waterHeightAt(world, cursor)
+          if (water) height = Math.max(height, water.height)
+          if (height >= 1) { full = true; break }
+        }
+      }
+      if (!full && height < 1) return f32(y + height)
+    }
+    return f32(y1 + 1)
+  }
+
+  // AbstractBoat.floatBoat: gravity and buoyancy, and the friction of where the boat is
+  function floatBoat (boat, world, oldStatus) {
+    const vel = boat.vel
+    let gravity = -0.04
+    let buoyancy = 0
+    let friction = f32(0.05)
+    if (oldStatus === 'in_air' && boat.status !== 'in_air' && boat.status !== 'on_land') {
+      boat.waterLevel = boat.pos.y + BOAT_HEIGHT
+      const y = (boatWaterLevelAbove(boat, world) - BOAT_HEIGHT) + 0.101
+      const moved = boatBox(boat).offset(0, y - boat.pos.y, 0)
+      if (!collidesWithBlocks(world, moved)) {
+        boat.pos.y = y
+        vel.y = 0
+        boat.lastYd = 0
+      }
+      boat.status = 'in_water'
+      return
+    }
+    if (boat.status === 'in_water') {
+      buoyancy = (boat.waterLevel - boat.pos.y) / BOAT_HEIGHT
+      friction = f32(0.9)
+    } else if (boat.status === 'under_flowing_water') {
+      gravity = -7.0e-4
+      friction = f32(0.9)
+    } else if (boat.status === 'under_water') {
+      buoyancy = 0.009999999776482582
+      friction = f32(0.45)
+    } else if (boat.status === 'in_air') {
+      friction = f32(0.9)
+    } else if (boat.status === 'on_land') {
+      friction = boat.landFriction
+      boat.landFriction = f32(boat.landFriction / 2) // a player steers it
+    }
+    vel.x *= friction
+    vel.y += gravity
+    vel.z *= friction
+    boat.deltaRotation = f32(boat.deltaRotation * friction)
+    if (buoyancy > 0) vel.y = (vel.y + buoyancy * (0.04 / 0.65)) * 0.75
+  }
+
+  // AbstractBoat.controlBoat: the keys of the tick before turn it and paddle it along its yaw
+  function controlBoat (boat) {
+    const input = boat.input || {}
+    let push = 0
+    if (input.left) boat.deltaRotation = f32(boat.deltaRotation - 1)
+    if (input.right) boat.deltaRotation = f32(boat.deltaRotation + 1)
+    if (!!input.right !== !!input.left && !input.up && !input.down) push = f32(push + f32(0.005))
+    boat.yaw = f32(boat.yaw + boat.deltaRotation)
+    if (input.up) push = f32(push + f32(0.04))
+    if (input.down) push = f32(push - f32(0.005))
+    boat.vel.x += f32(mthSin(f32(-boat.yaw * DEG_TO_RAD_F)) * push)
+    boat.vel.z += f32(mthCos(f32(boat.yaw * DEG_TO_RAD_F)) * push)
+  }
+
+  // Entity.move for the boat: no step, the velocity stopped on the axes that hit, a landing bounce or stop, the speed
+  // factor of the blocks
+  function moveBoat (boat, world) {
+    const vel = boat.vel
+    const box = boatBox(boat)
+    const saved = collisionContext
+    collisionContext = { x: boat.pos.x, z: boat.pos.z, bottom: boat.pos.y, descending: false, fallDistance: 0, walksOnPowderSnow: false }
+    let moved
+    try {
+      moved = (vel.x === 0 && vel.y === 0 && vel.z === 0) ? { x: 0, y: 0, z: 0 } : collideBoundingBox(world, vel.x, vel.y, vel.z, box)
+    } finally {
+      collisionContext = saved
+    }
+    const movedSqr = moved.x * moved.x + moved.y * moved.y + moved.z * moved.z
+    const requestedSqr = vel.x * vel.x + vel.y * vel.y + vel.z * vel.z
+    if (movedSqr > 1.0e-7 || (vanilla.moveWhenBlocked && requestedSqr - movedSqr < 1.0e-7)) {
+      boat.pos.x += moved.x
+      boat.pos.y += moved.y
+      boat.pos.z += moved.z
+    }
+    const collidedX = !nearlyEqual(vel.x, moved.x)
+    const collidedZ = !nearlyEqual(vel.z, moved.z)
+    boat.isCollidedHorizontally = collidedX || collidedZ
+    boat.isCollidedVertically = vel.y !== moved.y
+    boat.onGround = boat.isCollidedVertically && vel.y < 0
+    if (vanilla.supportingBlock) checkSupportingBlock(boat, world, boatBox(boat), moved)
+    boat.lastYd = vel.y
+    if (collidedX) vel.x = 0
+    if (collidedZ) vel.z = 0
+    if (vel.y !== moved.y) {
+      const block = world.getBlock(getOnPos(boat, f32(0.2)))
+      if (block && block.type === slimeBlockId) {
+        if (vel.y < 0) vel.y = -vel.y * 0.8
+      } else if (block && vanilla.bedBounce && bedIds.has(block.type)) {
+        if (vel.y < 0) vel.y = -vel.y * f32(0.66) * 0.8
+      } else {
+        vel.y = 0
+      }
+    }
+    speedFactor(boat, world)
+  }
+
+  // AbstractBoat.tick on the client that drives it
+  function tickBoat (boat, world) {
+    const oldStatus = boat.status
+    boat.status = boatStatus(boat, world)
+    boat.control = boat.control || {}
+    if (!UNDER.has(boat.status)) {
+      // Entity.baseTick: the current pushes the boat
+      updateFluid(boat, world, boatBox(boat), 'water', 0.014)
+    }
+    floatBoat(boat, world, oldStatus)
+    controlBoat(boat)
+    moveBoat(boat, world)
+  }
+
+  // AbstractBoat.positionRider: the passenger on the boat's attachment point (a third of its height up, a raft's
+  // 8/9; the player's own attachment 0.6 down), turned with the boat and kept within 105 degrees of it
+  function positionBoatRider (entity, boat) {
+    const rideHeight = /raft$/.test(boat.type) ? f32(BOAT_HEIGHT * f32(0.8888889)) : f32(BOAT_HEIGHT / f32(3))
+    entity.pos.x = boat.pos.x
+    entity.pos.y = (boat.pos.y + rideHeight) - 0.6
+    entity.pos.z = boat.pos.z
+    let yaw = f32(yawDegrees(entity) + boat.deltaRotation)
+    const relative = wrapDegrees(f32(yaw - boat.yaw))
+    const clamped = Math.max(f32(-105), Math.min(f32(105), relative))
+    yaw = f32(yaw + f32(clamped - relative))
+    entity.yawDegrees = yaw
+    entity.yaw = Math.PI - yaw * Math.PI / 180
+  }
+
+  function wrapDegrees (degrees) {
+    let wrapped = f32(degrees % 360)
+    if (wrapped >= 180) wrapped = f32(wrapped - 360)
+    if (wrapped < -180) wrapped = f32(wrapped + 360)
+    return wrapped
+  }
+
+  physics.simulatePlayer = (entity, world) => {
+    const boat = entity.vehicle
+    if (!vanilla.javaBoats || !boat || !isBoatType(boat.type)) return simulateOwn(entity, world)
+    // the boat ticks before its passenger, on the keys the passenger left it the tick before
+    tickBoat(boat, world)
+    // Entity.rideTick: the passenger's own velocity starts from rest
+    entity.vel.x = 0
+    entity.vel.y = 0
+    entity.vel.z = 0
+    simulateOwn(entity, world)
+    positionBoatRider(entity, boat)
+    const control = entity.control
+    boat.input = { left: !!control.left, right: !!control.right, up: !!control.forward, down: !!control.back }
     return entity
   }
 

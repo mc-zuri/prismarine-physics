@@ -112,6 +112,11 @@
     "since": "1.21"
   },
   {
+    "name": "javaBoats",
+    "description": "A boat the player rides is driven by the client (AbstractBoat.tick as of 1.21.2+)",
+    "since": "1.21.2"
+  },
+  {
     "name": "autoJump",
     "description": "LocalPlayer.updateAutoJump: the auto-jump option",
     "since": "1.11"
