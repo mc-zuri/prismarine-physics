@@ -494,7 +494,7 @@ function differences (actual, expected, fields, epsilon) {
  *   mode 'stepwise': every tick starts from the recorded state, so each tick's error is counted on its own.
  * Returns { ticks, divergences: [{ t, input, diffs }] }.
  */
-function replay (version, rec, { mode = 'trajectory', fields = FIELDS, epsilon = 0 } = {}) {
+function replay (version, rec, { mode = 'trajectory', fields = FIELDS, epsilon = 0, beforePistons } = {}) {
   const mcData = registry(version)
   const w = world(version, rec.area)
   const physics = Physics(mcData, w)
@@ -536,6 +536,7 @@ function replay (version, rec, { mode = 'trajectory', fields = FIELDS, epsilon =
     applyEvents(state, w, row.events, packetContext(version, mcData, rec))
     if (timeline) useEntities(state, timeline[i], i > 0 ? timeline[i - 1] : rec.start.entities)
     physics.simulatePlayer(state, w)
+    if (beforePistons && state.beforePistons) beforePistons.set(row.t, state.beforePistons)
     const diffs = differences(state, row, fields, epsilon)
     if (diffs.length) divergences.push({ t: row.t, input: row.in, diffs })
   })
@@ -621,7 +622,12 @@ function stateDifferences (state, snapshot, mcData) {
 function checkClientPackets (version, rec) {
   const out = []
   let before = rec.start
-  for (const row of expand(rec)) {
+  // A piston moves the player after its own tick, which reported where it was before: the engine, replayed tick by
+  // tick, tells where that was.
+  const beforePistons = new Map()
+  if (rec.ticks.some(t => (t.serverPackets || []).some(p => /block_event|BlockEvent/.test(p.type)))) replay(version, rec, { mode: 'stepwise', beforePistons })
+  for (const recorded of expand(rec)) {
+    const row = beforePistons.has(recorded.t) ? { ...recorded, ...beforePistons.get(recorded.t), pos: beforePistons.get(recorded.t).pos.toArray() } : recorded
     const sent = row.events.clientPackets
     if (sent && before.netState) {
       let usedItem = false
@@ -649,7 +655,7 @@ function checkClientPackets (version, rec) {
       const actual = built.map(p => packets.encode(version, 'toServer', p.name, p.params))
       if (expected.join() !== actual.join()) out.push({ t: row.t, expected, actual })
     }
-    before = row
+    before = recorded
   }
   return out
 }

@@ -465,6 +465,18 @@ function handle (state, packet, ctx) {
         if (shared) state.elytraFlying = (shared.value & 0x80) !== 0
       }
       break
+    case 'block_action': {
+      // a piston starting to move (BlockEventPacket: 0 extend, 1 retract; the facing as a direction index)
+      const pistons = [ctx.mcData.blocksByName.piston, ctx.mcData.blocksByName.sticky_piston].filter(Boolean).map(b => b.id)
+      if (!pistons.includes(p.blockId) || p.byte1 > 1) break
+      const dir = [[0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1], [-1, 0, 0], [1, 0, 0]][p.byte2]
+      if (!dir) break
+      const extending = p.byte1 === 0
+      const at = p.location
+      state.pistons = state.pistons || []
+      state.pistons.push({ x: at.x + (extending ? dir[0] : 0), y: at.y + (extending ? dir[1] : 0), z: at.z + (extending ? dir[2] : 0), dir, extending, progress: 0 })
+      break
+    }
     case 'block_change':
       ctx.world.setStateId([p.location.x, p.location.y, p.location.z], p.type)
       break
@@ -498,7 +510,7 @@ function rotate (v, pitch, yaw) {
 }
 
 // The packets handle() reads.
-const HANDLED = new Set(['rel_entity_move', 'entity_move_look', 'sync_entity_position', 'entity_teleport', 'entity_destroy', 'set_passengers', 'entity_velocity', 'explosion', 'position', 'player_rotation', 'entity_update_attributes', 'entity_status', 'update_health', 'entity_effect', 'remove_entity_effect', 'entity_metadata', 'block_change', 'multi_block_change'])
+const HANDLED = new Set(['block_action', 'rel_entity_move', 'entity_move_look', 'sync_entity_position', 'entity_teleport', 'entity_destroy', 'set_passengers', 'entity_velocity', 'explosion', 'position', 'player_rotation', 'entity_update_attributes', 'entity_status', 'update_health', 'entity_effect', 'remove_entity_effect', 'entity_metadata', 'block_change', 'multi_block_change'])
 
 // A server packet decoded for handle(). A packet the handlers do not read may fail to decode where minecraft-data's
 // protocol lags (26.3 item components): it is passed on by name only. One they read must decode.
