@@ -19,7 +19,7 @@ describe('vanilla recordings: lava', () => {
         }
       },
       {
-        versions: ['1.20.4', '1.21.9', '1.21.10', '1.21.11'],
+        versions: ['1.20', '1.20.4', '1.21.9', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 111, 1937.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -29,7 +29,7 @@ describe('vanilla recordings: lava', () => {
         }
       },
       {
-        versions: ['26.2', '26.3'],
+        versions: ['26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 111, 1937.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -55,7 +55,7 @@ describe('vanilla recordings: lava', () => {
         }
       },
       {
-        versions: ['1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
+        versions: ['1.20', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -4.470348362317633e-10, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 98.53999999910593, 1937.5], vel: [0, -4.470348362317633e-10, 0], onGround: false },
@@ -85,7 +85,7 @@ describe('vanilla recordings: lava', () => {
         }
       },
       {
-        versions: ['1.20.4'],
+        versions: ['1.20', '1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [-0.00979999997168779, 0.3109999945163725, 1.2001539120662185e-18] },
           'leaves the ground (1)': { tick: 1, pos: [-4.519599999943376, 100.91999998688698, 1937.5], vel: [-0.00979999997168779, 0.3109999945163725, 1.2001539120662185e-18], onGround: false },
@@ -111,7 +111,7 @@ describe('vanilla recordings: lava', () => {
         }
       },
       {
-        versions: ['26.2', '26.3'],
+        versions: ['26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [-0.00979999997168779, 0.3109999945163725, 1.2001539120662185e-18] },
           'leaves the ground (1)': { tick: 1, pos: [-4.519599999943376, 100.91999998688698, 1937.5], vel: [-0.00979999997168779, 0.3109999945163725, 1.2001539120662185e-18], onGround: false },
@@ -139,7 +139,7 @@ describe('vanilla recordings: lava', () => {
         }
       },
       {
-        versions: ['1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
+        versions: ['1.20', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.02, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 100, 1937.5], vel: [0, -0.02, 0], onGround: false },
@@ -164,7 +164,7 @@ describe('vanilla recordings: lava', () => {
         }
       },
       {
-        versions: ['1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
+        versions: ['1.20', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.00979999997168779, -0.02, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5195999999433756, 99, 1937.5], vel: [0.00979999997168779, -0.02, 0], onGround: false },
@@ -191,7 +191,7 @@ describe('vanilla recordings: lava', () => {
         }
       },
       {
-        versions: ['1.20.4', '1.21.9', '1.21.10', '1.21.11'],
+        versions: ['1.20', '1.20.4', '1.21.9', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 11, pos: [-4.384817994356104, 100.92159999847412, 1937.5], vel: [0.11770754062540936, -0.1552320045166016, 0], onGround: false },
@@ -201,7 +201,7 @@ describe('vanilla recordings: lava', () => {
         }
       },
       {
-        versions: ['26.2', '26.3'],
+        versions: ['26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 11, pos: [-4.384817994356104, 100.92159999847412, 1937.5], vel: [0.11770754062540936, -0.1552320045166016, 0], onGround: false },
@@ -461,19 +461,7 @@ describe('vanilla recordings: lava', () => {
         }
       },
       {
-        versions: ['26.1'],
-        milestones: {
-          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
-          'leaves the ground (1)': { tick: 1, pos: [0.5, 101, 792.5980000033677], vel: [0, -0.0784000015258789, 0.053508008053839436], onGround: false },
-          'lands (1)': { tick: 2, pos: [0.5, 101, 792.6711080113649], onGround: true },
-          'leaves the ground (2)': { tick: 16, pos: [0.5, 100.92159999847412, 795.5800952306375], vel: [0, -0.1552320045166016, 0.11784832327832216], onGround: false },
-          'top speed 4.317 b/s': { tick: 16, pos: [0.5, 100.92159999847412, 795.5800952306375], vel: [0, -0.1552320045166016, 0.11784832327832216] },
-          'enters lava': { tick: 17, pos: [0.5, 100.76636799395752, 795.7175435538593], isInLava: true },
-          'final state': { tick: 50, pos: [0.5, 98.91699682936652, 796.4723962889418], vel: [0, -0.04000000003944661, 0], onGround: false }
-        }
-      },
-      {
-        versions: ['26.2', '26.3'],
+        versions: ['26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'leaves the ground (1)': { tick: 16, pos: [0.5, 100.92159999847412, 795.6941597887683], vel: [0, -0.1552320045166016, 0.11785171235343735], onGround: false },

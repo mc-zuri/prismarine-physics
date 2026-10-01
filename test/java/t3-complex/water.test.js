@@ -19,7 +19,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.20.4', '1.21.9', '1.21.10', '1.21.11'],
+        versions: ['1.20', '1.20.4', '1.21.9', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.016200000166893005, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 106.986, 2667.5], vel: [0, -0.016200000166893005, 0], onGround: false },
@@ -28,7 +28,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['26.2', '26.3'],
+        versions: ['26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.016200000166893005, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 106.986, 2667.5], vel: [0, -0.016200000166893005, 0], onGround: false },
@@ -54,7 +54,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.20.4', '1.21.9', '1.21.10', '1.21.11'],
+        versions: ['1.20', '1.20.4', '1.21.9', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.015799999594688405, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 103.02599999910593, 2667.5], vel: [0, 0.015799999594688405, 0], onGround: false },
@@ -64,7 +64,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['26.2', '26.3'],
+        versions: ['26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.015799999594688405, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 103.02599999910593, 2667.5], vel: [0, 0.015799999594688405, 0], onGround: false },
@@ -89,7 +89,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
+        versions: ['1.20', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'top speed 4.307 b/s': { tick: 10, pos: [0.5, 101, 2666.399600454447], vel: [0, -0.0784000015258789, 0.11758154782898447] },

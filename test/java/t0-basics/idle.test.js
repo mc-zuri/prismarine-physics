@@ -9,7 +9,7 @@ describe('vanilla recordings: idle', () => {
     steps: [ticks(40)],
     groups: [
       {
-        versions: ['1.12.2', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
+        versions: ['1.12.2', '1.20', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'final state': { tick: 40, pos: [0.5, 101, 38.5], vel: [0, -0.0784000015258789, 0], onGround: true }

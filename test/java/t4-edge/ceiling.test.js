@@ -22,7 +22,7 @@ describe('vanilla recordings: ceiling', () => {
         }
       },
       {
-        versions: ['1.20.4'],
+        versions: ['1.20', '1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [0.1787604291663896, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.8274000153899195, 101.41999998688698, 1497.5], vel: [0.1787604291663896, 0.33319999363422365, 0], onGround: false },
@@ -35,7 +35,7 @@ describe('vanilla recordings: ceiling', () => {
         }
       },
       {
-        versions: ['1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
+        versions: ['1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.17876042753918261, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.8274000124096872, 101.41999998688698, 1497.5], vel: [0.17876042753918261, 0.33319999363422365, 0], onGround: false },
