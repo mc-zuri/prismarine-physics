@@ -3287,6 +3287,12 @@ class PlayerState {
 
     // Input only (not modified)
     this.attributes = bot.entity.attributes
+    // the other entities around the player (mineflayer's bot.entities): the solid ones it collides with, the mobs
+    // and boats that push it
+    if (bot.entities && mcData.type !== 'bedrock') {
+      this.entities = Object.values(bot.entities).filter(e => e && e !== bot.entity && e.position && e.name && e.id !== (bot.entity.vehicle && bot.entity.vehicle.id))
+        .map(e => ({ id: e.id, type: e.name, pos: e.position.clone() }))
+    }
     this.yaw = bot.entity.yaw
     this.pitch = bot.entity.pitch
     // the vanilla rotation in degrees when the bot keeps it (radians lose whole turns and float precision)
