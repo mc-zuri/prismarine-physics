@@ -1519,7 +1519,7 @@ function Physics (mcData, world) {
 
   function getFlow (world, block) {
     const curlevel = getRenderedDepth(block)
-    const flow = new Vec3(0, 0, 0)
+    let flow = new Vec3(0, 0, 0)
     for (const [dx, dz] of [[0, 1], [-1, 0], [0, -1], [1, 0]]) {
       const adjBlock = world.getBlock(block.position.offset(dx, 0, dz))
       const adjLevel = getRenderedDepth(adjBlock)
@@ -1544,12 +1544,14 @@ function Physics (mcData, world) {
         const adjBlock = world.getBlock(block.position.offset(dx, 0, dz))
         const adjUpBlock = world.getBlock(block.position.offset(dx, 1, dz))
         if ((adjBlock && adjBlock.boundingBox !== 'empty') || (adjUpBlock && adjUpBlock.boundingBox !== 'empty')) {
-          flow.normalize().translate(0, -6, 0)
+          flow = normalize(flow).translate(0, -6, 0)
+          break
         }
       }
     }
 
-    return flow.normalize()
+    // (Vec3.normalize: the length through the float sqrt)
+    return normalize(flow)
   }
 
   function getWaterInBB (world, bb) {
@@ -1704,11 +1706,11 @@ function Physics (mcData, world) {
       acceleration.add(flow)
     }
 
-    const len = acceleration.norm()
-    if (len > 0) {
-      vel.x += acceleration.x / len * 0.014
-      vel.y += acceleration.y / len * 0.014
-      vel.z += acceleration.z / len * 0.014
+    if (acceleration.norm() > 0) {
+      const push = normalize(acceleration)
+      vel.x += push.x * 0.014
+      vel.y += push.y * 0.014
+      vel.z += push.z * 0.014
     }
     return isInWater
   }
