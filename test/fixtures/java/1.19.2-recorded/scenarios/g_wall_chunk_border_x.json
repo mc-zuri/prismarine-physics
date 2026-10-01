@@ -1,0 +1,134 @@
+{
+  "schema": 1,
+  "version": "1.19.2",
+  "name": "g_wall_chunk_border_x",
+  "tier": 1,
+  "tags": [
+    "collision",
+    "chunk_border"
+  ],
+  "area": "walls",
+  "origin": [
+    0,
+    100,
+    1717
+  ],
+  "at": [
+    13.5,
+    101.0,
+    1717.5
+  ],
+  "gamemode": "survival",
+  "setup": {},
+  "steps": [
+    {
+      "op": "press",
+      "keys": [
+        "forward"
+      ],
+      "ticks": 20
+    },
+    {
+      "op": "stopped",
+      "n": 3
+    }
+  ],
+  "expect": [],
+  "touched": [
+    "on:stone",
+    "against:stone",
+    "under:stone"
+  ],
+  "frames": 23,
+  "start": {
+    "pos": [
+      13.5,
+      101.0,
+      1717.5
+    ],
+    "vel": [
+      0.0,
+      -0.0784000015258789,
+      0.0
+    ],
+    "yaw": 270.0,
+    "pitch": 0.0,
+    "onGround": true,
+    "isCollidedHorizontally": false,
+    "isCollidedVertically": true,
+    "minorHorizontalCollision": false,
+    "isInWater": false,
+    "isInLava": false,
+    "isInWeb": false,
+    "stuckSpeedMultiplier": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "isUnderWater": false,
+    "swimming": false,
+    "sprinting": false,
+    "crouching": false,
+    "shiftKeyDown": false,
+    "pose": "standing",
+    "elytraFlying": false,
+    "flying": false,
+    "fallDistance": 0.0,
+    "jumpTicks": 0,
+    "jumpQueued": false,
+    "xxa": 0.0,
+    "yya": 0.0,
+    "zza": 0.0,
+    "speed": 0.1,
+    "effects": [],
+    "attributes": {
+      "movement_speed": 0.10000000149011612,
+      "abilities.flyingSpeed": 0.05000000074505806
+    },
+    "attributeModifiers": {},
+    "fireworks": [],
+    "usingItem": false,
+    "useItemRemainingTicks": 0,
+    "food": 20,
+    "gameMode": "survival",
+    "netState": {
+      "entityId": 1,
+      "lastPos": [
+        13.5,
+        101.0,
+        1717.5
+      ],
+      "lastYaw": 270.0,
+      "lastPitch": 0.0,
+      "lastOnGround": true,
+      "wasShiftKeyDown": false,
+      "wasSprinting": false,
+      "positionReminder": 14
+    }
+  },
+  "ticks": [
+    {"t":1,"in":{"forward":true,"yaw":270.0,"pitch":0.0},"clientPackets":[{"type":"minecraft:move_player_pos","bytes":"14402b322d0e72f1aa4059400000000000409ad6000000000001"}],"pos":[13.598000003367662,101.0,1717.5],"vel":[0.053508008053839436,-0.0784000015258789,0.0],"yaw":270.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1,"netState":{"entityId":1,"vehicleId":null,"lastPos":[13.598000003367662,101.0,1717.5],"lastYaw":270.0,"lastPitch":0.0,"lastOnGround":true,"wasShiftKeyDown":false,"wasSprinting":false,"positionReminder":0}},
+    {"t":2,"in":{"forward":true,"yaw":270.0,"pitch":0.0},"clientPackets":[{"type":"minecraft:move_player_pos","bytes":"14402b7fbf83b737fc4059400000000000409ad6000000000001"}],"pos":[13.749508014789164,101.0,1717.5],"vel":[0.08272338384467842,-0.0784000015258789,0.0],"yaw":270.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1,"netState":{"entityId":1,"vehicleId":null,"lastPos":[13.749508014789164,101.0,1717.5],"lastYaw":270.0,"lastPitch":0.0,"lastOnGround":true,"wasShiftKeyDown":false,"wasSprinting":false,"positionReminder":0}},
+    {"t":3,"in":{"forward":true,"yaw":270.0,"pitch":0.0},"clientPackets":[{"type":"minecraft:move_player_pos","bytes":"14402bdc474a529e0d4059400000000000409ad6000000000001"}],"pos":[13.930231402001505,101.0,1717.5],"vel":[0.09867498087929642,-0.0784000015258789,0.0],"yaw":270.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1,"netState":{"entityId":1,"vehicleId":null,"lastPos":[13.930231402001505,101.0,1717.5],"lastYaw":270.0,"lastPitch":0.0,"lastOnGround":true,"wasShiftKeyDown":false,"wasSprinting":false,"positionReminder":0}},
+    {"t":4,"in":{"forward":true,"yaw":270.0,"pitch":0.0},"clientPackets":[{"type":"minecraft:move_player_pos","bytes":"14402c40f9dfb52e704059400000000000409ad6000000000001"}],"pos":[14.126906386248464,101.0,1717.5],"vel":[0.10738455387183765,-0.0784000015258789,0.0],"yaw":270.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1,"netState":{"entityId":1,"vehicleId":null,"lastPos":[14.126906386248464,101.0,1717.5],"lastYaw":270.0,"lastPitch":0.0,"lastOnGround":true,"wasShiftKeyDown":false,"wasSprinting":false,"positionReminder":0}},
+    {"t":5,"in":{"forward":true,"yaw":270.0,"pitch":0.0},"clientPackets":[{"type":"minecraft:move_player_pos","bytes":"14402caa2209de13594059400000000000409ad6000000000001"}],"pos":[14.332290943487964,101.0,1717.5],"vel":[0.11213998127812054,-0.0784000015258789,0.0],"yaw":270.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1,"netState":{"entityId":1,"vehicleId":null,"lastPos":[14.332290943487964,101.0,1717.5],"lastYaw":270.0,"lastPitch":0.0,"lastOnGround":true,"wasShiftKeyDown":false,"wasSprinting":false,"positionReminder":0}},
+    {"t":6,"in":{"forward":true,"yaw":270.0,"pitch":0.0},"clientPackets":[{"type":"minecraft:move_player_pos","bytes":"14402d15b981b158c44059400000000000409ad6000000000001"}],"pos":[14.542430928133747,101.0,1717.5],"vel":[0.11473644494353707,-0.0784000015258789,0.0],"yaw":270.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1,"netState":{"entityId":1,"vehicleId":null,"lastPos":[14.542430928133747,101.0,1717.5],"lastYaw":270.0,"lastPitch":0.0,"lastOnGround":true,"wasShiftKeyDown":false,"wasSprinting":false,"positionReminder":0}},
+    {"t":7,"in":{"forward":true,"yaw":270.0,"pitch":0.0},"clientPackets":[{"type":"minecraft:move_player_pos","bytes":"14402d82a54c61aca14059400000000000409ad6000000000001"}],"pos":[14.755167376444946,101.0,1717.5],"vel":[0.11615411426952052,-0.0784000015258789,0.0],"yaw":270.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1,"netState":{"entityId":1,"vehicleId":null,"lastPos":[14.755167376444946,101.0,1717.5],"lastYaw":270.0,"lastPitch":0.0,"lastOnGround":true,"wasShiftKeyDown":false,"wasSprinting":false,"positionReminder":0}},
+    {"t":8,"in":{"forward":true,"yaw":270.0,"pitch":0.0},"clientPackets":[{"type":"minecraft:move_player_pos","bytes":"14402df04ae828c9034059400000000000409ad6000000000001"}],"pos":[14.969321494082129,101.0,1717.5],"vel":[0.11692816181141515,-0.0784000015258789,0.0],"yaw":270.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1,"netState":{"entityId":1,"vehicleId":null,"lastPos":[14.969321494082129,101.0,1717.5],"lastYaw":270.0,"lastPitch":0.0,"lastOnGround":true,"wasShiftKeyDown":false,"wasSprinting":false,"positionReminder":0}},
+    {"t":9,"in":{"forward":true,"yaw":270.0,"pitch":0.0},"clientPackets":[{"type":"minecraft:move_player_pos","bytes":"14402e5e55f8a9a6ed4059400000000000409ad6000000000001"}],"pos":[15.184249659261207,101.0,1717.5],"vel":[0.11735079181837918,-0.0784000015258789,0.0],"yaw":270.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1,"netState":{"entityId":1,"vehicleId":null,"lastPos":[15.184249659261207,101.0,1717.5],"lastYaw":270.0,"lastPitch":0.0,"lastOnGround":true,"wasShiftKeyDown":false,"wasSprinting":false,"positionReminder":0}},
+    {"t":10,"in":{"forward":true,"yaw":270.0,"pitch":0.0},"clientPackets":[{"type":"minecraft:move_player_pos","bytes":"14402ecc986e46a2a64059400000000000409ad6000000000001"}],"pos":[15.39960045444725,101.0,1717.5],"vel":[0.11758154782898447,-0.0784000015258789,0.0],"yaw":270.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1,"netState":{"entityId":1,"vehicleId":null,"lastPos":[15.39960045444725,101.0,1717.5],"lastYaw":270.0,"lastPitch":0.0,"lastOnGround":true,"wasShiftKeyDown":false,"wasSprinting":false,"positionReminder":0}},
+    {"t":11,"in":{"forward":true,"yaw":270.0,"pitch":0.0},"clientPackets":[{"type":"minecraft:move_player_pos","bytes":"14402f3af922c6a80d4059400000000000409ad6000000000001"}],"pos":[15.615182005643897,101.0,1717.5],"vel":[0.11770754062540936,-0.0784000015258789,0.0],"yaw":270.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1,"netState":{"entityId":1,"vehicleId":null,"lastPos":[15.615182005643897,101.0,1717.5],"lastYaw":270.0,"lastPitch":0.0,"lastOnGround":true,"wasShiftKeyDown":false,"wasSprinting":false,"positionReminder":0}},
+    {"t":12,"in":{"forward":true,"yaw":270.0,"pitch":0.0},"clientPackets":[{"type":"minecraft:move_player_pos","bytes":"14402f6666660000004059400000000000409ad6000000000001"}],"pos":[15.699999988079071,101.0,1717.5],"vel":[0.0,-0.0784000015258789,0.0],"yaw":270.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":true,"isCollidedVertically":true,"minorHorizontalCollision":true,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1,"netState":{"entityId":1,"vehicleId":null,"lastPos":[15.699999988079071,101.0,1717.5],"lastYaw":270.0,"lastPitch":0.0,"lastOnGround":true,"wasShiftKeyDown":false,"wasSprinting":false,"positionReminder":0}},
+    {"t":13,"in":{"forward":true,"yaw":270.0,"pitch":0.0},"pos":[15.699999988079071,101.0,1717.5],"vel":[0.0,-0.0784000015258789,0.0],"yaw":270.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":true,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1,"netState":{"entityId":1,"vehicleId":null,"lastPos":[15.699999988079071,101.0,1717.5],"lastYaw":270.0,"lastPitch":0.0,"lastOnGround":true,"wasShiftKeyDown":false,"wasSprinting":false,"positionReminder":1}},
+    {"t":14,"in":{"forward":true,"yaw":270.0,"pitch":0.0},"pos":[15.699999988079071,101.0,1717.5],"vel":[0.0,-0.0784000015258789,0.0],"yaw":270.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":true,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1,"netState":{"entityId":1,"vehicleId":null,"lastPos":[15.699999988079071,101.0,1717.5],"lastYaw":270.0,"lastPitch":0.0,"lastOnGround":true,"wasShiftKeyDown":false,"wasSprinting":false,"positionReminder":2}},
+    {"t":15,"in":{"forward":true,"yaw":270.0,"pitch":0.0},"pos":[15.699999988079071,101.0,1717.5],"vel":[0.0,-0.0784000015258789,0.0],"yaw":270.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":true,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1,"netState":{"entityId":1,"vehicleId":null,"lastPos":[15.699999988079071,101.0,1717.5],"lastYaw":270.0,"lastPitch":0.0,"lastOnGround":true,"wasShiftKeyDown":false,"wasSprinting":false,"positionReminder":3}},
+    {"t":16,"in":{"forward":true,"yaw":270.0,"pitch":0.0},"pos":[15.699999988079071,101.0,1717.5],"vel":[0.0,-0.0784000015258789,0.0],"yaw":270.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":true,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1,"netState":{"entityId":1,"vehicleId":null,"lastPos":[15.699999988079071,101.0,1717.5],"lastYaw":270.0,"lastPitch":0.0,"lastOnGround":true,"wasShiftKeyDown":false,"wasSprinting":false,"positionReminder":4}},
+    {"t":17,"in":{"forward":true,"yaw":270.0,"pitch":0.0},"pos":[15.699999988079071,101.0,1717.5],"vel":[0.0,-0.0784000015258789,0.0],"yaw":270.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":true,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1,"netState":{"entityId":1,"vehicleId":null,"lastPos":[15.699999988079071,101.0,1717.5],"lastYaw":270.0,"lastPitch":0.0,"lastOnGround":true,"wasShiftKeyDown":false,"wasSprinting":false,"positionReminder":5}},
+    {"t":18,"in":{"forward":true,"yaw":270.0,"pitch":0.0},"pos":[15.699999988079071,101.0,1717.5],"vel":[0.0,-0.0784000015258789,0.0],"yaw":270.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":true,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1,"netState":{"entityId":1,"vehicleId":null,"lastPos":[15.699999988079071,101.0,1717.5],"lastYaw":270.0,"lastPitch":0.0,"lastOnGround":true,"wasShiftKeyDown":false,"wasSprinting":false,"positionReminder":6}},
+    {"t":19,"in":{"forward":true,"yaw":270.0,"pitch":0.0},"pos":[15.699999988079071,101.0,1717.5],"vel":[0.0,-0.0784000015258789,0.0],"yaw":270.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":true,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1,"netState":{"entityId":1,"vehicleId":null,"lastPos":[15.699999988079071,101.0,1717.5],"lastYaw":270.0,"lastPitch":0.0,"lastOnGround":true,"wasShiftKeyDown":false,"wasSprinting":false,"positionReminder":7}},
+    {"t":20,"in":{"forward":true,"yaw":270.0,"pitch":0.0},"pos":[15.699999988079071,101.0,1717.5],"vel":[0.0,-0.0784000015258789,0.0],"yaw":270.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":true,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.98,"speed":0.1,"netState":{"entityId":1,"vehicleId":null,"lastPos":[15.699999988079071,101.0,1717.5],"lastYaw":270.0,"lastPitch":0.0,"lastOnGround":true,"wasShiftKeyDown":false,"wasSprinting":false,"positionReminder":8}},
+    {"t":21,"in":{"yaw":270.0,"pitch":0.0},"pos":[15.699999988079071,101.0,1717.5],"vel":[0.0,-0.0784000015258789,0.0],"yaw":270.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.0,"speed":0.1,"netState":{"entityId":1,"vehicleId":null,"lastPos":[15.699999988079071,101.0,1717.5],"lastYaw":270.0,"lastPitch":0.0,"lastOnGround":true,"wasShiftKeyDown":false,"wasSprinting":false,"positionReminder":9}},
+    {"t":22,"in":{"yaw":270.0,"pitch":0.0},"pos":[15.699999988079071,101.0,1717.5],"vel":[0.0,-0.0784000015258789,0.0],"yaw":270.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.0,"speed":0.1,"netState":{"entityId":1,"vehicleId":null,"lastPos":[15.699999988079071,101.0,1717.5],"lastYaw":270.0,"lastPitch":0.0,"lastOnGround":true,"wasShiftKeyDown":false,"wasSprinting":false,"positionReminder":10}},
+    {"t":23,"in":{"yaw":270.0,"pitch":0.0},"pos":[15.699999988079071,101.0,1717.5],"vel":[0.0,-0.0784000015258789,0.0],"yaw":270.0,"pitch":0.0,"onGround":true,"isCollidedHorizontally":false,"isCollidedVertically":true,"minorHorizontalCollision":false,"isInWater":false,"isInLava":false,"isInWeb":false,"stuckSpeedMultiplier":[0.0,0.0,0.0],"isUnderWater":false,"swimming":false,"sprinting":false,"crouching":false,"shiftKeyDown":false,"pose":"standing","elytraFlying":false,"flying":false,"fallDistance":0.0,"jumpTicks":0,"jumpQueued":false,"xxa":0.0,"yya":0.0,"zza":0.0,"speed":0.1,"netState":{"entityId":1,"vehicleId":null,"lastPos":[15.699999988079071,101.0,1717.5],"lastYaw":270.0,"lastPitch":0.0,"lastOnGround":true,"wasShiftKeyDown":false,"wasSprinting":false,"positionReminder":11}}
+  ]
+}
