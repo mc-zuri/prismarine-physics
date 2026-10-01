@@ -163,6 +163,7 @@ function Physics (mcData, world) {
     legacyWorldBorder: supportFeature('legacyWorldBorder'),
     autoJump: supportFeature('autoJump'),
     javaBoats: supportFeature('javaBoats'),
+    passengerNoPushOut: supportFeature('passengerNoPushOut'),
     entityAttachments: supportFeature('entityAttachments'),
     autoJumpJumpFactor: supportFeature('autoJumpJumpFactor'),
     autoJumpFloatFastInvSqrt: supportFeature('autoJumpFloatFastInvSqrt'),
@@ -2304,7 +2305,8 @@ function Physics (mcData, world) {
       entity.autoJumpTime--
       entity.control = { ...entity.control, jump: true }
     }
-    if (vanilla.pushOutOfBlocks && entity.gameMode !== 'spectator') {
+    // (26.3: not a passenger)
+    if (vanilla.pushOutOfBlocks && entity.gameMode !== 'spectator' && !(vanilla.passengerNoPushOut && entity.vehicle)) {
       // LocalPlayer.moveTowardsClosestSpace from the four corners 0.35 widths out
       const w = f32(f32(0.6) * boxScale) * 0.35
       moveTowardsClosestSpace(entity, world, pos.x - w, pos.z + w)

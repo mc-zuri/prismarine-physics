@@ -117,6 +117,11 @@
     "since": "1.20.5"
   },
   {
+    "name": "passengerNoPushOut",
+    "description": "LocalPlayer.aiStep: a passenger is not pushed out of blocks",
+    "since": "26.3"
+  },
+  {
     "name": "javaBoats",
     "description": "A boat the player rides is driven by the client (AbstractBoat.tick as of 1.21.2+)",
     "since": "1.20"
