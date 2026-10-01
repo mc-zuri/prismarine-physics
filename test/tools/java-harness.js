@@ -298,7 +298,9 @@ function makeState (rec, mcData) {
     flying: !!s.flying,
     mayFly: s.gameMode === 'creative' || s.gameMode === 'spectator' || rec.gamemode === 'creative' || rec.gamemode === 'spectator',
     gameMode: s.gameMode || rec.gamemode,
-    flySpeed: s.attributes && s.attributes['abilities.flyingSpeed']
+    flySpeed: s.attributes && s.attributes['abilities.flyingSpeed'],
+    // the player's entity id, where the recording has it (before 1.14 a rocket boosts only an entity id above 0)
+    entityId: s.netState ? s.netState.entityId : undefined
   }
 }
 
@@ -309,7 +311,9 @@ function applyInput (state, row, mcData) {
   state.food = row.food
   // an item use the key started (or the game ended) before the tick moved: that of the tick itself
   state.usingItem = !!row.usingItem
-  state.fireworkRocketDuration = (row.fireworks || []).length
+  // (before 1.14 a rocket attached to entity 0 counts as not attached: the recording server's first entity)
+  const unattached = state.entityId === 0 && mcData.isOlderThan('1.14')
+  state.fireworkRocketDuration = unattached ? 0 : (row.fireworks || []).length
   for (const key of Object.keys(state.control)) state.control[key] = false
   for (const [key, down] of Object.entries(row.in)) if (KEYS[key] && down) state.control[KEYS[key]] = true
   state.yaw = yawOf(row.in.yaw)
