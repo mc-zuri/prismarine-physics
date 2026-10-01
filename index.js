@@ -741,7 +741,7 @@ function Physics (mcData, world) {
       collisionContext = null
     }
     // LocalPlayer.move: the auto-jump looks at the horizontal move just made
-    if (vanilla.autoJump && entity.autoJump) updateAutoJump(entity, world, f32(entity.pos.x - x0), f32(entity.pos.z - z0))
+    if (vanilla.autoJump && entity.autoJump && !entity.pistonMove) updateAutoJump(entity, world, f32(entity.pos.x - x0), f32(entity.pos.z - z0))
   }
 
   // LocalPlayer.updateAutoJump (1.11+): walking on the ground into a step the player can jump onto (higher than half a
@@ -907,7 +907,7 @@ function Physics (mcData, world) {
     const oldVelY = dy
     let oldVelZ = dz
 
-    const backedOff = backOffFromEdge(entity, world, dx, dy, dz)
+    const backedOff = entity.pistonMove ? { x: dx, z: dz } : backOffFromEdge(entity, world, dx, dy, dz)
     dx = oldVelX = backedOff.x
     dz = oldVelZ = backedOff.z
 
@@ -3016,7 +3016,98 @@ function Physics (mcData, world) {
     entity.pos.z = mount.pos.z
   }
 
+  // ---- pistons (PistonMovingBlockEntity on the client) ----
+
+  // A piston head's shapes for a direction: the plate at its far end and the arm reaching a quarter back
+  function pistonHeadShapes (dir) {
+    const axis = dir[0] !== 0 ? 0 : dir[1] !== 0 ? 1 : 2
+    const positive = dir[axis] > 0
+    const plate = [0, 0, 0, 1, 1, 1]
+    const arm = [0.375, 0.375, 0.375, 0.625, 0.625, 0.625]
+    plate[axis] = positive ? 0.75 : 0
+    plate[axis + 3] = positive ? 1 : 0.25
+    arm[axis] = positive ? -0.25 : 0.25
+    arm[axis + 3] = positive ? 0.75 : 1.25
+    return [plate, arm]
+  }
+
+  // PistonMath.getMovementArea: the slab a box sweeps ahead of it by d
+  function movementArea (box, dir, d) {
+    const a = box.clone()
+    if (dir[0] > 0) { a.minX = box.maxX; a.maxX = box.maxX + d }
+    if (dir[0] < 0) { a.maxX = box.minX; a.minX = box.minX - d }
+    if (dir[1] > 0) { a.minY = box.maxY; a.maxY = box.maxY + d }
+    if (dir[1] < 0) { a.maxY = box.minY; a.minY = box.minY - d }
+    if (dir[2] > 0) { a.minZ = box.maxZ; a.maxZ = box.maxZ + d }
+    if (dir[2] < 0) { a.maxZ = box.minZ; a.minZ = box.minZ - d }
+    return a
+  }
+
+  // PistonMovingBlockEntity.getMovement: how far the area reaches into the entity's box
+  function pistonMovement (area, dir, box) {
+    if (dir[0] > 0) return area.maxX - box.minX
+    if (dir[0] < 0) return box.maxX - area.minX
+    if (dir[1] > 0) return area.maxY - box.minY
+    if (dir[1] < 0) return box.maxY - area.minY
+    if (dir[2] > 0) return area.maxZ - box.minZ
+    return box.maxZ - area.minZ
+  }
+
+  // PistonMovingBlockEntity.tick, after the entities: each moving piston head advances half a block and pushes the
+  // player its sweep reaches by as far as it reaches in, plus 0.01 (Entity.move with MoverType.PISTON: no more than
+  // 0.51 an axis a tick). The caller lists them as entity.pistons ([{ x, y, z, dir, extending, progress }], the cell
+  // the head moves into or out of).
+  function tickPistons (entity, world) {
+    if (!entity.pistons || !entity.pistons.length) return
+    const pushed = [0, 0, 0]
+    entity.pistons = entity.pistons.filter(piston => {
+      if (piston.progress >= 1) return false
+      const next = Math.min(1, f32(piston.progress + f32(0.5)))
+      const moveDir = piston.extending ? piston.dir : piston.dir.map(v => -v)
+      const d = next - piston.progress
+      const offset = piston.extending ? piston.progress - 1 : 1 - piston.progress
+      const box = getPlayerBB(entity.pos)
+      let reach = 0
+      for (const shape of pistonHeadShapes(piston.dir)) {
+        const head = new AABB(piston.x + shape[0] + piston.dir[0] * offset, piston.y + shape[1] + piston.dir[1] * offset, piston.z + shape[2] + piston.dir[2] * offset,
+          piston.x + shape[3] + piston.dir[0] * offset, piston.y + shape[4] + piston.dir[1] * offset, piston.z + shape[5] + piston.dir[2] * offset)
+        const area = movementArea(head, moveDir, d)
+        if (area.intersects(box)) {
+          reach = Math.max(reach, pistonMovement(area, moveDir, box))
+          if (reach >= d) break
+        }
+      }
+      if (reach > 0) {
+        // (where the player's own tick left it, before any piston moved it: what it reports to the server)
+        if (!entity.beforePistons) entity.beforePistons = { pos: entity.pos.clone(), onGround: entity.onGround, isCollidedHorizontally: entity.isCollidedHorizontally }
+        const amount = Math.min(reach, d) + 0.01
+        const move = moveDir.map((v, i) => {
+          // Entity.limitPistonMovement
+          const want = amount * v
+          const limited = Math.max(-0.51, Math.min(0.51, pushed[i] + want)) - pushed[i]
+          pushed[i] += limited
+          return limited
+        })
+        entity.pistonMove = true
+        try {
+          moveEntity(entity, world, move[0], move[1], move[2])
+        } finally {
+          entity.pistonMove = false
+        }
+      }
+      piston.progress = next
+      return true
+    })
+  }
+
   physics.simulatePlayer = (entity, world) => {
+    entity.beforePistons = undefined
+    simulateWithVehicle(entity, world)
+    tickPistons(entity, world)
+    return entity
+  }
+
+  const simulateWithVehicle = (entity, world) => {
     const vehicle = entity.vehicle
     if (vanilla.javaBoats && vehicle && HORSES[vehicle.type] && (!HORSES[vehicle.type].steered || vehicle.steered)) {
       // the horse faces where its rider looks now, half its pitch (the keys are those of the rider's last tick)
