@@ -2216,7 +2216,7 @@ function Physics (mcData, world) {
   // Player.updatePlayerPose at the end of the tick
   function updatePose (entity, world) {
     if (!fitsPose(entity, world, 'swimming')) return
-    const desired = entity.swimming ? 'swimming' : entity.elytraFlying ? 'fall_flying' : (entity.control.sneak && !entity.flying) ? 'crouching' : 'standing'
+    const desired = entity.swimming ? 'swimming' : entity.elytraFlying ? 'fall_flying' : entity.autoSpinAttack ? 'spin_attack' : (entity.control.sneak && !entity.flying) ? 'crouching' : 'standing'
     const pose = fitsPose(entity, world, desired) ? desired : fitsPose(entity, world, 'crouching') ? 'crouching' : 'swimming'
     if (pose !== entity.pose) entity.javaBox = null // the box is rebuilt for the new size
     entity.pose = pose
@@ -3220,6 +3220,7 @@ class PlayerState {
     this.jumpHeld = bot.entity.jumpHeld ?? false
     this.pose = bot.entity.javaPose
     this.swimming = bot.entity.swimming ?? false
+    this.autoSpinAttack = bot.entity.autoSpinAttack ?? false
     this.fallDistance = bot.entity.fallDistance ?? 0
     this.sprintTriggerTime = bot.entity.sprintTriggerTime ?? 0
     this.jumpTriggerTime = bot.entity.jumpTriggerTime ?? 0
