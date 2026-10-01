@@ -158,6 +158,7 @@ function Physics (mcData, world) {
     candidateStepHeights: supportFeature('candidateStepUpHeights'),
     positionFromBoxCenter: supportFeature('positionFromBoxCenter'),
     legacyPlayerSize: supportFeature('legacyPlayerSize'),
+    legacyViewVector: supportFeature('legacyViewVector'),
     moveWhenBlocked: supportFeature('moveWhenFullyBlocked'),
     collisionEpsilonVelocity: supportFeature('collisionEpsilonVelocityReset'),
     waterSprintSlowdown: supportFeature('proportionalLiquidGravity'),
@@ -222,6 +223,13 @@ function Physics (mcData, world) {
 
   // Entity.calculateViewVector from the vanilla rotation (Mth trig, float products)
   function viewVector (entity) {
+    if (vanilla.legacyViewVector) {
+      // before 1.13: the yaw turned by PI, the pitch's cosine negated
+      const turned = f32(f32(-yawDegrees(entity) * DEG_TO_RAD_F) - PI_F)
+      const negPitch = f32(-pitchDegrees(entity) * DEG_TO_RAD_F)
+      const negCosPitch = -mthCos(negPitch)
+      return new Vec3(f32(mthSin(turned) * negCosPitch), mthSin(negPitch), f32(mthCos(turned) * negCosPitch))
+    }
     const pitch = f32(pitchDegrees(entity) * DEG_TO_RAD_F)
     const yaw = f32(-yawDegrees(entity) * DEG_TO_RAD_F)
     const cosYaw = mthCos(yaw)

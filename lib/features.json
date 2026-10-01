@@ -112,6 +112,11 @@
     "since": "1.21"
   },
   {
+    "name": "legacyViewVector",
+    "description": "Entity.getVectorForRotation before 1.13: cos/sin of (-yaw - PI), the pitch's cosine negated",
+    "before": "1.13"
+  },
+  {
     "name": "legacyPlayerSize",
     "description": "EntityPlayer.updateSize: 1.65 tall while sneaking, 0.6 while gliding; a resized box keeps its lower corner",
     "since": "1.9",
