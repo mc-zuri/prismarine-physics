@@ -1980,8 +1980,18 @@ function Physics (mcData, world) {
   }
 
   // A block that suffocates: a full collision cube that is not see-through (glass, leaves... never suffocate)
+  // BlockState.isSuffocating (1.14+, also what isViewBlocking defaults to): a full collision cube, except glass,
+  // leaves, grates and mangrove roots; farmland, soul sand, dirt paths and mud though they are lower. Before 1.14
+  // (isNormalCube) an opaque full cube.
+  const NEVER_SUFFOCATES = /glass$|_leaves$|copper_grate$|^mangrove_roots$|^moving_piston$/
+  const ALWAYS_SUFFOCATES = new Set(['farmland', 'soul_sand', 'dirt_path', 'grass_path', 'mud'])
   function suffocates (block) {
-    return !!block && !block.transparent && block.shapes.length === 1 && block.shapes[0].every((v, i) => v === (i < 3 ? 0 : 1))
+    if (!block) return false
+    const fullCube = block.shapes.length === 1 && block.shapes[0].every((v, i) => v === (i < 3 ? 0 : 1))
+    if (!vanilla.modernMove) return !block.transparent && fullCube
+    if (NEVER_SUFFOCATES.test(block.name)) return false
+    if (ALWAYS_SUFFOCATES.has(block.name)) return true
+    return fullCube && block.name !== 'cobweb'
   }
 
   // LocalPlayer.suffocatesAt: a suffocating block in the column of the player's box at that cell
@@ -1989,7 +1999,9 @@ function Physics (mcData, world) {
     const box = getPlayerBB(entity.pos)
     const check = new AABB(x, box.minY, z, x + 1, box.maxY, z + 1).contract(1.0e-7, 1.0e-7, 1.0e-7)
     for (let y = Math.floor(check.minY); y <= Math.floor(check.maxY); y++) {
-      if (suffocates(world.getBlock(new Vec3(x, y, z)))) return true
+      // (Level.collidesWithSuffocatingBlock: the block's shape must reach into the box)
+      const block = world.getBlock(new Vec3(x, y, z))
+      if (suffocates(block) && collisionShapesOf(block, block.position).some(b => new AABB(x + b[0], y + b[1], z + b[2], x + b[3], y + b[4], z + b[5]).intersects(check))) return true
     }
     return false
   }
