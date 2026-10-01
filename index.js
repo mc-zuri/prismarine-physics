@@ -965,7 +965,7 @@ function Physics (mcData, world) {
     playerBB.offset(0, 0, dz)
 
     // Step on block if height < stepHeight
-    if (physics.stepHeight > 0 &&
+    if (stepHeightOf(entity) > 0 &&
       (entity.onGround || (dy !== oldVelY && oldVelY < 0)) &&
       (dx !== oldVelX || dz !== oldVelZ)) {
       const oldVelXCol = dx
@@ -973,7 +973,7 @@ function Physics (mcData, world) {
       const oldVelZCol = dz
       const oldBBCol = playerBB.clone()
 
-      dy = physics.stepHeight
+      dy = stepHeightOf(entity)
       const queryBB = oldBB.clone().extend(oldVelX, dy, oldVelZ)
       const surroundingBBs = legacyShapes(world, queryBB)
 
