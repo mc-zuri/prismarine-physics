@@ -2746,7 +2746,8 @@ function Physics (mcData, world) {
     let yaw = f32(yawDegrees(entity) + boat.deltaRotation)
     const relative = wrapDegrees(f32(yaw - boat.yaw))
     const clamped = Math.max(f32(-105), Math.min(f32(105), relative))
-    yaw = f32(yaw + f32(clamped - relative))
+    // AbstractBoat.clampRotation adds before subtracting; reassociation loses a float rounding step.
+    yaw = f32(f32(yaw + clamped) - relative)
     entity.yawDegrees = yaw
     entity.yaw = Math.PI - yaw * Math.PI / 180
   }
