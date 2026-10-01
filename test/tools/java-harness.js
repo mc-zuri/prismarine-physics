@@ -407,7 +407,9 @@ function packetContext (version, mcData, rec) {
     const field = EFFECT_FIELDS[String(e.name).replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase()]
     if (field) effectNames[e.id] = field
   }
-  return { version, mcData, entityId: net.entityId, effectNames }
+  const setup = rec.setup || {}
+  const mainhand = setup.equipment && setup.equipment.mainhand && setup.equipment.mainhand.id
+  return { version, mcData, entityId: net.entityId, effectNames, mainhand }
 }
 
 // The player state a packet handler sees, rebuilt from a recorded snapshot.

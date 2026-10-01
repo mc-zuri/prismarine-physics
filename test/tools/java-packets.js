@@ -190,6 +190,18 @@ const TO_RAD = Math.PI / 180
  * effectNames }. Only the player's own packets change it; packets about other entities must leave it alone.
  * Returns the packets the client sends back while handling it ([{ name, params }]).
  */
+// The attribute an update_attributes property names. Before 1.20.5 it travels by name; since, by registry id, which
+// minecraft-protocol decodes with a mapper that may be stale: map the decoded name back to its id and take the
+// attribute from the registry (minecraft-data's attributes are in registry order).
+function attributeResource (prop, mcData) {
+  if (prop.name !== undefined) return prop.name
+  const type = mcData.protocol.play.toClient.types.packet_entity_update_attributes
+  const mappings = JSON.stringify(type).match(/"mappings":({[^}]*})/)
+  const id = mappings ? Object.entries(JSON.parse(mappings[1])).find(([, name]) => name === prop.key) : undefined
+  const attribute = id && mcData.attributesArray[Number(id[0])]
+  return attribute ? attribute.resource : undefined
+}
+
 function handle (state, packet, ctx) {
   const p = packet.params
   const self = id => id === ctx.entityId
@@ -246,12 +258,19 @@ function handle (state, packet, ctx) {
     case 'entity_update_attributes':
       if (self(p.entityId)) {
         for (const prop of p.properties) {
-          if (!String(prop.key).endsWith('movement_speed')) continue
           const key = ctx.mcData.attributesByName.movementSpeed.resource
+          const bare = r => String(r).replace(/^minecraft:/, '')
+          if (bare(attributeResource(prop, ctx.mcData)) !== bare(key)) continue
           state.attributes = { ...state.attributes, [key]: { value: prop.value, modifiers: prop.modifiers.filter(m => !String(m.uuid).endsWith('sprinting')).map(m => ({ uuid: m.uuid, amount: m.amount, operation: m.operation })) } }
         }
       }
       break
+    case 'entity_status': {
+      // 9: the item in use is done; the client finishes it too, and a food eats into its own food level
+      const food = ctx.mainhand && ctx.mcData.foodsByName && ctx.mcData.foodsByName[ctx.mainhand]
+      if (self(p.entityId) && p.entityStatus === 9 && food && state.food !== undefined) state.food = Math.min(20, state.food + food.foodPoints)
+      break
+    }
     case 'update_health':
       // the food level (sprinting needs more than 6)
       state.food = p.food
