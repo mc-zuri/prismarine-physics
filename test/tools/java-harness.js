@@ -541,6 +541,8 @@ function recorded (name, spec) {
         const available = group.versions.filter(v => recordedVersions().includes(v) && hasData(v))
         let runs
         before(function () {
+          // replays every version of the group (the first loads their data)
+          this.timeout(0)
           if (!available.length) this.skip()
           runs = available.map(version => {
             const rec = scenario(version, name)
