@@ -60,26 +60,22 @@ describe('vanilla recordings: powder_snow', () => {
         versions: ['1.18'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
-          'leaves the ground (1)': { tick: 1, pos: [0.5, 101, 912.5980000033677], vel: [0, -0.0784000015258789, 0.053508008053839436], onGround: false },
-          'lands (1)': { tick: 2, pos: [0.5, 101, 912.6711080113649], onGround: true },
-          'top speed 4.313 b/s': { tick: 12, pos: [0.5, 101, 914.7169015218135], vel: [0, -0.0784000015258789, 0.1177381988706114] },
-          'enters a slowing block': { tick: 15, pos: [0.5, 101, 915.3405715261398], isInWeb: true },
-          'leaves the ground (2)': { tick: 16, pos: [0.5, 100.88239999771118, 915.4278265249258], vel: [0, -0.0784000015258789, 0], onGround: false },
-          'lands (2)': { tick: 58, pos: [0.5, 96, 915.8511865124873], onGround: true },
-          'final state': { tick: 60, pos: [0.5, 96, 915.8511865124873], vel: [0, -0.0784000015258789, 0], onGround: true }
+          'top speed 4.316 b/s': { tick: 13, pos: [0.5, 101, 915.0466658857051], vel: [0, -0.0784000015258789, 0.11781389317747222] },
+          'enters a slowing block': { tick: 14, pos: [0.5, 101, 915.2408983874503], isInWeb: true },
+          'leaves the ground (1)': { tick: 16, pos: [0.5, 100.88239999771118, 915.4157233856583], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 58, pos: [0.5, 96, 915.8390833732199], onGround: true },
+          'final state': { tick: 60, pos: [0.5, 96, 915.8390833732199], vel: [0, -0.0784000015258789, 0], onGround: true }
         }
       },
       {
         versions: ['22w19a'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
-          'leaves the ground (1)': { tick: 1, pos: [0.5, 101, 912.5980000033677], vel: [0, -0.0784000015258789, 0.053508008053839436], onGround: false },
-          'lands (1)': { tick: 2, pos: [0.5, 101, 912.6711080113649], onGround: true },
-          'top speed 4.315 b/s': { tick: 13, pos: [0.5, 101, 914.9326397240518], vel: [0, -0.0784000015258789, 0.11779307210407237] },
-          'enters a slowing block': { tick: 15, pos: [0.5, 101, 915.3415215346567], isInWeb: true },
-          'leaves the ground (2)': { tick: 16, pos: [0.5, 100.88239999771118, 915.4287765334427], vel: [0, -0.0784000015258789, 0], onGround: false },
-          'lands (2)': { tick: 58, pos: [0.5, 96, 915.8521365210042], onGround: true },
-          'final state': { tick: 60, pos: [0.5, 96, 915.8521365210042], vel: [0, -0.0784000015258789, 0], onGround: true }
+          'top speed 4.316 b/s': { tick: 13, pos: [0.5, 101, 915.0466658857051], vel: [0, -0.0784000015258789, 0.11781389317747222] },
+          'enters a slowing block': { tick: 14, pos: [0.5, 101, 915.2405833868141], isInWeb: true },
+          'leaves the ground (1)': { tick: 16, pos: [0.5, 100.88239999771118, 915.4154083850221], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 58, pos: [0.5, 96, 915.8387683725837], onGround: true },
+          'final state': { tick: 60, pos: [0.5, 96, 915.8387683725837], vel: [0, -0.0784000015258789, 0], onGround: true }
         }
       },
       {
@@ -116,7 +112,7 @@ describe('vanilla recordings: powder_snow', () => {
         }
       },
       {
-        versions: ['1.20.5', '1.21', '1.21.3'],
+        versions: ['1.20.5'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 101, 912.5980000033677], vel: [0, -0.0784000015258789, 0.053508008053839436], onGround: false },
@@ -129,29 +125,36 @@ describe('vanilla recordings: powder_snow', () => {
         }
       },
       {
-        versions: ['1.21.5'],
+        versions: ['1.21'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
-          'leaves the ground (1)': { tick: 1, pos: [0.5, 101, 912.5980000033677], vel: [0, -0.0784000015258789, 0.053508008053839436], onGround: false },
-          'lands (1)': { tick: 2, pos: [0.5, 101, 912.6711080113649], onGround: true },
-          'top speed 4.313 b/s': { tick: 12, pos: [0.5, 101, 914.7169015218135], vel: [0, -0.0784000015258789, 0.1177381988706114] },
-          'enters a slowing block': { tick: 15, pos: [0.5, 101, 915.340886526776], isInWeb: true },
-          'leaves the ground (2)': { tick: 16, pos: [0.5, 100.88239999771118, 915.428141525562], vel: [0, -0.0784000015258789, 0], onGround: false },
-          'lands (2)': { tick: 58, pos: [0.5, 96, 915.8515015131235], onGround: true },
-          'final state': { tick: 60, pos: [0.5, 96, 915.8515015131235], vel: [0, -0.0784000015258789, 0], onGround: true }
+          'top speed 4.316 b/s': { tick: 13, pos: [0.5, 101, 915.0466658857051], vel: [0, -0.0784000015258789, 0.11781389317747222] },
+          'enters a slowing block': { tick: 14, pos: [0.5, 101, 915.2405833868141], isInWeb: true },
+          'leaves the ground (1)': { tick: 16, pos: [0.5, 100.88239999771118, 915.4157233856582], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 58, pos: [0.5, 96, 915.8390833732198], onGround: true },
+          'final state': { tick: 60, pos: [0.5, 96, 915.8390833732198], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.21.3', '1.21.5'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
+          'top speed 4.314 b/s': { tick: 12, pos: [0.5, 101, 914.8308895496372], vel: [0, -0.0784000015258789, 0.11777633270024773] },
+          'enters a slowing block': { tick: 14, pos: [0.5, 101, 915.2400613957308], isInWeb: true },
+          'leaves the ground (1)': { tick: 16, pos: [0.5, 100.88239999771118, 915.4145713933027], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 58, pos: [0.5, 96, 915.8379313808642], onGround: true },
+          'final state': { tick: 60, pos: [0.5, 96, 915.8379313808642], vel: [0, -0.0784000015258789, 0], onGround: true }
         }
       },
       {
         versions: ['1.21.6'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
-          'leaves the ground (1)': { tick: 1, pos: [0.5, 101, 912.5980000033677], vel: [0, -0.0784000015258789, 0.053508008053839436], onGround: false },
-          'lands (1)': { tick: 2, pos: [0.5, 101, 912.6711080113649], onGround: true },
-          'top speed 4.315 b/s': { tick: 13, pos: [0.5, 101, 914.9326397240518], vel: [0, -0.0784000015258789, 0.11779307210407237] },
-          'enters a slowing block': { tick: 15, pos: [0.5, 101, 915.3415215346567], isInWeb: true },
-          'leaves the ground (2)': { tick: 16, pos: [0.5, 100.88239999771118, 915.4287765334427], vel: [0, -0.0784000015258789, 0], onGround: false },
-          'lands (2)': { tick: 58, pos: [0.5, 96, 915.8521365210042], onGround: true },
-          'final state': { tick: 60, pos: [0.5, 96, 915.8521365210042], vel: [0, -0.0784000015258789, 0], onGround: true }
+          'top speed 4.316 b/s': { tick: 13, pos: [0.5, 101, 915.0466658857051], vel: [0, -0.0784000015258789, 0.11781389317747222] },
+          'enters a slowing block': { tick: 14, pos: [0.5, 101, 915.2408983874503], isInWeb: true },
+          'leaves the ground (1)': { tick: 16, pos: [0.5, 100.88239999771118, 915.4160383862944], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 58, pos: [0.5, 96, 915.8393983738559], onGround: true },
+          'final state': { tick: 60, pos: [0.5, 96, 915.8393983738559], vel: [0, -0.0784000015258789, 0], onGround: true }
         }
       },
       {
@@ -188,7 +191,7 @@ describe('vanilla recordings: powder_snow', () => {
         }
       },
       {
-        versions: ['1.21.11', '26.1', '26.2'],
+        versions: ['1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'top speed 4.314 b/s': { tick: 12, pos: [0.5, 101, 914.8308895496372], vel: [0, -0.0784000015258789, 0.11777633270024773] },
@@ -196,17 +199,6 @@ describe('vanilla recordings: powder_snow', () => {
           'leaves the ground (1)': { tick: 16, pos: [0.5, 100.88239999771118, 915.4145713933027], vel: [0, -0.0784000015258789, 0], onGround: false },
           'lands (1)': { tick: 58, pos: [0.5, 96, 915.8379313808642], onGround: true },
           'final state': { tick: 60, pos: [0.5, 96, 915.8379313808642], vel: [0, -0.0784000015258789, 0], onGround: true }
-        }
-      },
-      {
-        versions: ['26.3'],
-        milestones: {
-          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
-          'top speed 4.316 b/s': { tick: 13, pos: [0.5, 101, 915.0466658857051], vel: [0, -0.0784000015258789, 0.11781389317747222] },
-          'enters a slowing block': { tick: 14, pos: [0.5, 101, 915.2408983874503], isInWeb: true },
-          'leaves the ground (1)': { tick: 16, pos: [0.5, 100.88239999771118, 915.4160383862944], vel: [0, -0.0784000015258789, 0], onGround: false },
-          'lands (1)': { tick: 58, pos: [0.5, 96, 915.8393983738559], onGround: true },
-          'final state': { tick: 60, pos: [0.5, 96, 915.8393983738559], vel: [0, -0.0784000015258789, 0], onGround: true }
         }
       }
     ]

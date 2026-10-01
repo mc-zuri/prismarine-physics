@@ -9,7 +9,99 @@ describe('vanilla recordings: piston', () => {
     steps: [server({ block: { at: [-2, 1, 0], state: 'redstone_block' } }), ticks(30)],
     groups: [
       {
-        versions: ['1.11.2'],
+        versions: ['1.8.9'],
+        packetKnownFailure: 'pistons push the player after its own tick: vanilla sends the position from before the push',
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 2, pos: [1.0625, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'top speed 11.25 b/s': { tick: 2, pos: [1.0625, 101, 2707.5], vel: [0, -0.0784000015258789, 0] },
+          'lands (1)': { tick: 4, pos: [1.625, 101, 2707.5], onGround: true },
+          'final state': { tick: 30, pos: [1.625, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.9.4'],
+        packetKnownFailure: 'pistons push the player after its own tick: vanilla sends the position from before the push',
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 4, pos: [0.810000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 5, pos: [0.810000011920929, 101, 2707.5], onGround: true },
+          'leaves the ground (2)': { tick: 8, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'top speed 10 b/s': { tick: 8, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0] },
+          'lands (2)': { tick: 9, pos: [1.310000011920929, 101, 2707.5], onGround: true },
+          'final state': { tick: 30, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.10.2'],
+        packetKnownFailure: 'pistons push the player after its own tick: vanilla sends the position from before the push',
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 3, pos: [0.810000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'top speed 10 b/s': { tick: 4, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0] },
+          'lands (1)': { tick: 5, pos: [1.310000011920929, 101, 2707.5], onGround: true },
+          'leaves the ground (2)': { tick: 6, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'lands (2)': { tick: 7, pos: [1.310000011920929, 101, 2707.5], onGround: true },
+          'final state': { tick: 30, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.12.2'],
+        packetKnownFailure: 'pistons push the player after its own tick: vanilla sends the position from before the push',
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 6, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'top speed 16.2 b/s': { tick: 6, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0] },
+          'lands (1)': { tick: 7, pos: [1.310000011920929, 101, 2707.5], onGround: true },
+          'final state': { tick: 30, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.13.2'],
+        packetKnownFailure: 'pistons push the player after its own tick: vanilla sends the position from before the push',
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 4, pos: [0.810000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'top speed 10 b/s': { tick: 5, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0] },
+          'lands (1)': { tick: 7, pos: [1.310000011920929, 101, 2707.5], onGround: true },
+          'final state': { tick: 30, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.18'],
+        packetKnownFailure: 'pistons push the player after its own tick: vanilla sends the position from before the push',
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 8, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'top speed 16.2 b/s': { tick: 8, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0] },
+          'lands (1)': { tick: 9, pos: [1.310000011920929, 101, 2707.5], onGround: true },
+          'final state': { tick: 30, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['22w19a'],
+        packetKnownFailure: 'pistons push the player after its own tick: vanilla sends the position from before the push',
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 3, pos: [0.810000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'top speed 10 b/s': { tick: 4, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0] },
+          'lands (1)': { tick: 5, pos: [1.310000011920929, 101, 2707.5], onGround: true },
+          'final state': { tick: 30, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.19'],
+        packetKnownFailure: 'pistons push the player after its own tick: vanilla sends the position from before the push',
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 3, pos: [0.810000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'top speed 10 b/s': { tick: 4, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0] },
+          'lands (1)': { tick: 6, pos: [1.310000011920929, 101, 2707.5], onGround: true },
+          'final state': { tick: 30, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.19.2'],
         packetKnownFailure: 'pistons push the player after its own tick: vanilla sends the position from before the push',
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
@@ -20,7 +112,7 @@ describe('vanilla recordings: piston', () => {
         }
       },
       {
-        versions: ['1.12.2'],
+        versions: ['1.20'],
         packetKnownFailure: 'pistons push the player after its own tick: vanilla sends the position from before the push',
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
@@ -31,18 +123,7 @@ describe('vanilla recordings: piston', () => {
         }
       },
       {
-        versions: ['1.19'],
-        packetKnownFailure: 'pistons push the player after its own tick: vanilla sends the position from before the push',
-        milestones: {
-          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
-          'leaves the ground (1)': { tick: 7, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: false },
-          'top speed 16.2 b/s': { tick: 7, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0] },
-          'lands (1)': { tick: 8, pos: [1.310000011920929, 101, 2707.5], onGround: true },
-          'final state': { tick: 30, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
-        }
-      },
-      {
-        versions: ['1.19.2'],
+        versions: ['1.20.4'],
         packetKnownFailure: 'pistons push the player after its own tick: vanilla sends the position from before the push',
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
@@ -53,7 +134,29 @@ describe('vanilla recordings: piston', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4', '1.21.7'],
+        versions: ['1.21'],
+        packetKnownFailure: 'pistons push the player after its own tick: vanilla sends the position from before the push',
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 2, pos: [0.810000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'top speed 10 b/s': { tick: 3, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0] },
+          'lands (1)': { tick: 4, pos: [1.310000011920929, 101, 2707.5], onGround: true },
+          'final state': { tick: 30, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.21.3', '1.21.5'],
+        packetKnownFailure: 'pistons push the player after its own tick: vanilla sends the position from before the push',
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 3, pos: [0.810000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'top speed 10 b/s': { tick: 4, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0] },
+          'lands (1)': { tick: 6, pos: [1.310000011920929, 101, 2707.5], onGround: true },
+          'final state': { tick: 30, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.21.6', '1.21.8'],
         packetKnownFailure: 'pistons push the player after its own tick: vanilla sends the position from before the push',
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
@@ -64,7 +167,7 @@ describe('vanilla recordings: piston', () => {
         }
       },
       {
-        versions: ['1.21.8', '1.21.9', '1.21.10'],
+        versions: ['1.21.9', '1.21.10'],
         packetKnownFailure: 'pistons push the player after its own tick: vanilla sends the position from before the push',
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
@@ -75,29 +178,7 @@ describe('vanilla recordings: piston', () => {
         }
       },
       {
-        versions: ['1.21.11'],
-        packetKnownFailure: 'pistons push the player after its own tick: vanilla sends the position from before the push',
-        milestones: {
-          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
-          'leaves the ground (1)': { tick: 2, pos: [0.810000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: false },
-          'top speed 10 b/s': { tick: 3, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0] },
-          'lands (1)': { tick: 5, pos: [1.310000011920929, 101, 2707.5], onGround: true },
-          'final state': { tick: 30, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
-        }
-      },
-      {
-        versions: ['26.1'],
-        packetKnownFailure: 'pistons push the player after its own tick: vanilla sends the position from before the push',
-        milestones: {
-          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
-          'leaves the ground (1)': { tick: 3, pos: [0.810000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: false },
-          'top speed 10 b/s': { tick: 4, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0] },
-          'lands (1)': { tick: 6, pos: [1.310000011920929, 101, 2707.5], onGround: true },
-          'final state': { tick: 30, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
-        }
-      },
-      {
-        versions: ['26.2'],
+        versions: ['26.1', '26.2'],
         packetKnownFailure: 'pistons push the player after its own tick: vanilla sends the position from before the push',
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
@@ -112,9 +193,9 @@ describe('vanilla recordings: piston', () => {
         packetKnownFailure: 'pistons push the player after its own tick: vanilla sends the position from before the push',
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
-          'leaves the ground (1)': { tick: 3, pos: [0.810000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: false },
-          'top speed 10 b/s': { tick: 4, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0] },
-          'lands (1)': { tick: 6, pos: [1.310000011920929, 101, 2707.5], onGround: true },
+          'leaves the ground (1)': { tick: 2, pos: [0.810000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'top speed 10 b/s': { tick: 3, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0] },
+          'lands (1)': { tick: 4, pos: [1.310000011920929, 101, 2707.5], onGround: true },
           'final state': { tick: 30, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
         }
       }
@@ -126,29 +207,61 @@ describe('vanilla recordings: piston', () => {
     steps: [press('jump', 1), server({ block: { at: [-2, 1, 0], state: 'redstone_block' } }), ticks(40)],
     groups: [
       {
-        versions: ['1.11.2'],
+        versions: ['1.8.9'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [0.5, 101.41999998688698, 2707.5], vel: [0, 0.33319999363422365, 0], onGround: false },
+          'top speed 11.25 b/s': { tick: 2, pos: [1.0625, 101.7531999805212, 2707.5], vel: [0, 0.24813599859094576, 0] },
+          'peak height 1.249': { tick: 5, pos: [1.0625, 102.24918707874468, 2707.5] },
+          'lands (1)': { tick: 9, pos: [1.0625, 102, 2707.5], onGround: true },
+          'final state': { tick: 41, pos: [1.0625, 102, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.9.4'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 101.41999998688698, 2707.5], vel: [0, 0.33319999363422365, 0], onGround: false },
           'peak height 1.001': { tick: 3, pos: [0.5, 102.00133597911214, 2707.5] },
-          'top speed 16.2 b/s': { tick: 4, pos: [1.310000011920929, 101.41999998688698, 2707.5], vel: [0, -0.0784000015258789, 0] },
+          'top speed 6.2 b/s': { tick: 4, pos: [0.810000011920929, 101.41999998688698, 2707.5], vel: [0, -0.0784000015258789, 0] },
+          'lands (1)': { tick: 7, pos: [0.810000011920929, 101, 2707.5], onGround: true },
+          'final state': { tick: 41, pos: [0.810000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.10.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [0.5, 101.41999998688698, 2707.5], vel: [0, 0.33319999363422365, 0], onGround: false },
+          'peak height 1.001': { tick: 3, pos: [0.5, 102.00133597911214, 2707.5] },
+          'top speed 10 b/s': { tick: 5, pos: [1.310000011920929, 101.3415999853611, 2707.5], vel: [0, -0.1552320045166016, 0] },
           'lands (1)': { tick: 7, pos: [1.310000011920929, 101, 2707.5], onGround: true },
           'final state': { tick: 41, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
         }
       },
       {
-        versions: ['1.12.2'],
+        versions: ['1.11.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 101.41999998688698, 2707.5], vel: [0, 0.33319999363422365, 0], onGround: false },
-          'peak height 0.753': { tick: 2, pos: [0.810000011920929, 101.7531999805212, 2707.5] },
-          'top speed 10 b/s': { tick: 3, pos: [1.310000011920929, 101.41999998688698, 2707.5], vel: [0, -0.0784000015258789, 0] },
-          'lands (1)': { tick: 6, pos: [1.310000011920929, 101, 2707.5], onGround: true },
-          'final state': { tick: 41, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+          'peak height 1.001': { tick: 3, pos: [0.5, 102.00133597911214, 2707.5] },
+          'top speed 6.2 b/s': { tick: 4, pos: [0.810000011920929, 101.41999998688698, 2707.5], vel: [0, -0.0784000015258789, 0] },
+          'lands (1)': { tick: 7, pos: [0.810000011920929, 101, 2707.5], onGround: true },
+          'final state': { tick: 41, pos: [0.810000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
         }
       },
       {
-        versions: ['1.19'],
+        versions: ['1.12.2', '1.13.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [0.5, 101.41999998688698, 2707.5], vel: [0, 0.33319999363422365, 0], onGround: false },
+          'peak height 1.252': { tick: 6, pos: [0.5, 102.25220334025373, 2707.5] },
+          'lands (1)': { tick: 9, pos: [0.5, 102, 2707.5], onGround: true },
+          'final state': { tick: 41, pos: [0.5, 102, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.18'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 101.41999998688698, 2707.5], vel: [0, 0.33319999363422365, 0], onGround: false },
@@ -159,7 +272,7 @@ describe('vanilla recordings: piston', () => {
         }
       },
       {
-        versions: ['1.19.2', '1.20'],
+        versions: ['1.19'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 101.41999998688698, 2707.5], vel: [0, 0.33319999363422365, 0], onGround: false },
@@ -169,7 +282,7 @@ describe('vanilla recordings: piston', () => {
         }
       },
       {
-        versions: ['1.20.4', '1.21.8'],
+        versions: ['1.20', '1.20.4', '1.21'],
         packetKnownFailure: 'pistons push the player after its own tick: vanilla sends the position from before the push',
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
@@ -181,19 +294,7 @@ describe('vanilla recordings: piston', () => {
         }
       },
       {
-        versions: ['1.21.9'],
-        packetKnownFailure: 'pistons push the player after its own tick: vanilla sends the position from before the push',
-        milestones: {
-          'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
-          'leaves the ground (1)': { tick: 1, pos: [0.5, 101.41999998688698, 2707.5], vel: [0, 0.33319999363422365, 0], onGround: false },
-          'peak height 0.753': { tick: 2, pos: [0.5, 101.7531999805212, 2707.5] },
-          'top speed 10 b/s': { tick: 4, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0] },
-          'lands (1)': { tick: 5, pos: [1.310000011920929, 101, 2707.5], onGround: true },
-          'final state': { tick: 41, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
-        }
-      },
-      {
-        versions: ['1.21.10'],
+        versions: ['1.21.3', '1.21.5'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 101.41999998688698, 2707.5], vel: [0, 0.33319999363422365, 0], onGround: false },
@@ -203,18 +304,40 @@ describe('vanilla recordings: piston', () => {
         }
       },
       {
-        versions: ['1.21.11'],
+        versions: ['1.21.7'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 101.41999998688698, 2707.5], vel: [0, 0.33319999363422365, 0], onGround: false },
-          'top speed 6.2 b/s': { tick: 2, pos: [0.810000011920929, 101.7531999805212, 2707.5], vel: [0, 0.24813599859094576, 0] },
-          'peak height 1.001': { tick: 3, pos: [0.810000011920929, 102.00133597911214, 2707.5] },
-          'lands (1)': { tick: 5, pos: [0.810000011920929, 101.375, 2707.5], onGround: true },
-          'final state': { tick: 41, pos: [0.810000011920929, 101.375, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+          'peak height 0.753': { tick: 2, pos: [0.810000011920929, 101.7531999805212, 2707.5] },
+          'top speed 10 b/s': { tick: 3, pos: [1.310000011920929, 101.41999998688698, 2707.5], vel: [0, -0.0784000015258789, 0] },
+          'lands (1)': { tick: 7, pos: [1.310000011920929, 101, 2707.5], onGround: true },
+          'final state': { tick: 41, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
         }
       },
       {
-        versions: ['26.1'],
+        versions: ['1.21.8'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [0.5, 101.41999998688698, 2707.5], vel: [0, 0.33319999363422365, 0], onGround: false },
+          'peak height 0.753': { tick: 2, pos: [0.5, 101.7531999805212, 2707.5] },
+          'top speed 10 b/s': { tick: 4, pos: [1.310000011920929, 101.41999998688698, 2707.5], vel: [0, -0.0784000015258789, 0] },
+          'lands (1)': { tick: 7, pos: [1.310000011920929, 101, 2707.5], onGround: true },
+          'final state': { tick: 41, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.21.10'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [0.5, 101.41999998688698, 2707.5], vel: [0, 0.33319999363422365, 0], onGround: false },
+          'peak height 1.001': { tick: 3, pos: [0.810000011920929, 102.00133597911214, 2707.5] },
+          'top speed 10 b/s': { tick: 4, pos: [1.310000011920929, 101.41999998688698, 2707.5], vel: [0, -0.0784000015258789, 0] },
+          'lands (1)': { tick: 7, pos: [1.310000011920929, 101, 2707.5], onGround: true },
+          'final state': { tick: 41, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 101.41999998688698, 2707.5], vel: [0, 0.33319999363422365, 0], onGround: false },
@@ -239,9 +362,10 @@ describe('vanilla recordings: piston', () => {
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 101.41999998688698, 2707.5], vel: [0, 0.33319999363422365, 0], onGround: false },
-          'peak height 1.252': { tick: 6, pos: [0.5, 102.25220334025373, 2707.5] },
-          'lands (1)': { tick: 9, pos: [0.5, 102, 2707.5], onGround: true },
-          'final state': { tick: 41, pos: [0.5, 102, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+          'top speed 6.2 b/s': { tick: 2, pos: [0.810000011920929, 101.7531999805212, 2707.5], vel: [0, 0.24813599859094576, 0] },
+          'peak height 1.252': { tick: 6, pos: [0.810000011920929, 102.25220334025373, 2707.5] },
+          'lands (1)': { tick: 9, pos: [0.810000011920929, 102, 2707.5], onGround: true },
+          'final state': { tick: 41, pos: [0.810000011920929, 102, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
         }
       }
     ]

@@ -9,7 +9,7 @@ describe('vanilla recordings: landing', () => {
     steps: [ticks(120)],
     groups: [
       {
-        versions: ['1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
+        versions: ['1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 121, 1541.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -38,7 +38,18 @@ describe('vanilla recordings: landing', () => {
     steps: [ticks(200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
+        versions: ['1.8.9'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [4.5, 121, 1537.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 25, pos: [4.5, 101, 1537.5], onGround: true },
+          'leaves the ground (2)': { tick: 26, pos: [4.5, 102.39761861785941, 1537.5], vel: [0, 1.2912662706337967, 0], onGround: false },
+          'lands (2)': { tick: 59, pos: [4.5, 101, 1537.5], onGround: true },
+          'final state': { tick: 200, pos: [4.5, 101, 1537.5], vel: [0, -0.0784000015258789, 0], onGround: false }
+        }
+      },
+      {
+        versions: ['1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 121, 1537.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -67,7 +78,7 @@ describe('vanilla recordings: landing', () => {
     steps: [press('jump', 1), ticks(40)],
     groups: [
       {
-        versions: ['1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
+        versions: ['1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 101.98249998688698, 1541.5], vel: [0, 0.33319999363422365, 0], onGround: false },
@@ -98,7 +109,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2'],
+        versions: ['1.13.2', '1.18', '22w19a', '1.19', '1.19.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1609.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -111,7 +122,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4'],
+        versions: ['1.20', '1.20.4', '1.21'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1609.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -124,7 +135,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.21.7', '1.21.8'],
+        versions: ['1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1609.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -167,7 +178,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1577.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -176,7 +187,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1577.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -192,7 +203,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1553.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -209,7 +220,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1625.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -224,6 +235,25 @@ describe('vanilla recordings: landing', () => {
     description: 'landing: until onGround || isInWater || isInLava || y<-1.9, wait 30, until steady',
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
+      {
+        versions: ['1.8.9', '1.9.4'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 18, pos: [4.5, 101, 1589.5], onGround: true },
+          'final state': { tick: 53, pos: [4.5, 101, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.10.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 18, pos: [4.5, 100.9375, 1589.5], onGround: true },
+          'leaves the ground (2)': { tick: 20, pos: [4.5, 100.85909999847412, 1589.5], vel: [0, -0.1552320045166016, 0], onGround: false },
+          'final state': { tick: 248, pos: [4.5, 100.85909999847412, 1589.5], vel: [0, -0.1552320045166016, 0], onGround: false }
+        }
+      },
       {
         versions: ['1.11.2'],
         milestones: {
@@ -247,7 +277,18 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2'],
+        versions: ['1.13.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 18, pos: [4.5, 100.9375, 1589.5], onGround: true },
+          'leaves the ground (2)': { tick: 19, pos: [4.5, 101, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'lands (2)': { tick: 20, pos: [4.5, 100.9375, 1589.5], onGround: true },
+          'final state': { tick: 248, pos: [4.5, 100.70386799395752, 1589.5], vel: [0, -0.230527368912964, 0], onGround: false }
+        }
+      },
+      {
+        versions: ['1.18', '22w19a', '1.19', '1.19.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -279,7 +320,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.21.7', '1.21.8'],
+        versions: ['1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -297,25 +338,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.21.10'],
-        milestones: {
-          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
-          'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
-          'lands (1)': { tick: 18, pos: [4.5, 100.9375, 1589.5], onGround: true },
-          'final state': { tick: 53, pos: [4.5, 101, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: true }
-        }
-      },
-      {
-        versions: ['1.21.11'],
-        milestones: {
-          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
-          'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
-          'lands (1)': { tick: 18, pos: [4.5, 100.9375, 1589.5], onGround: true },
-          'final state': { tick: 53, pos: [4.5, 101, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: true }
-        }
-      },
-      {
-        versions: ['26.1'],
+        versions: ['1.21.10', '26.1'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -340,7 +363,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1545.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -356,7 +379,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1565.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -372,7 +395,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1581.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -381,7 +404,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1581.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -397,7 +420,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1605.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -413,7 +436,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1613.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -423,7 +446,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1613.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -450,7 +473,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1617.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -466,7 +489,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1601.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -482,7 +505,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1621.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -498,7 +521,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1557.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -517,7 +540,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1561.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -533,7 +556,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1537.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -562,7 +585,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1573.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -578,7 +601,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1585.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -594,7 +617,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1533.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -610,7 +633,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1597.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -627,7 +650,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1593.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -643,7 +666,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1549.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -653,7 +676,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1549.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -670,7 +693,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
+        versions: ['1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1541.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -699,7 +722,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1569.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -715,7 +738,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2'],
+        versions: ['1.13.2', '1.18', '22w19a', '1.19', '1.19.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1609.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -728,7 +751,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4'],
+        versions: ['1.20', '1.20.4', '1.21'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1609.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -741,7 +764,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.21.7', '1.21.8'],
+        versions: ['1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1609.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -787,7 +810,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1577.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -796,7 +819,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1577.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -812,7 +835,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1553.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -829,7 +852,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1625.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -844,6 +867,28 @@ describe('vanilla recordings: landing', () => {
     description: 'landing: until onGround || isInWater || isInLava || y<-1.9, wait 30, until steady',
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
+      {
+        versions: ['1.8.9', '1.9.4'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 31, pos: [4.5, 101, 1589.5], onGround: true },
+          'final state': { tick: 66, pos: [4.5, 101, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.10.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 31, pos: [4.5, 100.9375, 1589.5], onGround: true },
+          'leaves the ground (2)': { tick: 34, pos: [4.5, 100.85909999847412, 1589.5], vel: [0, -0.1552320045166016, 0], onGround: false },
+          'lands (2)': { tick: 200, pos: [4.699999988079071, 100, 1589.3999999985099], onGround: true },
+          'touches a wall': { tick: 200, pos: [4.699999988079071, 100, 1589.3999999985099], isCollidedHorizontally: true },
+          'top speed 4.472 b/s': { tick: 201, pos: [4.5, 100.9375, 1589.5], vel: [0, -0.0784000015258789, 0] },
+          'final state': { tick: 261, pos: [4.5, 100.85909999847412, 1589.5], vel: [0, -0.1552320045166016, 0], onGround: false }
+        }
+      },
       {
         versions: ['1.11.2'],
         milestones: {
@@ -867,7 +912,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2'],
+        versions: ['1.13.2', '1.18', '22w19a', '1.19', '1.19.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -890,7 +935,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.20.4', '1.21.7', '1.21.8'],
+        versions: ['1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -911,7 +956,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.21.10', '1.21.11'],
+        versions: ['1.21.10'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -929,16 +974,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['26.2'],
-        milestones: {
-          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
-          'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
-          'lands (1)': { tick: 31, pos: [4.5, 100.9375, 1589.5], onGround: true },
-          'final state': { tick: 66, pos: [4.5, 101, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: true }
-        }
-      },
-      {
-        versions: ['26.3'],
+        versions: ['26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -954,7 +990,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1545.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -970,7 +1006,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1565.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -986,7 +1022,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1581.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -995,7 +1031,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1581.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1011,7 +1047,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1605.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1027,7 +1063,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1613.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1037,7 +1073,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1613.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1064,7 +1100,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1617.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1080,7 +1116,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1601.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1096,7 +1132,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1621.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1112,7 +1148,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1557.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1131,7 +1167,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1561.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1147,7 +1183,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1537.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1176,7 +1212,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1573.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1192,7 +1228,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1585.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1208,7 +1244,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1533.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1224,7 +1260,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1597.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1241,7 +1277,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1593.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1257,7 +1293,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1549.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1267,7 +1303,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1549.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1284,7 +1320,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
+        versions: ['1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1541.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1313,7 +1349,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 131, 1569.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1329,7 +1365,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4'],
+        versions: ['1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1609.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1342,7 +1378,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.21.7', '1.21.8'],
+        versions: ['1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1609.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1388,7 +1424,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1577.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1397,7 +1433,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1577.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1413,7 +1449,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1553.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1430,7 +1466,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1625.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1445,6 +1481,25 @@ describe('vanilla recordings: landing', () => {
     description: 'landing: until onGround || isInWater || isInLava || y<-1.9, wait 30, until steady',
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
+      {
+        versions: ['1.8.9', '1.9.4'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 10, pos: [4.5, 101, 1589.5], onGround: true },
+          'final state': { tick: 45, pos: [4.5, 101, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.10.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 10, pos: [4.5, 100.9375, 1589.5], onGround: true },
+          'leaves the ground (2)': { tick: 12, pos: [4.5, 100.85909999847412, 1589.5], vel: [0, -0.1552320045166016, 0], onGround: false },
+          'final state': { tick: 240, pos: [4.5, 100.9375, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false }
+        }
+      },
       {
         versions: ['1.11.2'],
         milestones: {
@@ -1468,7 +1523,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2'],
+        versions: ['1.13.2', '1.18', '22w19a', '1.19', '1.19.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1479,7 +1534,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4', '1.21.7', '1.21.8'],
+        versions: ['1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1500,7 +1555,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.21.10'],
+        versions: ['1.21.10', '26.1'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1509,34 +1564,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.21.11'],
-        milestones: {
-          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
-          'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
-          'lands (1)': { tick: 10, pos: [4.5, 100.9375, 1589.5], onGround: true },
-          'final state': { tick: 45, pos: [4.5, 101, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: true }
-        }
-      },
-      {
-        versions: ['26.1'],
-        milestones: {
-          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
-          'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
-          'lands (1)': { tick: 10, pos: [4.5, 100.9375, 1589.5], onGround: true },
-          'final state': { tick: 45, pos: [4.5, 101, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: true }
-        }
-      },
-      {
-        versions: ['26.2'],
-        milestones: {
-          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
-          'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
-          'lands (1)': { tick: 10, pos: [4.5, 100.9375, 1589.5], onGround: true },
-          'final state': { tick: 45, pos: [4.5, 101, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: true }
-        }
-      },
-      {
-        versions: ['26.3'],
+        versions: ['26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1552,7 +1580,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1545.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1568,7 +1596,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1565.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1584,7 +1612,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1581.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1593,7 +1621,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1581.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1609,7 +1637,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1605.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1625,7 +1653,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1613.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1635,7 +1663,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1613.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1662,7 +1690,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1617.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1678,7 +1706,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1601.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1694,7 +1722,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1621.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1710,7 +1738,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1557.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1729,7 +1757,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1561.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1745,7 +1773,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1537.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1774,7 +1802,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1573.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1790,7 +1818,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1585.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1806,7 +1834,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1533.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1822,7 +1850,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1597.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1839,7 +1867,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1593.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1855,7 +1883,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1549.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1865,7 +1893,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1549.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1882,7 +1910,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
+        versions: ['1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1541.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1911,7 +1939,7 @@ describe('vanilla recordings: landing', () => {
     steps: [untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 104, 1569.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1927,7 +1955,20 @@ describe('vanilla recordings: landing', () => {
     steps: [hold('sneak'), untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), release(), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4'],
+        versions: ['1.13.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1609.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'enters water': { tick: 18, pos: [4.5, 100.19347388999101, 1609.5], isInWater: true },
+          'lands (1)': { tick: 21, pos: [4.5, 97.875, 1609.5], onGround: true },
+          'leaves the ground (2)': { tick: 22, pos: [4.5, 97.92600000232459, 1609.5], vel: [0, 0.13180000389814378, 0], onGround: false },
+          'enters water (tick 42)': { tick: 42, pos: [4.5, 100.731936901115, 1609.5], isInWater: true },
+          'enters water (tick 60)': { tick: 60, pos: [4.5, 100.79885524269936, 1609.5], isInWater: true },
+          'enters water (tick 75)': { tick: 75, pos: [4.5, 100.69615615620731, 1609.5], isInWater: true }
+        }
+      },
+      {
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1609.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1940,7 +1981,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.21.7', '1.21.8'],
+        versions: ['1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1609.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1986,7 +2027,7 @@ describe('vanilla recordings: landing', () => {
     steps: [hold('sneak'), untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), release(), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1577.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -1995,7 +2036,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1577.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -2011,7 +2052,7 @@ describe('vanilla recordings: landing', () => {
     steps: [hold('sneak'), untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), release(), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1553.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -2028,7 +2069,7 @@ describe('vanilla recordings: landing', () => {
     steps: [hold('sneak'), untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), release(), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1625.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -2043,6 +2084,25 @@ describe('vanilla recordings: landing', () => {
     description: 'landing: hold sneak, until onGround || isInWater || isInLava || y<-1.9, wait 30, release all, until steady',
     steps: [hold('sneak'), untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), release(), settleFor(5, 200)],
     groups: [
+      {
+        versions: ['1.8.9', '1.9.4'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 18, pos: [4.5, 101, 1589.5], onGround: true },
+          'final state': { tick: 53, pos: [4.5, 101, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.10.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 18, pos: [4.5, 100.9375, 1589.5], onGround: true },
+          'leaves the ground (2)': { tick: 22, pos: [4.5, 100.85909999847412, 1589.5], vel: [0, -0.1552320045166016, 0], onGround: false },
+          'final state': { tick: 248, pos: [4.5, 100.9375, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false }
+        }
+      },
       {
         versions: ['1.11.2'],
         milestones: {
@@ -2066,7 +2126,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2'],
+        versions: ['1.13.2', '1.18', '22w19a', '1.19', '1.19.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -2077,7 +2137,25 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4', '1.21.7', '1.21.8'],
+        versions: ['1.20', '1.20.4', '1.21', '1.21.3'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 18, pos: [4.5, 100.9375, 1589.5], onGround: true },
+          'final state': { tick: 53, pos: [4.5, 101, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.21.5'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 18, pos: [4.5, 100.9375, 1589.5], onGround: true },
+          'final state': { tick: 53, pos: [4.5, 101, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.21.6', '1.21.7', '1.21.8'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -2095,7 +2173,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.21.10', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -2111,7 +2189,7 @@ describe('vanilla recordings: landing', () => {
     steps: [hold('sneak'), untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), release(), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1545.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -2127,7 +2205,7 @@ describe('vanilla recordings: landing', () => {
     steps: [hold('sneak'), untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), release(), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1565.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -2143,7 +2221,7 @@ describe('vanilla recordings: landing', () => {
     steps: [hold('sneak'), untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), release(), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1581.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -2152,7 +2230,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1581.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -2168,7 +2246,7 @@ describe('vanilla recordings: landing', () => {
     steps: [hold('sneak'), untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), release(), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1605.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -2184,7 +2262,7 @@ describe('vanilla recordings: landing', () => {
     steps: [hold('sneak'), untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), release(), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1613.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -2194,7 +2272,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1613.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -2221,7 +2299,7 @@ describe('vanilla recordings: landing', () => {
     steps: [hold('sneak'), untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), release(), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1617.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -2237,7 +2315,7 @@ describe('vanilla recordings: landing', () => {
     steps: [hold('sneak'), untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), release(), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1601.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -2253,7 +2331,7 @@ describe('vanilla recordings: landing', () => {
     steps: [hold('sneak'), untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), release(), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1621.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -2269,7 +2347,7 @@ describe('vanilla recordings: landing', () => {
     steps: [hold('sneak'), untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), release(), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1557.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -2288,7 +2366,7 @@ describe('vanilla recordings: landing', () => {
     steps: [hold('sneak'), untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), release(), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1561.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -2304,7 +2382,7 @@ describe('vanilla recordings: landing', () => {
     steps: [hold('sneak'), untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), release(), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1537.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -2331,7 +2409,7 @@ describe('vanilla recordings: landing', () => {
     steps: [hold('sneak'), untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), release(), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1573.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -2347,7 +2425,7 @@ describe('vanilla recordings: landing', () => {
     steps: [hold('sneak'), untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), release(), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1585.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -2363,7 +2441,7 @@ describe('vanilla recordings: landing', () => {
     steps: [hold('sneak'), untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), release(), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1533.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -2379,7 +2457,7 @@ describe('vanilla recordings: landing', () => {
     steps: [hold('sneak'), untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), release(), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1597.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -2396,7 +2474,7 @@ describe('vanilla recordings: landing', () => {
     steps: [hold('sneak'), untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), release(), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1593.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -2412,7 +2490,7 @@ describe('vanilla recordings: landing', () => {
     steps: [hold('sneak'), untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), release(), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1549.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -2422,7 +2500,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1549.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -2439,7 +2517,7 @@ describe('vanilla recordings: landing', () => {
     steps: [hold('sneak'), untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), release(), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
+        versions: ['1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1541.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -2464,7 +2542,7 @@ describe('vanilla recordings: landing', () => {
     steps: [hold('sneak'), untilOr('onGround || isInWater || isInLava || y<-1.9', 600), ticks(30), release(), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1569.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -2480,7 +2558,19 @@ describe('vanilla recordings: landing', () => {
     steps: [press('forward', 30), ticks(20), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4'],
+        versions: ['1.13.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1609.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 14, pos: [3.2933774967219804, 101, 1609.5], onGround: true },
+          'top speed 5.074 b/s': { tick: 15, pos: [3.54710155933488, 101, 1609.5], vel: [0.13853335427765615, -0.0784000015258789, 0] },
+          'leaves the ground (2)': { tick: 16, pos: [3.783634903598956, 100.92159999847412, 1609.5], vel: [0.12914722096897446, 0.04076799929809568, 0], onGround: false },
+          'lands (2)': { tick: 30, pos: [6.270340741829356, 101, 1609.5], onGround: true },
+          'final state': { tick: 55, pos: [6.660524911678826, 101, 1609.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1609.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -2492,7 +2582,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.21.7', '1.21.8'],
+        versions: ['1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1609.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -2538,7 +2628,19 @@ describe('vanilla recordings: landing', () => {
     steps: [press('forward', 30), ticks(20), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1577.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 13, pos: [3.1222521471191906, 102, 1577.5], onGround: true },
+          'top speed 4.991 b/s': { tick: 14, pos: [3.371777486475942, 102, 1577.5], vel: [0.1362408511135191, -0.0784000015258789, 0] },
+          'leaves the ground (2)': { tick: 29, pos: [6.6501470009869434, 101.92159999847412, 1577.5], vel: [0.11786114923385807, -0.1552320045166016, 0], onGround: false },
+          'lands (2)': { tick: 33, pos: [7.130116129327476, 101, 1577.5], onGround: true },
+          'final state': { tick: 55, pos: [7.327670792782941, 101, 1577.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1577.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
@@ -2550,7 +2652,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1577.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -2569,7 +2671,7 @@ describe('vanilla recordings: landing', () => {
     steps: [press('forward', 30), ticks(20), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1553.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
@@ -2579,7 +2681,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1553.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -2596,7 +2698,7 @@ describe('vanilla recordings: landing', () => {
     steps: [press('forward', 30), ticks(20), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1625.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -2613,7 +2715,17 @@ describe('vanilla recordings: landing', () => {
     steps: [press('forward', 30), ticks(20), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1589.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 14, pos: [3.2933774967219804, 101, 1589.5], onGround: true },
+          'top speed 5.074 b/s': { tick: 15, pos: [3.54710155933488, 101, 1589.5], vel: [0.13853335427765615, -0.0784000015258789, 0] },
+          'final state': { tick: 55, pos: [7.083248577126607, 101, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.9.4'],
         milestones: {
           'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1589.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
@@ -2623,7 +2735,17 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2'],
+        versions: ['1.10.2', '1.11.2', '1.12.2', '1.13.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1589.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 14, pos: [3.2933774967219804, 101, 1589.5], onGround: true },
+          'top speed 5.074 b/s': { tick: 15, pos: [3.54710155933488, 101, 1589.5], vel: [0.13853335427765615, -0.0784000015258789, 0] },
+          'final state': { tick: 55, pos: [7.086371259383231, 101, 1589.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.18', '22w19a', '1.19', '1.19.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1589.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -2633,7 +2755,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1589.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -2650,7 +2772,17 @@ describe('vanilla recordings: landing', () => {
     steps: [press('forward', 30), ticks(20), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1545.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 14, pos: [3.2933774967219804, 101, 1545.5], onGround: true },
+          'top speed 5.074 b/s': { tick: 15, pos: [3.54710155933488, 101, 1545.5], vel: [0.13853335427765615, -0.0784000015258789, 0] },
+          'final state': { tick: 55, pos: [7.083248577126607, 101, 1545.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1545.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
@@ -2660,7 +2792,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1545.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -2677,7 +2809,7 @@ describe('vanilla recordings: landing', () => {
     steps: [press('forward', 30), ticks(20), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1565.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -2687,7 +2819,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1565.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -2704,7 +2836,19 @@ describe('vanilla recordings: landing', () => {
     steps: [press('forward', 30), ticks(20), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1581.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 13, pos: [3.1222521471191906, 102, 1581.5], onGround: true },
+          'top speed 4.991 b/s': { tick: 14, pos: [3.371777486475942, 102, 1581.5], vel: [0.1362408511135191, -0.0784000015258789, 0] },
+          'leaves the ground (2)': { tick: 29, pos: [6.6501470009869434, 101.92159999847412, 1581.5], vel: [0.11786114923385807, -0.1552320045166016, 0], onGround: false },
+          'lands (2)': { tick: 33, pos: [7.130116129327476, 101, 1581.5], onGround: true },
+          'final state': { tick: 55, pos: [7.327670792782941, 101, 1581.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1581.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
@@ -2716,7 +2860,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1581.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -2735,7 +2879,20 @@ describe('vanilla recordings: landing', () => {
     steps: [press('forward', 30), ticks(20), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1605.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 14, pos: [3.2933774967219804, 101, 1605.5], onGround: true },
+          'top speed 5.074 b/s': { tick: 15, pos: [3.54710155933488, 101, 1605.5], vel: [0.13853335427765615, -0.0784000015258789, 0] },
+          'touches a wall': { tick: 26, pos: [5.574999988079071, 101, 1605.5], isCollidedHorizontally: true },
+          'leaves the ground (2)': { tick: 27, pos: [5.574999988079071, 101.11760000228882, 1605.5], vel: [0, 0.11760000228881837, 0], onGround: false },
+          'lands (2)': { tick: 38, pos: [5.574999988079071, 101, 1605.5], onGround: true },
+          'final state': { tick: 55, pos: [5.574999988079071, 101, 1605.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1605.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
@@ -2748,7 +2905,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1605.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -2768,7 +2925,19 @@ describe('vanilla recordings: landing', () => {
     steps: [press('forward', 30), ticks(20), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1613.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 14, pos: [3.2933774967219804, 101, 1613.5], onGround: true },
+          'top speed 5.074 b/s': { tick: 15, pos: [3.54710155933488, 101, 1613.5], vel: [0.13853335427765615, -0.0784000015258789, 0] },
+          'leaves the ground (2)': { tick: 16, pos: [3.783634903598956, 100.92159999847412, 1613.5], vel: [0.12914722096897446, -0.1552320045166016, 0], onGround: false },
+          'enters lava': { tick: 18, pos: [4.087342100227201, 100.53584062504456, 1613.5], isInLava: true },
+          'final state': { tick: 55, pos: [4.829954448100909, 98.52720697013332, 1613.5], vel: [0, -0.040000000001923164, 0], onGround: false }
+        }
+      },
+      {
+        versions: ['1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1613.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
@@ -2780,7 +2949,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1613.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -2811,7 +2980,7 @@ describe('vanilla recordings: landing', () => {
     steps: [press('forward', 30), ticks(20), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1617.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -2830,7 +2999,19 @@ describe('vanilla recordings: landing', () => {
     steps: [press('forward', 30), ticks(20), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1601.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 13, pos: [3.1222521471191906, 102, 1601.5], onGround: true },
+          'top speed 4.991 b/s': { tick: 14, pos: [3.371777486475942, 102, 1601.5], vel: [0.1362408511135191, -0.0784000015258789, 0] },
+          'leaves the ground (2)': { tick: 29, pos: [6.6501470009869434, 101.92159999847412, 1601.5], vel: [0.11786114923385807, -0.1552320045166016, 0], onGround: false },
+          'lands (2)': { tick: 33, pos: [7.130116129327476, 101, 1601.5], onGround: true },
+          'final state': { tick: 55, pos: [7.327670792782941, 101, 1601.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1601.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
@@ -2842,7 +3023,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1601.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -2861,7 +3042,7 @@ describe('vanilla recordings: landing', () => {
     steps: [press('forward', 30), ticks(20), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1621.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -2874,7 +3055,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1621.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -2892,7 +3073,7 @@ describe('vanilla recordings: landing', () => {
     steps: [press('forward', 30), ticks(20), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1557.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -2938,7 +3119,7 @@ describe('vanilla recordings: landing', () => {
     steps: [press('forward', 30), ticks(20), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1561.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -2957,7 +3138,19 @@ describe('vanilla recordings: landing', () => {
     steps: [press('forward', 30), ticks(20), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1537.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 14, pos: [3.2933774967219804, 101, 1537.5], onGround: true },
+          'leaves the ground (2)': { tick: 15, pos: [3.490445321643239, 101.80892372117161, 1537.5], vel: [0.14346538537578676, 0.7143452606512951, 0], onGround: false },
+          'top speed 4.063 b/s': { tick: 30, pos: [6.29692531356852, 103.58697618101337, 1537.5], vel: [0.18488226319225007, -0.49721577752006485, 0] },
+          'lands (2)': { tick: 35, pos: [7.0692563305858425, 101, 1537.5], onGround: true },
+          'final state': { tick: 55, pos: [7.3166478902452, 101, 1537.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.9.4', '1.10.2', '1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1537.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
@@ -2969,7 +3162,19 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
+        versions: ['1.13.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1537.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 14, pos: [3.2933774967219804, 101, 1537.5], onGround: true },
+          'leaves the ground (2)': { tick: 15, pos: [3.4904453253685293, 101.80892372117161, 1537.5], vel: [0.14346538808779827, 0.7143452606512951, 0], onGround: false },
+          'top speed 4.063 b/s': { tick: 30, pos: [6.296925340104599, 103.58697618101337, 1537.5], vel: [0.18488226385129133, -0.49721577752006485, 0] },
+          'lands (2)': { tick: 35, pos: [7.069256359875013, 101, 1537.5], onGround: true },
+          'final state': { tick: 55, pos: [7.319704659947071, 101, 1537.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1537.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -3000,7 +3205,19 @@ describe('vanilla recordings: landing', () => {
     steps: [press('forward', 30), ticks(20), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1573.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 13, pos: [3.1222521471191906, 101.375, 1573.5], onGround: true },
+          'top speed 4.991 b/s': { tick: 14, pos: [3.371777486475942, 101.375, 1573.5], vel: [0.1362408511135191, -0.0784000015258789, 0] },
+          'leaves the ground (2)': { tick: 29, pos: [6.6501470009869434, 101.29659999847412, 1573.5], vel: [0.11786114923385807, -0.1552320045166016, 0], onGround: false },
+          'lands (2)': { tick: 31, pos: [6.912697800072669, 101, 1573.5], onGround: true },
+          'final state': { tick: 55, pos: [7.156785214187144, 101, 1573.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1573.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
@@ -3012,7 +3229,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1573.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -3031,7 +3248,7 @@ describe('vanilla recordings: landing', () => {
     steps: [press('forward', 30), ticks(20), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1585.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
@@ -3043,7 +3260,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1585.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -3055,7 +3272,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1585.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -3074,7 +3291,17 @@ describe('vanilla recordings: landing', () => {
     steps: [press('forward', 30), ticks(20), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1533.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 14, pos: [3.2933774967219804, 101, 1533.5], onGround: true },
+          'top speed 5.074 b/s': { tick: 15, pos: [3.54710155933488, 101, 1533.5], vel: [0.13853335427765615, -0.0784000015258789, 0] },
+          'final state': { tick: 55, pos: [7.083248577126607, 101, 1533.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1533.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
@@ -3084,7 +3311,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1533.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -3101,31 +3328,7 @@ describe('vanilla recordings: landing', () => {
     steps: [press('forward', 30), ticks(20), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20'],
-        milestones: {
-          'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
-          'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1597.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
-          'top speed 3.33 b/s': { tick: 13, pos: [3.1222521989613163, 101.31161120717262, 1597.5], vel: [0.15152534974602222, -0.9054323524772837, 0] },
-          'lands (1)': { tick: 14, pos: [3.2591524807528076, 101, 1597.5], onGround: true },
-          'enters a slowing block': { tick: 14, pos: [3.2591524807528076, 101, 1597.5], isInWeb: true },
-          'final state': { tick: 55, pos: [4.513552542550902, 101, 1597.5], vel: [0, -0.0784000015258789, 0], onGround: true }
-        }
-      },
-      {
-        versions: ['1.20.4'],
-        milestones: {
-          'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
-          'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1597.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
-          'top speed 3.33 b/s': { tick: 13, pos: [3.1222521989613163, 101.31161120717262, 1597.5], vel: [0.15152534974602222, -0.9054323524772837, 0] },
-          'enters a slowing block': { tick: 14, pos: [3.137932199149667, 101.31161120717262, 1597.5], isInWeb: true },
-          'lands (1)': { tick: 20, pos: [3.232012200279772, 101, 1597.5], onGround: true },
-          'leaves the ground (2)': { tick: 24, pos: [3.5456122157292955, 101, 1597.5], vel: [0, -0.0784000015258789, 0], onGround: false },
-          'lands (2)': { tick: 25, pos: [3.5612922159176463, 101, 1597.5], onGround: true },
-          'final state': { tick: 55, pos: [3.9532922352295508, 101, 1597.5], vel: [0, -0.0784000015258789, 0], onGround: true }
-        }
-      },
-      {
-        versions: ['1.21.7', '1.21.8'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1597.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -3184,7 +3387,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['26.2'],
+        versions: ['26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1597.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -3192,19 +3395,6 @@ describe('vanilla recordings: landing', () => {
           'lands (1)': { tick: 14, pos: [3.2591524807528076, 101, 1597.5], onGround: true },
           'enters a slowing block': { tick: 14, pos: [3.2591524807528076, 101, 1597.5], isInWeb: true },
           'final state': { tick: 55, pos: [4.513552542550902, 101, 1597.5], vel: [0, -0.0784000015258789, 0], onGround: true }
-        }
-      },
-      {
-        versions: ['26.3'],
-        milestones: {
-          'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
-          'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1597.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
-          'top speed 3.33 b/s': { tick: 13, pos: [3.1222521989613163, 101.31161120717262, 1597.5], vel: [0.15152534974602222, -0.9054323524772837, 0] },
-          'enters a slowing block': { tick: 14, pos: [3.137932199149667, 101.25283076403034, 1597.5], isInWeb: true },
-          'lands (1)': { tick: 19, pos: [3.216332200091421, 101, 1597.5], onGround: true },
-          'leaves the ground (2)': { tick: 24, pos: [3.6083322194033256, 101, 1597.5], vel: [0, -0.0784000015258789, 0], onGround: false },
-          'lands (2)': { tick: 25, pos: [3.6240122195916764, 101, 1597.5], onGround: true },
-          'final state': { tick: 55, pos: [4.016012238903581, 101, 1597.5], vel: [0, -0.0784000015258789, 0], onGround: true }
         }
       }
     ]
@@ -3215,7 +3405,7 @@ describe('vanilla recordings: landing', () => {
     steps: [press('forward', 30), ticks(20), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1593.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -3232,7 +3422,7 @@ describe('vanilla recordings: landing', () => {
     steps: [press('forward', 30), ticks(20), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1549.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
@@ -3245,7 +3435,20 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.13.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1549.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 14, pos: [3.2933774967219804, 101, 1549.5], onGround: true },
+          'top speed 5.074 b/s': { tick: 15, pos: [3.54710155933488, 101, 1549.5], vel: [0.13853335427765615, -0.0784000015258789, 0] },
+          'leaves the ground (2)': { tick: 16, pos: [3.783634903598956, 100.92159999847412, 1549.5], vel: [0.12914722096897446, -0.1552320045166016, 0], onGround: false },
+          'enters water': { tick: 17, pos: [3.9323821248003883, 100.76636799395752, 1549.5], isInWater: true },
+          'touches a wall': { tick: 34, pos: [5.699999988079071, 99.33687140188404, 1549.5], isCollidedHorizontally: true },
+          'final state': { tick: 55, pos: [5.699999988079071, 98.78894447092132, 1549.5], vel: [0, -0.02504268787845563, 0], onGround: false }
+        }
+      },
+      {
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1549.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -3265,7 +3468,7 @@ describe('vanilla recordings: landing', () => {
     steps: [press('forward', 30), ticks(20), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.12.2'],
+        versions: ['1.12.2', '1.13.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1541.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
@@ -3277,7 +3480,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1541.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -3308,7 +3511,17 @@ describe('vanilla recordings: landing', () => {
     steps: [press('forward', 30), ticks(20), settleFor(5, 200)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2'],
+        versions: ['1.8.9'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1569.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 14, pos: [3.2933774967219804, 101.0625, 1569.5], onGround: true },
+          'top speed 5.074 b/s': { tick: 15, pos: [3.54710155933488, 101.0625, 1569.5], vel: [0.13853335427765615, -0.0784000015258789, 0] },
+          'final state': { tick: 55, pos: [7.083248577126607, 101, 1569.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5979999899864197, 107, 1569.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
@@ -3318,7 +3531,7 @@ describe('vanilla recordings: landing', () => {
         }
       },
       {
-        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [1.5980000033676625, 107, 1569.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -3335,7 +3548,7 @@ describe('vanilla recordings: landing', () => {
     steps: [until('onGround', 100), ticks(3), hold('sneak'), ticks(40)],
     groups: [
       {
-        versions: ['1.11.2', '1.12.2', '1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
+        versions: ['1.8.9', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.18', '22w19a', '1.19', '1.19.2', '1.20', '1.20.4', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 109, 1537.5], vel: [0, -0.0784000015258789, 0], onGround: false },
