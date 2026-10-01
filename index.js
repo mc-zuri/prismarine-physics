@@ -1406,9 +1406,6 @@ function Physics (mcData, world) {
       vel.y *= f32(0.98)
       vel.z *= f32(0.99)
       moveEntity(entity, world, vel.x, vel.y, vel.z)
-      // 1.15+ the client ends the glide on the ground at the start of the next tick (updateFallFlying); before, the
-      // server ends it, which is approximated by ending it on landing
-      if (!vanilla.clientStartsGliding && entity.onGround) entity.elytraFlying = false
     } else {
       // Normal movement
       let acceleration = 0.0
@@ -2070,9 +2067,6 @@ function Physics (mcData, world) {
     const { xxa: strafe, zza: forward } = movementInput(entity)
     entity.xxa = strafe
     entity.zza = forward
-
-    // 1.15+ only the server ends a glide (the flag it syncs); before, the engine ends it like the server would
-    if (!vanilla.clientStartsGliding) entity.elytraFlying = entity.elytraFlying && entity.elytraEquipped && !entity.onGround && !entity.levitation
 
     if (entity.swimming) {
       // Player.travel: a swimmer is pulled toward where it looks (0.085 when looking down more than 0.2, else 0.06),

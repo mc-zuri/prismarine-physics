@@ -1,11 +1,27 @@
 /* eslint-env mocha */
 
-const { Physics, PlayerState } = require('prismarine-physics')
+const { Physics: ClientPhysics, PlayerState } = require('prismarine-physics')
 const { Vec3 } = require('vec3')
 const expect = require('expect')
 
 const mcData = require('minecraft-data')('1.13.2')
 const Block = require('prismarine-block')('1.13.2')
+
+// Before 1.15 only the server ends a glide (on the ground, or without an elytra) and syncs the flag to the client;
+// these tests play that server after each client tick.
+function Physics (data, world) {
+  const physics = ClientPhysics(data, world)
+  const simulatePlayer = physics.simulatePlayer
+  physics.simulatePlayer = (state, world) => {
+    const result = simulatePlayer(state, world)
+    if (state.elytraFlying && (state.onGround || !state.elytraEquipped)) {
+      state.elytraFlying = false
+      state.fireworkRocketDuration = 0 // the rocket boosts only a gliding player
+    }
+    return result
+  }
+  return physics
+}
 
 const fakeWorld = {
   getBlock: (pos) => {
