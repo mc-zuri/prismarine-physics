@@ -163,6 +163,7 @@ function Physics (mcData, world) {
     legacyWorldBorder: supportFeature('legacyWorldBorder'),
     autoJump: supportFeature('autoJump'),
     javaBoats: supportFeature('javaBoats'),
+    riddenDamping: supportFeature('riddenDamping'),
     passengerNoPushOut: supportFeature('passengerNoPushOut'),
     entityAttachments: supportFeature('entityAttachments'),
     autoJumpJumpFactor: supportFeature('autoJumpJumpFactor'),
@@ -228,7 +229,7 @@ function Physics (mcData, world) {
 
   // 1.20.5+ player attributes: gravity, jump strength, step height; 1.21+: sneaking speed
   const gravityOf = entity => vanilla.playerAttributes ? attributeValue(entity, 'gravity', physics.gravity) : physics.gravity
-  const stepHeightOf = entity => vanilla.playerAttributes ? f32(attributeValue(entity, 'stepHeight', physics.stepHeight)) : physics.stepHeight
+  const stepHeightOf = entity => entity.stepHeight !== undefined ? f32(entity.stepHeight) : vanilla.playerAttributes ? f32(attributeValue(entity, 'stepHeight', physics.stepHeight)) : physics.stepHeight
 
   // Entity.calculateViewVector from the vanilla rotation (Mth trig, float products)
   function viewVector (entity) {
@@ -1644,7 +1645,8 @@ function Physics (mcData, world) {
         acceleration = f32(attributeSpeed * f32(vanilla.groundFriction / f32(f32(f * f) * f)))
         if (acceleration < 0) acceleration = 0 // acceleration should not be negative
       } else {
-        acceleration = entity.flying ? flySpeedOf(entity) : isSprinting(entity) ? vanilla.airSprintSpeed : f32(physics.airborneAcceleration)
+        // (a ridden horse: a tenth of its speed, getFlyingSpeed)
+        acceleration = entity.airSpeed !== undefined ? entity.airSpeed : entity.flying ? flySpeedOf(entity) : isSprinting(entity) ? vanilla.airSprintSpeed : f32(physics.airborneAcceleration)
         inertia = f32(physics.airborneInertia)
       }
 
@@ -2686,7 +2688,172 @@ function Physics (mcData, world) {
     return wrapped
   }
 
+  // ---- horses (AbstractHorse ridden by the player) ----
+
+  const HORSES = {
+    horse: { width: f32(1.3964844), height: f32(1.6), seat: f32(1.44375) },
+    donkey: { width: f32(1.3964844), height: f32(1.5), seat: f32(1.1125) },
+    mule: { width: f32(1.3964844), height: f32(1.6), seat: f32(1.2125) },
+    skeleton_horse: { width: f32(1.3964844), height: f32(1.6), seat: f32(1.31875) },
+    zombie_horse: { width: f32(1.3964844), height: f32(1.6), seat: f32(1.31875) }
+  }
+
+  // LocalPlayer.aiStep: holding jump on a horse charges the jump (0.1 a tick to 0.9, then easing back toward 0.8);
+  // letting go hands it to the horse (onPlayerJump: 0.4 + 0.4 * power / 90, full from 90) and rests 10 ticks.
+  function chargeRidingJump (entity, horse) {
+    const wasJumping = !!entity.jumpHeld
+    const jumping = !!entity.control.jump
+    let ticks = entity.jumpRidingTicks || 0
+    let scale = f32(horse.jumpRidingScale || 0)
+    if (ticks < 0) {
+      ticks++
+      if (ticks === 0) scale = 0
+    }
+    if (wasJumping && !jumping) {
+      ticks = -10
+      const power = Math.floor(f32(scale * 100))
+      horse.pendingJump = power >= 90 ? 1 : f32(f32(0.4) + f32(f32(f32(0.4) * Math.max(power, 0)) / 90))
+      // (and rears for 20 ticks: standIfPossible; before 1.21.5 the client leaves that to the server)
+      if (power >= 0) {
+        horse.allowStandSliding = true
+        if (!vanilla.riddenDamping) {
+          horse.standing = true
+          horse.standCounter = 20
+        }
+      }
+    } else if (!wasJumping && jumping) {
+      ticks = 0
+      scale = 0
+    } else if (wasJumping) {
+      ticks++
+      scale = ticks < 10 ? f32(ticks * f32(0.1)) : f32(f32(0.8) + f32(f32(2 / (ticks - 9)) * f32(0.1)))
+    }
+    entity.jumpRidingTicks = ticks
+    horse.jumpRidingScale = scale
+  }
+
+  // AbstractHorse ridden: on the rider's last keys and rotation it turns, jumps when a charged jump is pending and it
+  // stands on the ground, and travels like any living entity at its own speed (half sideways, a quarter backwards).
+  function tickHorse (horse, world) {
+    const dims = HORSES[horse.type]
+    const saved = { boxHalfWidth, boxHeight, boxScale }
+    boxHalfWidth = dims.width / 2
+    boxHeight = dims.height
+    boxScale = 1
+    try {
+      const speedKey = mcData.attributesByName.movementSpeed.resource
+      horse.attributes = { [speedKey]: { value: horse.movementSpeed, modifiers: [] } }
+      horse.control = {}
+      horse.stepHeight = horse.stepHeight || 1
+      horse.airSpeed = f32(f32(horse.movementSpeed) * f32(0.1))
+      // Entity.baseTick: the fluids around it
+      const water = updateFluid(horse, world, getPlayerBB(horse.pos), 'water', 0.014)
+      horse.isInWater = water.found
+      horse.waterHeight = water.height
+      const lava = updateFluid(horse, world, getPlayerBB(horse.pos), 'lava', 0.0023333333333333335)
+      horse.isInLava = lava.height > 0
+      // LivingEntity.aiStep: before 1.21.5 the client damps the horse it drives (it is not its "effective AI"), then tiny
+      // speeds stop
+      const vel = horse.vel
+      if (vanilla.riddenDamping) {
+        vel.x *= 0.98
+        vel.y *= 0.98
+        vel.z *= 0.98
+      }
+      if (Math.abs(vel.x) < 0.003) vel.x = 0
+      if (Math.abs(vel.y) < 0.003) vel.y = 0
+      if (Math.abs(vel.z) < 0.003) vel.z = 0
+      // getRiddenInput: none while it rears on the ground (unless the rider's jump let it slide)
+      const input = horse.riderInput || { xxa: 0, zza: 0 }
+      const rearing = horse.onGround && !(horse.pendingJump > 0) && horse.standing && !horse.allowStandSliding
+      const strafe = rearing ? 0 : f32(input.xxa * f32(0.5))
+      let forward = rearing ? 0 : f32(input.zza)
+      if (forward <= 0) forward = f32(forward * f32(0.25))
+      // tickRidden: the rider's rotation (half its pitch) and the pending jump
+      // (Entity.setRot keeps it within a turn)
+      horse.yawDegrees = f32(f32(horse.riderYaw === undefined ? horse.yaw : horse.riderYaw) % 360)
+      horse.yaw = horse.yawDegrees
+      if (horse.onGround) {
+        if (horse.pendingJump > 0) {
+          // (getJumpPower in float since 1.20.5; the jump strength in double before)
+          const factor = blockFactor(horse, world, block => block.type === honeyblockId ? f32(physics.honeyblockJumpSpeed) : 1, false)
+          const power = vanilla.playerAttributes ? f32(f32(f32(horse.jumpStrength) * horse.pendingJump) * factor) : horse.jumpStrength * horse.pendingJump * factor
+          vel.y = power
+          if (forward > 0) {
+            const rad = f32(horse.yawDegrees * DEG_TO_RAD_F)
+            vel.x += f32(f32(f32(-0.4) * mthSin(rad)) * horse.pendingJump)
+            vel.z += f32(f32(f32(0.4) * mthCos(rad)) * horse.pendingJump)
+          }
+        }
+        horse.pendingJump = 0
+      }
+      moveEntityWithHeading(horse, world, strafe, forward)
+      // AbstractHorse.tick: the rearing ends when its count runs out; its animation (the value of the tick before places
+      // the rider)
+      if (horse.standCounter > 0 && --horse.standCounter <= 0) horse.standing = false
+      const anim = f32(horse.standAnim || 0)
+      horse.standAnimO = anim
+      if (horse.standing) {
+        horse.standAnim = Math.min(1, f32(anim + f32(f32(f32(1 - anim) * f32(0.4)) + f32(0.05))))
+      } else {
+        horse.allowStandSliding = false
+        horse.standAnim = Math.max(0, f32(anim + f32(f32(f32(f32(f32(f32(f32(0.8) * anim) * anim) * anim) - anim) * f32(0.6)) - f32(0.05))))
+      }
+    } finally {
+      boxHalfWidth = saved.boxHalfWidth
+      boxHeight = saved.boxHeight
+      boxScale = saved.boxScale
+    }
+  }
+
+  // org.joml.Math.cosFromSin: the cosine from the sine, its sign from the angle
+  function jomlCosFromSin (sin, angle) {
+    const cos = f32(Math.sqrt(f32(1 - f32(sin * sin))))
+    const PI2 = f32(Math.PI * 2)
+    const a = f32(angle + f32(Math.PI / 2))
+    let b = f32(a - f32(Math.trunc(f32(a / PI2)) * PI2))
+    if (b < 0) b = f32(PI2 + b)
+    return b >= f32(Math.PI) ? -cos : cos
+  }
+
+  // AbstractHorse.positionRider: the rider on the horse's seat (its passenger attachment), the player's own 0.6 down
+  function positionHorseRider (entity, horse) {
+    const dims = HORSES[horse.type]
+    // (rearing leans the seat back: 0.15 up and 0.7 behind by the animation, turned with the horse)
+    const anim = f32(horse.standAnimO || 0)
+    const angle = f32(-f32(horse.yawDegrees === undefined ? horse.yaw : horse.yawDegrees) * DEG_TO_RAD_F)
+    // (before 1.20.5 a float vector turned by JOML)
+    const back = vanilla.entityAttachments ? -0.7 * anim : f32(f32(-0.7) * anim)
+    const sin = vanilla.entityAttachments ? mthSin(angle) : f32(Math.sin(angle))
+    const cos = vanilla.entityAttachments ? mthCos(angle) : jomlCosFromSin(sin, angle)
+    const offX = vanilla.entityAttachments ? back * sin : f32(back * sin)
+    const offZ = vanilla.entityAttachments ? back * cos : f32(back * cos)
+    entity.pos.x = horse.pos.x + offX
+    entity.pos.z = horse.pos.z + offZ
+    if (vanilla.entityAttachments) {
+      entity.pos.y = (horse.pos.y + (dims.seat + 0.15 * anim)) - 0.6
+    } else {
+      // before 1.20.5: float offsets, the seat 0.15625 under the top
+      const seat = f32(f32(dims.height - f32(0.15625)) + f32(f32(0.15) * anim))
+      entity.pos.y = (seat + horse.pos.y) + f32(-0.6)
+    }
+  }
+
   physics.simulatePlayer = (entity, world) => {
+    const vehicle = entity.vehicle
+    if (vanilla.javaBoats && vehicle && HORSES[vehicle.type]) {
+      // the horse faces where its rider looks now (the keys are those of the rider's last tick)
+      vehicle.riderYaw = yawDegrees(entity)
+      tickHorse(vehicle, world)
+      entity.vel.x = 0
+      entity.vel.y = 0
+      entity.vel.z = 0
+      chargeRidingJump(entity, vehicle)
+      simulateOwn(entity, world)
+      positionHorseRider(entity, vehicle)
+      vehicle.riderInput = { xxa: entity.xxa, zza: entity.zza }
+      return entity
+    }
     const boat = entity.vehicle
     if (!vanilla.javaBoats || !boat || !isBoatType(boat.type)) {
       simulateOwn(entity, world)
@@ -2789,6 +2956,7 @@ class PlayerState {
     // the auto-jump option and the jump it queued for the next tick
     this.autoJump = !!bot.autoJump
     this.autoJumpTime = bot.autoJumpTime || 0
+    this.jumpRidingTicks = bot.jumpRidingTicks || 0
     // Bedrock engine state (float32 collision box, swim pose, pending block slowdowns); undefined on Java.
     this.bedrock = bot.bedrockPhysicsState
     // The Java engine's kept bounding box (before 1.17 vanilla moves the box and centers the position on it).
@@ -2910,6 +3078,7 @@ class PlayerState {
     bot.jumpQueued = this.jumpQueued
     bot.fireworkRocketDuration = this.fireworkRocketDuration
     bot.autoJumpTime = this.autoJumpTime
+    bot.jumpRidingTicks = this.jumpRidingTicks
     bot.riptideLaunch = this.riptideLaunch
     bot.spinHits = this.spinHits
     bot.fireworkUsed = this.fireworkUsed
