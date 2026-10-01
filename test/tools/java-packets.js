@@ -295,6 +295,17 @@ function attributeResource (prop, mcData) {
   return attribute ? attribute.resource : undefined
 }
 
+// The tracked entity a packet is about: by id, else the first summoned one not yet identified (not the player, not
+// its vehicle).
+function otherEntity (state, id, ctx) {
+  if (!state.entities || id === ctx.entityId || (state.vehicle && state.vehicle.id === id)) return null
+  return state.entities.find(e => e.id === id) || (() => {
+    const unknown = state.entities.find(e => e.id === null)
+    if (unknown) unknown.id = id
+    return unknown
+  })()
+}
+
 function handle (state, packet, ctx) {
   const p = packet.params
   const self = id => id === ctx.entityId
@@ -370,8 +381,28 @@ function handle (state, packet, ctx) {
       break
     }
     case 'set_passengers':
-      // the player no longer among the vehicle's passengers: it rides no more
-      if (state.vehicle && state.vehicle.id === p.entityId && !p.passengers.includes(ctx.entityId)) state.vehicle = undefined
+      // the player no longer among the vehicle's passengers: it rides no more, and the vehicle stays where it was
+      if (state.vehicle && state.vehicle.id === p.entityId && !p.passengers.includes(ctx.entityId)) {
+        if (state.entities) state.entities.push({ id: state.vehicle.id, type: state.vehicle.type, pos: state.vehicle.pos.clone() })
+        state.vehicle = undefined
+      }
+      break
+    case 'rel_entity_move':
+    case 'entity_move_look': {
+      // another entity moved by a delta in 1/4096 blocks (26.3: a VecDelta)
+      const other = otherEntity(state, p.entityId, ctx)
+      const d = p.delta ? (p.delta.steps ? p.delta.steps.reduce((a, s) => ({ x: a.x + s.x, y: a.y + s.y, z: a.z + s.z }), { x: 0, y: 0, z: 0 }) : p.delta) : { x: p.dX, y: p.dY, z: p.dZ }
+      if (other && d) other.pos = other.pos.offset(d.x / 4096, d.y / 4096, d.z / 4096)
+      break
+    }
+    case 'sync_entity_position':
+    case 'entity_teleport': {
+      const other = otherEntity(state, p.entityId, ctx)
+      if (other && p.x !== undefined) other.pos = new Vec3(p.x, p.y, p.z)
+      break
+    }
+    case 'entity_destroy':
+      if (state.entities) state.entities = state.entities.filter(e => !p.entityIds.includes(e.id))
       break
     case 'update_health':
       // the food level (sprinting needs more than 6)
@@ -423,7 +454,7 @@ function rotate (v, pitch, yaw) {
 }
 
 // The packets handle() reads.
-const HANDLED = new Set(['set_passengers', 'entity_velocity', 'explosion', 'position', 'player_rotation', 'entity_update_attributes', 'entity_status', 'update_health', 'entity_effect', 'remove_entity_effect', 'entity_metadata', 'block_change', 'multi_block_change'])
+const HANDLED = new Set(['rel_entity_move', 'entity_move_look', 'sync_entity_position', 'entity_teleport', 'entity_destroy', 'set_passengers', 'entity_velocity', 'explosion', 'position', 'player_rotation', 'entity_update_attributes', 'entity_status', 'update_health', 'entity_effect', 'remove_entity_effect', 'entity_metadata', 'block_change', 'multi_block_change'])
 
 // A server packet decoded for handle(). A packet the handlers do not read may fail to decode where minecraft-data's
 // protocol lags (26.3 item components): it is passed on by name only. One they read must decode.

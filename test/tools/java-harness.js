@@ -304,8 +304,16 @@ function makeState (rec, mcData) {
     // the auto-jump option the recording ran with
     autoJump: !!setup.autoJump,
     // the vehicle ridden, with the keys it last had from its rider
+    entities: summoned(rec),
     vehicle: vehicleFrom(s.vehicle, s.netState && s.netState.lastSentInput ? keysOf(s.netState.lastSentInput) : {}, s.netState && s.netState.vehicleId, setup.mount && setup.mount.entity)
   }
+}
+
+// The entities the recording summoned around the player ('at' from the origin, on the floor above it); their ids
+// are learnt from the first packets about them (handle()).
+function summoned (rec) {
+  const origin = rec.origin || [0, 0, 0]
+  return ((rec.setup && rec.setup.summon) || []).map(e => ({ id: null, type: e.entity, pos: new Vec3(origin[0] + e.at[0], origin[1] + 1 + e.at[1], origin[2] + e.at[2]) }))
 }
 
 const keysOf = held => ({ forward: held[0], back: held[1], left: held[2], right: held[3], jump: held[4], sneak: held[5], sprint: held[6] })
