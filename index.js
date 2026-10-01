@@ -1061,12 +1061,15 @@ function Physics (mcData, world) {
 
   // Entity.checkFallDamage: the fall grows while moving down out of water and ends on the ground
   function updateFallDistance (entity, dy) {
+    if (entity.standsOnLava && entity.isInLava) { entity.fallDistance = 0; return }
     if (!entity.isInWater && dy < 0) entity.fallDistance = (entity.fallDistance || 0) - f32(dy)
     if (entity.onGround) entity.fallDistance = 0
   }
 
   // LivingEntity.checkFallDamage: a player not yet in water looks again where the move ended (and is pushed)
   function waterAfterMove (entity, world) {
+    // Strider.checkFallDamage returns before LivingEntity's fluid refresh while already in lava.
+    if (entity.standsOnLava && entity.isInLava) return
     if (entity.isInWater) return
     waterAfterMoveCheck(entity, world)
     if (entity.isInWater) entity.fallDistance = 0
@@ -1573,7 +1576,7 @@ function Physics (mcData, world) {
     const baseGravity = gravityOf(entity)
     const effectiveGravity = (vel.y <= 0 && entity.slowFalling > 0) ? Math.min(baseGravity, 0.01) : baseGravity
 
-    if (entity.isInWater || entity.isInLava) {
+    if (entity.isInWater || (entity.isInLava && !entity.standsOnLava)) {
       // Water / Lava movement
       const lastY = pos.y
       // Falling when the tick started (1.14+), for the fluid falling adjustment
@@ -2861,11 +2864,7 @@ function Physics (mcData, world) {
       horse.isInLava = lava.height > 0
       horse.lavaHeight = lava.height
       // a strider stands on lava: it travels as on land (canStandOnFluid) and floats up out of it after
-      const inLava = horse.isInLava
-      if (dims.onLava) {
-        horse.standsOnLava = true
-        horse.isInLava = false
-      }
+      if (dims.onLava) horse.standsOnLava = true
       const before = horse.pos.clone()
       // LivingEntity.aiStep: before 1.21.5 the client damps the horse it drives (it is not its "effective AI"), then tiny
       // speeds stop
@@ -2922,8 +2921,6 @@ function Physics (mcData, world) {
       }
       moveEntityWithHeading(horse, world, strafe, forward)
       if (dims.onLava) {
-        // (26.1+ looks at the fluids again after the move)
-        if (!vanilla.unifiedFluidInteraction) horse.isInLava = inLava
         if (horse.isInLava) {
           // Strider.floatStrider
           const cell = horse.pos.floored()
