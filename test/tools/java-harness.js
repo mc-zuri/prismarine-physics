@@ -306,6 +306,17 @@ function makeState (rec, mcData) {
   }
 }
 
+// TridentItem.releaseUsing: letting go of the use key after holding a Riptide trident for 10 ticks or more launches
+// the player (the engine checks the water). The Riptide level then, else 0.
+function riptideLaunch (rec, rows, i) {
+  const held = rec.setup && rec.setup.equipment && rec.setup.equipment.mainhand
+  const level = held && held.id === 'trident' && held.enchantments ? held.enchantments.riptide || 0 : 0
+  if (!level || i === 0 || rows[i].in.use || !rows[i - 1].in.use) return 0
+  let ticks = 0
+  for (let j = i - 1; j >= 0 && rows[j].in.use; j--) ticks++
+  return ticks >= 10 ? level : 0
+}
+
 // The tick's input: keys and view, plus what the server synced by then (attributes, effects).
 function applyInput (state, row, mcData) {
   state.attributes = attributesOf(row, mcData)
@@ -316,6 +327,7 @@ function applyInput (state, row, mcData) {
   // (before 1.14 a rocket attached to entity 0 counts as not attached: the recording server's first entity)
   const unattached = state.entityId === 0 && mcData.isOlderThan('1.14')
   state.fireworkRocketDuration = unattached ? 0 : (row.fireworks || []).length
+  state.riptideLaunch = row.riptideLaunch || 0
   for (const key of Object.keys(state.control)) state.control[key] = false
   for (const [key, down] of Object.entries(row.in)) if (KEYS[key] && down) state.control[KEYS[key]] = true
   state.yaw = yawOf(row.in.yaw)
@@ -416,7 +428,7 @@ function replay (version, rec, { mode = 'trajectory', fields = FIELDS, epsilon =
       state.flying = !!before.flying
     }
     // Inputs synced before this tick are those of the previous row (the state the tick started from).
-    applyInput(state, { ...(i > 0 ? rows[i - 1] : rec.start), ...(rec.start.netState ? {} : { attributes: row.attributes, attributeModifiers: row.attributeModifiers }), usingItem: row.usingItem, fireworks: row.fireworks, in: row.in }, mcData)
+    applyInput(state, { ...(i > 0 ? rows[i - 1] : rec.start), ...(rec.start.netState ? {} : { attributes: row.attributes, attributeModifiers: row.attributeModifiers }), usingItem: row.usingItem, fireworks: row.fireworks, riptideLaunch: riptideLaunch(rec, rows, i), in: row.in }, mcData)
     applyEvents(state, w, row.events, packetContext(version, mcData, rec))
     physics.simulatePlayer(state, w)
     const diffs = differences(state, row, fields, epsilon)
@@ -636,7 +648,7 @@ function replayUntil (version, rec, tick, options) {
   const state = makeState(rec, mcData)
   const rows = expand(rec)
   for (let i = 0; i < tick; i++) {
-    applyInput(state, { ...(i > 0 ? rows[i - 1] : rec.start), ...(rec.start.netState ? {} : { attributes: rows[i].attributes, attributeModifiers: rows[i].attributeModifiers }), usingItem: rows[i].usingItem, fireworks: rows[i].fireworks, in: rows[i].in }, mcData)
+    applyInput(state, { ...(i > 0 ? rows[i - 1] : rec.start), ...(rec.start.netState ? {} : { attributes: rows[i].attributes, attributeModifiers: rows[i].attributeModifiers }), usingItem: rows[i].usingItem, fireworks: rows[i].fireworks, riptideLaunch: riptideLaunch(rec, rows, i), in: rows[i].in }, mcData)
     applyEvents(state, w, rows[i].events, packetContext(version, mcData, rec))
     physics.simulatePlayer(state, w)
   }
