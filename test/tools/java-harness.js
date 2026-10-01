@@ -305,7 +305,7 @@ function makeState (rec, mcData) {
     autoJump: !!setup.autoJump,
     // the vehicle ridden, with the keys it last had from its rider
     entities: summoned(rec),
-    vehicle: vehicleFrom(s.vehicle, s.netState && s.netState.lastSentInput ? keysOf(s.netState.lastSentInput) : {}, s.netState && s.netState.vehicleId, setup.mount && setup.mount.entity, setup.mount && setup.mount.attributes, s)
+    vehicle: vehicleFrom(s.vehicle, s.netState && s.netState.lastSentInput ? keysOf(s.netState.lastSentInput) : {}, s.netState && s.netState.vehicleId, setup.mount && setup.mount.entity, setup.mount && setup.mount.attributes, s, setup.equipment && setup.equipment.mainhand && setup.equipment.mainhand.id)
   }
 }
 
@@ -319,7 +319,7 @@ function summoned (rec) {
 const keysOf = held => ({ forward: held[0], back: held[1], left: held[2], right: held[3], jump: held[4], sneak: held[5], sprint: held[6] })
 
 // A recorded vehicle as the engine keeps it; input: the rider's keys of the tick before.
-function vehicleFrom (v, keys, id, mount, mountAttributes, rider) {
+function vehicleFrom (v, keys, id, mount, mountAttributes, rider, steerItem) {
   if (!v) return undefined
   return {
     id,
@@ -343,6 +343,8 @@ function vehicleFrom (v, keys, id, mount, mountAttributes, rider) {
     // the rider's input and yaw of the tick before (a horse moves on them)
     riderInput: rider ? { xxa: Math.fround(rider.xxa || 0), zza: Math.fround(rider.zza || 0) } : undefined,
     riderYaw: rider ? rider.yaw : undefined,
+    // a pig the rider steers with a carrot on a stick, a strider with a warped fungus on one
+    steered: !!(steerItem && ((v.type === 'pig' && steerItem === 'carrot_on_a_stick') || (v.type === 'strider' && steerItem === 'warped_fungus_on_a_stick'))),
     input: { left: !!keys.left, right: !!keys.right, up: !!keys.forward, down: !!keys.back }
   }
 }
@@ -466,7 +468,7 @@ function replay (version, rec, { mode = 'trajectory', fields = FIELDS, epsilon =
       // (rows the recorder left without the vehicle keep the engine's; what the recording does not hold, a pending jump
       // and the rearing, carries over from the engine)
       const engineVehicle = state.vehicle
-      if (before.vehicle) state.vehicle = vehicleFrom(before.vehicle, before.in || {}, before.netState && before.netState.vehicleId, rec.setup && rec.setup.mount && rec.setup.mount.entity, rec.setup && rec.setup.mount && rec.setup.mount.attributes, before)
+      if (before.vehicle) state.vehicle = vehicleFrom(before.vehicle, before.in || {}, before.netState && before.netState.vehicleId, rec.setup && rec.setup.mount && rec.setup.mount.entity, rec.setup && rec.setup.mount && rec.setup.mount.attributes, before, rec.setup && rec.setup.equipment && rec.setup.equipment.mainhand && rec.setup.equipment.mainhand.id)
       if (state.vehicle && engineVehicle && engineVehicle !== state.vehicle) {
         for (const key of ['pendingJump', 'standing', 'standCounter', 'standAnim', 'standAnimO', 'allowStandSliding', 'lastYd']) {
           if (state.vehicle[key] === undefined && engineVehicle[key] !== undefined) state.vehicle[key] = engineVehicle[key]
