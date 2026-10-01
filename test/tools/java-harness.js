@@ -456,17 +456,28 @@ function checkClientPackets (version, rec) {
   let before = rec.start
   for (const row of expand(rec)) {
     const sent = row.events.clientPackets
-    if (sent && before.netState && !row.vehicle && !before.vehicle) {
+    if (sent && before.netState) {
       let usedItem = false
       const expected = sent.filter(p => {
         const d = packets.decode(version, 'toServer', p.bytes)
         if (d.name === 'use_item') usedItem = true
-        return packets.MOVEMENT.has(d.name) && (d.name !== 'entity_action' || /sprinting|sneaking/.test(d.params.actionId))
+        return packets.MOVEMENT.has(d.name) && (d.name !== 'entity_action' || /sprinting|sneaking|fall_flying|riding_jump/.test(d.params.actionId))
       }).map(p => p.bytes)
       // The keys as vanilla's Input held them after the tick (auto-jump presses jump inside the input).
       const held = row.netState && row.netState.lastSentInput
       const input = held ? { ...row.in, forward: held[0], back: held[1], left: held[2], right: held[3], jump: held[4], sneak: held[5], sprint: held[6] } : row.in
-      const built = packets.movementPackets(row, input, before.netState, version, { usedItem, before }).packets
+      const prevHeld = before.netState.lastSentInput
+      const prevKeys = prevHeld ? { forward: prevHeld[0], back: prevHeld[1], left: prevHeld[2], right: prevHeld[3], jump: prevHeld[4], sneak: prevHeld[5], sprint: prevHeld[6] } : (before.in || {})
+      const setup = rec.setup || {}
+      const extra = {
+        usedItem,
+        before,
+        prevKeys,
+        mayFly: (rec.start.gameMode || rec.gamemode) === 'creative',
+        clientStartsGliding: !registry(version).isOlderThan('1.15'),
+        mainhand: setup.equipment && setup.equipment.mainhand && setup.equipment.mainhand.id
+      }
+      const built = packets.movementPackets(row, input, before.netState, version, extra).packets
       const actual = built.map(p => packets.encode(version, 'toServer', p.name, p.params))
       if (expected.join() !== actual.join()) out.push({ t: row.t, expected, actual })
     }

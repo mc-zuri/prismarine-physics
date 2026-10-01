@@ -35,9 +35,20 @@ const flags = (onGround, hasHorizontalCollision) => ({ onGround, hasHorizontalCo
  * Returns { packets: [{ name, params }], net } with the network state after it.
  */
 function movementPackets (after, input, net, version, extra = {}) {
-  if (version && isOlder(version, '1.21.2')) return legacyMovementPackets(after, input, net, extra)
+  const legacy = version && isOlder(version, '1.21.2')
   const packets = []
   const next = { ...net }
+  const before = extra.before || {}
+  // LocalPlayer.aiStep: the flight toggle (abilities), the glide start and the riding jump go out before the tick's
+  // own packets
+  if (after.flying !== undefined && !!after.flying !== !!before.flying && extra.mayFly) packets.push({ name: 'abilities', params: { flags: after.flying ? 2 : 0 } })
+  if (after.elytraFlying && !before.elytraFlying && extra.clientStartsGliding) packets.push({ name: 'entity_action', params: { entityId: net.entityId, actionId: 'start_fall_flying', jumpBoost: 0 } })
+  const beforeVehicle = before.vehicle
+  if (beforeVehicle && after.vehicle && JUMPABLE.has(beforeVehicle.type) && extra.prevKeys && extra.prevKeys.jump && !input.jump) {
+    packets.push({ name: 'entity_action', params: { entityId: net.entityId, actionId: 'start_riding_jump', jumpBoost: Math.floor(Math.fround(beforeVehicle.jumpRidingScale * 100)) } })
+  }
+  if (after.vehicle) return ridingPackets(packets, next, after, input, net, legacy, extra)
+  if (legacy) return legacyMovementPackets(packets, next, after, input, net, extra)
   const keys = [!!input.forward, !!input.back, !!input.left, !!input.right, !!input.jump, !!input.sneak, !!input.sprint]
   if (!net.lastSentInput || keys.some((k, i) => k !== net.lastSentInput[i])) {
     const inputs = {}
@@ -74,9 +85,7 @@ function movementPackets (after, input, net, version, extra = {}) {
 }
 // Before 1.21.2 (LocalPlayer.sendPosition): the sprint and shift commands, then the move packet carrying onGround only;
 // no player_input or tick_end.
-function legacyMovementPackets (after, input, net, extra) {
-  const packets = []
-  const next = { ...net }
+function legacyMovementPackets (packets, next, after, input, net, extra) {
   if (extra.usedItem && extra.before) {
     // MultiPlayerGameMode.useItem first reports where the player is (before the tick) and how it looks
     const [bx, by, bz] = extra.before.pos
@@ -111,13 +120,65 @@ function legacyMovementPackets (after, input, net, extra) {
   return { packets, net: next }
 }
 
+// The vehicles the rider drives (their movement is the client's): boats and rafts, horses and the like, camels, and
+// pigs and striders steered with their stick.
+const JUMPABLE = new Set(['horse', 'donkey', 'mule', 'skeleton_horse', 'zombie_horse', 'camel', 'camel_husk'])
+function drives (vehicle, extra) {
+  const type = vehicle.type
+  if (/boat$|raft$/.test(type) || JUMPABLE.has(type) || type === 'llama' || type === 'trader_llama') return true
+  const held = extra.mainhand
+  return (type === 'pig' && held === 'carrot_on_a_stick') || (type === 'strider' && held === 'warped_fungus_on_a_stick')
+}
+
+// LocalPlayer.tick while riding: a boat's paddles (sent in its own tick, from the keys of the tick before), the input
+// (1.21.2+ when it changed; before, steer_vehicle every tick), the rotation, then the driven vehicle's move and the
+// sprint command; tick_end from 1.21.2.
+function ridingPackets (packets, next, after, input, net, legacy, extra) {
+  const vehicle = after.vehicle
+  const driven = drives(vehicle, extra)
+  if (driven && /boat$|raft$/.test(vehicle.type)) {
+    const k = extra.prevKeys || {}
+    const up = !!k.forward
+    packets.push({ name: 'steer_boat', params: { leftPaddle: (!!k.right && !k.left) || up, rightPaddle: (!!k.left && !k.right) || up } })
+  }
+  const yaw = Math.fround(input.yaw)
+  const pitch = Math.fround(input.pitch)
+  if (legacy) {
+    packets.push({ name: 'look', params: { yaw, pitch, onGround: !!after.onGround } })
+    const strafe = Math.fround(((input.left ? 1 : 0) - (input.right ? 1 : 0)) * Math.fround(0.98))
+    const forward = Math.fround(((input.forward ? 1 : 0) - (input.back ? 1 : 0)) * Math.fround(0.98))
+    packets.push({ name: 'steer_vehicle', params: { sideways: strafe, forward, jump: (input.jump ? 1 : 0) | (input.sneak ? 2 : 0) } })
+  } else {
+    const keys = [!!input.forward, !!input.back, !!input.left, !!input.right, !!input.jump, !!input.sneak, !!input.sprint]
+    if (!net.lastSentInput || keys.some((key, i) => key !== net.lastSentInput[i])) {
+      const inputs = {}
+      INPUT_KEYS.forEach((key, i) => { inputs[key] = keys[i] })
+      packets.push({ name: 'player_input', params: { inputs } })
+      next.lastSentInput = keys
+    }
+    packets.push({ name: 'look', params: { yaw, pitch, flags: flags(!!after.onGround, !!after.isCollidedHorizontally) } })
+  }
+  if (driven) {
+    const [x, y, z] = vehicle.pos
+    const params = { x, y, z, yaw: Math.fround(vehicle.yaw), pitch: Math.fround(vehicle.pitch) }
+    if (!legacy) params.onGround = !!vehicle.onGround
+    packets.push({ name: 'vehicle_move', params })
+    if (after.sprinting !== net.wasSprinting) {
+      packets.push({ name: 'entity_action', params: { entityId: net.entityId, actionId: after.sprinting ? 'start_sprinting' : 'stop_sprinting', jumpBoost: 0 } })
+      next.wasSprinting = after.sprinting
+    }
+  }
+  if (!legacy) packets.push({ name: 'tick_end', params: {} })
+  return { packets, net: next }
+}
+
 const dataVersions = new Map()
 function isOlder (version, than) {
   if (!dataVersions.has(version)) dataVersions.set(version, require('minecraft-data')(version))
   return dataVersions.get(version).isOlderThan(than)
 }
 
-const MOVEMENT = new Set(['player_input', 'entity_action', 'position_look', 'position', 'look', 'flying', 'tick_end'])
+const MOVEMENT = new Set(['player_input', 'entity_action', 'position_look', 'position', 'look', 'flying', 'tick_end', 'abilities', 'steer_boat', 'steer_vehicle', 'vehicle_move'])
 
 // ---- incoming: vanilla ClientPacketListener ----
 
