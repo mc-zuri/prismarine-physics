@@ -416,6 +416,12 @@ function handle (state, packet, ctx) {
       }
       break
     case 'entity_metadata':
+      if (state.vehicle && p.entityId === state.vehicle.id) {
+        // a horse's flags (the one byte past the living entity's own: 13 in 1.12, 17 in 1.17-1.21, 18 in 26.3): 32
+        // standing (rearing)
+        const flags = p.metadata.find(m => m.key >= 13 && (m.type === 'byte' || m.type === 0))
+        if (flags) state.vehicle.standing = (flags.value & 32) !== 0
+      }
       if (self(p.entityId)) {
         const shared = p.metadata.find(m => m.key === 0)
         if (shared) state.elytraFlying = (shared.value & 0x80) !== 0
