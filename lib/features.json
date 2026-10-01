@@ -149,7 +149,7 @@
   {
     "name": "javaBoats",
     "description": "The vehicle the player drives (boats, horses, camels, a steered pig or strider) and a minecart it rides",
-    "since": "1.19"
+    "since": "1.9"
   },
   {
     "name": "autoJump",

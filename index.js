@@ -2326,7 +2326,8 @@ function Physics (mcData, world) {
     } else {
       const waterBB = getPlayerBB(pos).contract(0.001, 0.401, 0.001)
       const lavaBB = getPlayerBB(pos).contract(0.1, 0.4, 0.1)
-      entity.isInWater = isInWaterApplyCurrent(world, waterBB, vel)
+      // (a boat's passenger is not in the water)
+      entity.isInWater = inBoatAboveWater(entity) ? false : isInWaterApplyCurrent(world, waterBB, vel)
       entity.isInLava = isMaterialInBB(world, lavaBB, lavaIds)
     }
 
@@ -2650,7 +2651,10 @@ function Physics (mcData, world) {
   // factor of the blocks
   function moveBoat (boat, world) {
     const vel = boat.vel
-    const box = boatBox(boat)
+    // (before 1.17 the kept box moves and the position is its center; before 1.14 every move counts)
+    const keepsBox = vanilla.positionFromBoxCenter || !vanilla.modernMove
+    const kept = boat.javaBox
+    const box = keepsBox && kept && kept.at[0] === boat.pos.x && kept.at[1] === boat.pos.y && kept.at[2] === boat.pos.z ? kept.clone() : boatBox(boat)
     const saved = collisionContext
     collisionContext = { x: boat.pos.x, z: boat.pos.z, bottom: boat.pos.y, descending: false, fallDistance: 0, walksOnPowderSnow: false }
     let moved
@@ -2661,10 +2665,19 @@ function Physics (mcData, world) {
     }
     const movedSqr = moved.x * moved.x + moved.y * moved.y + moved.z * moved.z
     const requestedSqr = vel.x * vel.x + vel.y * vel.y + vel.z * vel.z
-    if (movedSqr > 1.0e-7 || (vanilla.moveWhenBlocked && requestedSqr - movedSqr < 1.0e-7)) {
-      boat.pos.x += moved.x
-      boat.pos.y += moved.y
-      boat.pos.z += moved.z
+    if (!vanilla.modernMove || movedSqr > 1.0e-7 || (vanilla.moveWhenBlocked && requestedSqr - movedSqr < 1.0e-7)) {
+      if (keepsBox) {
+        const movedBox = box.clone().offset(moved.x, moved.y, moved.z)
+        boat.pos.x = (movedBox.minX + movedBox.maxX) / 2
+        boat.pos.y = movedBox.minY
+        boat.pos.z = (movedBox.minZ + movedBox.maxZ) / 2
+        movedBox.at = [boat.pos.x, boat.pos.y, boat.pos.z]
+        boat.javaBox = movedBox
+      } else {
+        boat.pos.x += moved.x
+        boat.pos.y += moved.y
+        boat.pos.z += moved.z
+      }
     }
     const collidedX = !nearlyEqual(vel.x, moved.x)
     const collidedZ = !nearlyEqual(vel.z, moved.z)
