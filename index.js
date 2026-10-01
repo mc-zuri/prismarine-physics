@@ -2156,9 +2156,32 @@ function Physics (mcData, world) {
     return entity.onGround ? false : null
   }
 
+  // TridentItem.releaseUsing with Riptide, from the key handling ahead of the player's tick: in water (or rain) the
+  // player is pushed along its look by 3 * (1 + level) / 4, and lifted 1.2 first when on the ground.
+  function riptide (entity, world) {
+    const level = entity.riptideLaunch
+    entity.riptideLaunch = 0
+    if (!(level > 0) || !(entity.isInWater || entity.inRain)) return
+    const yaw = f32(yawDegrees(entity) * DEG_TO_RAD_F)
+    const pitch = f32(pitchDegrees(entity) * DEG_TO_RAD_F)
+    let x = f32(-mthSin(yaw) * mthCos(pitch))
+    let y = f32(-mthSin(pitch))
+    let z = f32(mthCos(yaw) * mthCos(pitch))
+    const length = f32(Math.sqrt(f32(f32(f32(x * x) + f32(y * y)) + f32(z * z))))
+    const strength = f32(f32(3) * f32(f32(1 + level) / f32(4)))
+    x = f32(x * f32(strength / length))
+    y = f32(y * f32(strength / length))
+    z = f32(z * f32(strength / length))
+    entity.vel.x += x
+    entity.vel.y += y
+    entity.vel.z += z
+    if (entity.onGround) moveEntity(entity, world, 0, 1.1999999284744263, 0)
+  }
+
   physics.simulatePlayer = (entity, world) => {
     const vel = entity.vel
     const pos = entity.pos
+    if (entity.riptideLaunch) riptide(entity, world)
     const startPos = pos.clone()
     boxScale = vanilla.playerAttributes ? f32(attributeValue(entity, 'scale', 1)) : 1
     boxHeight = f32((vanilla.crouchPose ? POSE_HEIGHT[entity.pose] || physics.playerHeight : vanilla.legacyPlayerSize ? LEGACY_HEIGHT[entity.pose] || physics.playerHeight : physics.playerHeight) * boxScale)
