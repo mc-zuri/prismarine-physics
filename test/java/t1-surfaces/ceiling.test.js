@@ -92,7 +92,27 @@ describe('vanilla recordings: ceiling', () => {
         }
       },
       {
-        versions: ['26.1', '26.2', '26.3'],
+        versions: ['26.1'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [8.5, 101.41999998688698, 1485.5], vel: [0, 0.33319999363422365, 0], onGround: false },
+          'peak height 0.5': { tick: 2, pos: [8.5, 101.5, 1485.5] },
+          'lands (1)': { tick: 5, pos: [8.5, 101.25, 1485.5], onGround: true },
+          'final state': { tick: 11, pos: [8.5, 101.25, 1485.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['26.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [8.5, 101.20000004768372, 1485.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'peak height 0.2': { tick: 1, pos: [8.5, 101.20000004768372, 1485.5] },
+          'lands (1)': { tick: 3, pos: [8.5, 101, 1485.5], onGround: true },
+          'final state': { tick: 11, pos: [8.5, 101, 1485.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [8.5, 101.41999998688698, 1485.5], vel: [0, 0.33319999363422365, 0], onGround: false },
