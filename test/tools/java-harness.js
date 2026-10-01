@@ -303,6 +303,8 @@ function makeState (rec, mcData) {
     elytraEquipped: !!(setup.equipment && setup.equipment.chest && setup.equipment.chest.id === 'elytra'),
     leatherBoots: !!(setup.equipment && setup.equipment.feet && setup.equipment.feet.id === 'leather_boots'),
     fallDistance: s.fallDistance || 0,
+    // in powder snow when the recording began (1.17+ recordings say)
+    isInPowderSnow: !!s.isInPowderSnow,
     // creative flight: the abilities (flying and its speed) and whether the game mode allows it
     flying: !!s.flying,
     mayFly: s.gameMode === 'creative' || s.gameMode === 'spectator' || rec.gamemode === 'creative' || rec.gamemode === 'spectator',
@@ -393,6 +395,29 @@ function applyInput (state, row, mcData) {
 // What the server sent before a tick; it belongs to that tick only and is never filled forward.
 const EVENTS = ['velocityPackets', 'blockChanges', 'vehicleServer', 'explosionKnockback', 'corrected', 'serverPackets', 'clientPackets']
 
+// The other entities as the client held them after each tick (recordings with "entities": the start's, then each
+// row's changes by id), or null.
+function entityTimeline (rec) {
+  if (!rec.start.entities) return null
+  const known = new Map(rec.start.entities.map(e => [e.id, e]))
+  return rec.ticks.map(row => {
+    for (const e of row.entities || []) known.set(e.id, e)
+    return [...known.values()]
+  })
+}
+
+// The tick's entities: the ones around the player, and a vehicle the server moves (a minecart) where the client has it
+const SERVER_DRIVEN = /minecart$/
+function useEntities (state, entities) {
+  const vehicleId = state.vehicle && state.vehicle.id
+  state.entities = entities.filter(e => e.id !== vehicleId).map(e => ({ id: e.id, type: e.type, pos: new Vec3(...e.pos), vel: new Vec3(...e.vel), box: e.box }))
+  const ridden = entities.find(e => e.id === vehicleId)
+  if (ridden && SERVER_DRIVEN.test(state.vehicle.type)) {
+    state.vehicle.pos = new Vec3(...ridden.pos)
+    state.vehicle.yaw = Math.fround(ridden.yaw)
+  }
+}
+
 // Rows carry sparse fields only when they change; this fills them forward so every row is complete. Events stay on
 // their own row under `events`.
 function expand (rec) {
@@ -467,6 +492,7 @@ function replay (version, rec, { mode = 'trajectory', fields = FIELDS, epsilon =
   const rows = expand(rec)
   const divergences = []
   const state = makeState(rec, mcData)
+  const timeline = entityTimeline(rec)
   rows.forEach((row, i) => {
     if (mode === 'stepwise' && i > 0) {
       const before = rows[i - 1]
@@ -481,7 +507,7 @@ function replay (version, rec, { mode = 'trajectory', fields = FIELDS, epsilon =
       const engineVehicle = state.vehicle
       if (before.vehicle) state.vehicle = vehicleFrom(before.vehicle, before.in || {}, before.netState && before.netState.vehicleId, rec.setup && rec.setup.mount && rec.setup.mount.entity, rec.setup && rec.setup.mount && rec.setup.mount.attributes, before, rec.setup && rec.setup.equipment && rec.setup.equipment.mainhand && rec.setup.equipment.mainhand.id)
       if (state.vehicle && engineVehicle && engineVehicle !== state.vehicle) {
-        for (const key of ['pendingJump', 'dashCooldown', 'standing', 'standCounter', 'standAnim', 'standAnimO', 'allowStandSliding', 'lastYd']) {
+        for (const key of ['pendingJump', 'dashCooldown', 'walkSpeed', 'walkPosition', 'standing', 'standCounter', 'standAnim', 'standAnimO', 'allowStandSliding', 'lastYd']) {
           if (state.vehicle[key] === undefined && engineVehicle[key] !== undefined) state.vehicle[key] = engineVehicle[key]
         }
       }
@@ -493,11 +519,13 @@ function replay (version, rec, { mode = 'trajectory', fields = FIELDS, epsilon =
       state.isCrouching = before.shiftKeyDown
       state.pose = before.pose
       state.fallDistance = before.fallDistance || 0
+      if (before.isInPowderSnow !== undefined) state.isInPowderSnow = before.isInPowderSnow
       state.flying = !!before.flying
     }
     // Inputs synced before this tick are those of the previous row (the state the tick started from).
     applyInput(state, { ...(i > 0 ? rows[i - 1] : rec.start), ...(rec.start.netState ? {} : { attributes: row.attributes, attributeModifiers: row.attributeModifiers }), usingItem: row.usingItem, fireworks: row.fireworks, riptideLaunch: riptideLaunch(rec, rows, i), in: row.in }, mcData)
     applyEvents(state, w, row.events, packetContext(version, mcData, rec))
+    if (timeline) useEntities(state, timeline[i])
     physics.simulatePlayer(state, w)
     const diffs = differences(state, row, fields, epsilon)
     if (diffs.length) divergences.push({ t: row.t, input: row.in, diffs })
@@ -715,9 +743,11 @@ function replayUntil (version, rec, tick, options) {
   const physics = Physics(mcData, w)
   const state = makeState(rec, mcData)
   const rows = expand(rec)
+  const timeline = entityTimeline(rec)
   for (let i = 0; i < tick; i++) {
     applyInput(state, { ...(i > 0 ? rows[i - 1] : rec.start), ...(rec.start.netState ? {} : { attributes: rows[i].attributes, attributeModifiers: rows[i].attributeModifiers }), usingItem: rows[i].usingItem, fireworks: rows[i].fireworks, riptideLaunch: riptideLaunch(rec, rows, i), in: rows[i].in }, mcData)
     applyEvents(state, w, rows[i].events, packetContext(version, mcData, rec))
+    if (timeline) useEntities(state, timeline[i])
     physics.simulatePlayer(state, w)
   }
   return state
