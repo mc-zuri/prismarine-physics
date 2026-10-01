@@ -112,6 +112,11 @@
     "since": "1.21"
   },
   {
+    "name": "passengerAttachmentPoints",
+    "description": "Passengers sit on the vehicle's attachment point (Entity.getPassengerAttachmentPoint); before, on its riding offset plus their own (the player's -0.35)",
+    "since": "1.20.2"
+  },
+  {
     "name": "entityAttachments",
     "description": "Passengers sit on EntityAttachments points (the player's vehicle attachment 0.6 in double); before, on float riding offsets",
     "since": "1.20.5"

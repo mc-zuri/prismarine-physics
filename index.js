@@ -166,6 +166,7 @@ function Physics (mcData, world) {
     riddenDamping: supportFeature('riddenDamping'),
     passengerNoPushOut: supportFeature('passengerNoPushOut'),
     entityAttachments: supportFeature('entityAttachments'),
+    attachmentPoints: supportFeature('passengerAttachmentPoints'),
     autoJumpJumpFactor: supportFeature('autoJumpJumpFactor'),
     autoJumpFloatFastInvSqrt: supportFeature('autoJumpFloatFastInvSqrt'),
     autoJumpExactInvSqrt: supportFeature('autoJumpExactInvSqrt'),
@@ -2670,8 +2671,10 @@ function Physics (mcData, world) {
   function positionBoatRider (entity, boat) {
     const rideHeight = /raft$/.test(boat.type) ? f32(BOAT_HEIGHT * f32(0.8888889)) : f32(BOAT_HEIGHT / f32(3))
     entity.pos.x = boat.pos.x
-    // (before 1.20.5 the passenger's own riding offset, -0.6F, is a float)
-    entity.pos.y = vanilla.entityAttachments ? (boat.pos.y + rideHeight) - 0.6 : (rideHeight + boat.pos.y) + f32(-0.6)
+    // (before 1.20.5 the passenger's own riding offset, -0.6F, is a float; before 1.20.2 the boat's riding offset,
+    // -0.1 or a raft's 0.25, plus the player's -0.35, in float)
+    if (!vanilla.attachmentPoints) entity.pos.y = boat.pos.y + f32((/raft$/.test(boat.type) ? 0.25 : -0.1) + -0.35)
+    else entity.pos.y = vanilla.entityAttachments ? (boat.pos.y + rideHeight) - 0.6 : (rideHeight + boat.pos.y) + f32(-0.6)
     entity.pos.z = boat.pos.z
     let yaw = f32(yawDegrees(entity) + boat.deltaRotation)
     const relative = wrapDegrees(f32(yaw - boat.yaw))
@@ -2858,6 +2861,7 @@ function Physics (mcData, world) {
   // AbstractHorse.positionRider: the rider on the horse's seat (its passenger attachment), the player's own 0.6 down
   function positionHorseRider (entity, horse) {
     const dims = HORSES[horse.type]
+    if (!vanilla.attachmentPoints) return positionLegacyRider(entity, horse, dims)
     // (rearing leans the seat back: 0.15 up and 0.7 behind by the animation, turned with the horse)
     const anim = f32(horse.standAnimO || 0)
     const angle = f32(-f32(horse.yawDegrees === undefined ? horse.yaw : horse.yawDegrees) * DEG_TO_RAD_F)
@@ -2876,6 +2880,34 @@ function Physics (mcData, world) {
       const seat = f32(f32(dims.height - dims.below) + f32(f32(0.15) * anim))
       entity.pos.y = (seat + horse.pos.y) + f32(-0.6)
     }
+  }
+
+  // Before 1.20.2: the vehicle's riding offset (three quarters of its height; a camel's height less 0.6) plus the
+  // player's -0.35; a rearing horse leans it 0.7 back and 0.15 up by its animation, a camel seats it 0.5 forward.
+  function positionLegacyRider (entity, mount, dims) {
+    const yaw = f32(mount.yawDegrees === undefined ? mount.yaw : mount.yawDegrees)
+    if (dims.forward) {
+      const g = f32((dims.height - f32(0.6)) + -0.35)
+      const angle = f32(-yaw * DEG_TO_RAD_F)
+      entity.pos.x = mount.pos.x + dims.forward * mthSin(angle)
+      entity.pos.y = mount.pos.y + g
+      entity.pos.z = mount.pos.z + dims.forward * mthCos(angle)
+      return
+    }
+    const y = mount.pos.y + dims.height * 0.75 + -0.35
+    const anim = f32(mount.standAnimO || 0)
+    if (anim > 0) {
+      const sin = mthSin(f32(yaw * DEG_TO_RAD_F))
+      const cos = mthCos(f32(yaw * DEG_TO_RAD_F))
+      const back = f32(f32(0.7) * anim)
+      entity.pos.x = mount.pos.x + f32(back * sin)
+      entity.pos.y = y + f32(f32(0.15) * anim)
+      entity.pos.z = mount.pos.z - f32(back * cos)
+      return
+    }
+    entity.pos.x = mount.pos.x
+    entity.pos.y = y
+    entity.pos.z = mount.pos.z
   }
 
   physics.simulatePlayer = (entity, world) => {
