@@ -9,14 +9,35 @@
 const fs = require('fs')
 const path = require('path')
 // PHYSREC_MCDATA names a node-minecraft-data package with versions the installed one lacks (26.2+). Every
-// require('minecraft-data') from here on resolves to it, so prismarine-block, prismarine-chat and minecraft-protocol
-// see the same data as the engine.
+// require('minecraft-data') from here on resolves to the installed package with those versions added, so
+// prismarine-block, prismarine-chat and minecraft-protocol see the same data as the engine; versions the installed
+// package has keep its data (the other package's protocols differ, e.g. unmapped entity_action ids).
 if (process.env.PHYSREC_MCDATA) {
   const Module = require('module')
-  const target = require.resolve(path.resolve(process.env.PHYSREC_MCDATA))
+  const installed = require(require.resolve('minecraft-data'))
+  const extra = require(require.resolve(path.resolve(process.env.PHYSREC_MCDATA)))
+  const merged = (version, ...rest) => installed(version, ...rest) || extra(version, ...rest)
+  for (const key of new Set([...Object.keys(extra), ...Object.keys(installed)])) {
+    const a = extra[key]
+    const b = installed[key]
+    if (b && a && typeof b === 'object' && !Array.isArray(b) && typeof a === 'object') {
+      merged[key] = {}
+      for (const edition of new Set([...Object.keys(a), ...Object.keys(b)])) {
+        const x = a[edition]
+        const y = b[edition]
+        merged[key][edition] = Array.isArray(y) && Array.isArray(x) ? [...new Set([...x, ...y])] : (y && x && typeof y === 'object' ? { ...x, ...y } : (y !== undefined ? y : x))
+      }
+    } else merged[key] = b !== undefined ? b : a
+  }
+  const id = path.join(__dirname, '<minecraft-data merged>')
+  const mod = new Module(id)
+  mod.filename = id
+  mod.loaded = true
+  mod.exports = merged
+  require.cache[id] = mod
   const resolve = Module._resolveFilename
   Module._resolveFilename = function (request, ...rest) {
-    return request === 'minecraft-data' ? target : resolve.call(this, request, ...rest)
+    return request === 'minecraft-data' ? id : resolve.call(this, request, ...rest)
   }
 }
 const assert = require('assert')
@@ -52,13 +73,12 @@ const server = (...actions) => ({ op: 'server', actions })
 
 // ---- fixtures ----
 
-// Game data: from the node-minecraft-data package at PHYSREC_MCDATA when set (versions the installed one lacks),
-// else the installed minecraft-data. One registry per version serves the engine, the blocks and the packet handlers.
+// Game data: minecraft-data (with the versions of PHYSREC_MCDATA added when set).
+// One registry per version serves the engine, the blocks and the packet handlers.
 const registries = new Map()
 function registry (version) {
   if (!registries.has(version)) {
-    let data = process.env.PHYSREC_MCDATA ? require(path.resolve(process.env.PHYSREC_MCDATA))(version) : undefined
-    if (!data) data = require('minecraft-data')(version)
+    const data = require('minecraft-data')(version)
     if (!data) throw new Error(`no minecraft-data for ${version}`)
     const registryDir = path.dirname(require.resolve('prismarine-registry'))
     const base = require(path.join(registryDir, 'loader'))(data)
