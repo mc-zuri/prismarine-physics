@@ -300,7 +300,9 @@ function makeState (rec, mcData) {
     gameMode: s.gameMode || rec.gamemode,
     flySpeed: s.attributes && s.attributes['abilities.flyingSpeed'],
     // the player's entity id, where the recording has it (before 1.14 a rocket boosts only an entity id above 0)
-    entityId: s.netState ? s.netState.entityId : undefined
+    entityId: s.netState ? s.netState.entityId : undefined,
+    // the auto-jump option the recording ran with
+    autoJump: !!setup.autoJump
   }
 }
 
