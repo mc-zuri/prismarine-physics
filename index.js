@@ -356,9 +356,18 @@ function Physics (mcData, world) {
           const block = world.getBlock(cursor)
           if (block) {
             const blockPos = block.position
-            for (const shape of collisionShapesOf(block, blockPos)) {
+            const blockShapes = collisionShapesOf(block, blockPos)
+            // (a block of several boxes is one voxel shape: its boxes split along every face of the others)
+            const grid = blockShapes.length > 1 ? { x: [], y: [], z: [] } : null
+            for (const shape of blockShapes) {
               const blockBB = new AABB(shape[0], shape[1], shape[2], shape[3], shape[4], shape[5])
               blockBB.offset(blockPos.x, blockPos.y, blockPos.z)
+              if (grid) {
+                grid.x.push(blockBB.minX, blockBB.maxX)
+                grid.y.push(blockBB.minY, blockBB.maxY)
+                grid.z.push(blockBB.minZ, blockBB.maxZ)
+                blockBB.grid = grid
+              }
               surroundingBBs.push(blockBB)
             }
           }
@@ -425,14 +434,20 @@ function Physics (mcData, world) {
       if (Math.abs(dist) < EPSILON) return 0
       if (!(box[min1] + EPSILON < shape[max1] && box[max1] - EPSILON >= shape[min1] &&
         box[min2] + EPSILON < shape[max2] && box[max2] - EPSILON >= shape[min2])) continue
+      // (a box the moving one already reaches into still stops it at the voxel faces of its block's other boxes)
+      const grid = shape.grid && shape.grid[axis]
       if (dist > 0) {
-        if (box[max] - EPSILON < shape[min]) {
-          const d = shape[min] - box[max]
+        let face = box[max] - EPSILON < shape[min] ? shape[min] : null
+        if (face === null && grid) for (const g of grid) if (g > shape[min] && g < shape[max] && box[max] - EPSILON < g && (face === null || g < face)) face = g
+        if (face !== null) {
+          const d = face - box[max]
           if (d >= -EPSILON) dist = Math.min(dist, d)
         }
       } else if (dist < 0) {
-        if (box[min] + EPSILON >= shape[max]) {
-          const d = shape[max] - box[min]
+        let face = box[min] + EPSILON >= shape[max] ? shape[max] : null
+        if (face === null && grid) for (const g of grid) if (g > shape[min] && g < shape[max] && box[min] + EPSILON >= g && (face === null || g > face)) face = g
+        if (face !== null) {
+          const d = face - box[min]
           if (d <= EPSILON) dist = Math.max(dist, d)
         }
       }
