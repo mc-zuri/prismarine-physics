@@ -3289,6 +3289,9 @@ class PlayerState {
     this.attributes = bot.entity.attributes
     this.yaw = bot.entity.yaw
     this.pitch = bot.entity.pitch
+    // the vanilla rotation in degrees when the bot keeps it (radians lose whole turns and float precision)
+    if (typeof bot.entity.yawDegrees === 'number') this.yawDegrees = bot.entity.yawDegrees
+    if (typeof bot.entity.pitchDegrees === 'number') this.pitchDegrees = bot.entity.pitchDegrees
     this.control = control
 
     // effects
