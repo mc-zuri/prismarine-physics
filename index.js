@@ -2818,6 +2818,15 @@ function Physics (mcData, world) {
       horse.stepHeight = horse.stepHeight || dims.step
       // getRiddenSpeed: a horse's movement speed; a steered pig's times 0.225 (and its boost)
       let speed = dims.steered ? f32(horse.movementSpeed * (dims.steerFactor || 0.225) * (horse.boostFactor || 1)) : f32(horse.movementSpeed)
+      if (dims.onLava) {
+        // Strider.tick: away from lava (none at its feet or under it, none around it the tick before) it suffocates:
+        // its speed loses 0.34 of its base (0.175) and it is steered at 0.35 of that
+        const lavaAt = p => lavaIds.includes((world.getBlock(p) || {}).type)
+        const warm = lavaAt(horse.pos.floored()) || lavaAt(getOnPos(horse, f32(0.2))) || horse.lavaHeight > 0
+        const base = 0.17499999701976776
+        const attr = warm ? base : base + base * -0.3400000035762787
+        speed = f32(attr * (warm ? f32(0.55) : f32(0.35)) * (horse.boostFactor || 1))
+      }
       if (dims.dash && horse.riderSprinting && !(horse.dashCooldown > 0)) speed = f32(speed + f32(0.1))
       horse.attributes[speedKey] = { value: speed, modifiers: [] }
       horse.airSpeed = f32(speed * f32(0.1))
@@ -2827,6 +2836,7 @@ function Physics (mcData, world) {
       horse.waterHeight = water.height
       const lava = updateFluid(horse, world, getPlayerBB(horse.pos), 'lava', 0.0023333333333333335)
       horse.isInLava = lava.height > 0
+      horse.lavaHeight = lava.height
       // a strider stands on lava: it travels as on land (canStandOnFluid) and floats up out of it after
       const inLava = horse.isInLava
       if (dims.onLava) {
@@ -2889,8 +2899,9 @@ function Physics (mcData, world) {
       }
       moveEntityWithHeading(horse, world, strafe, forward)
       if (dims.onLava) {
-        horse.isInLava = inLava
-        if (inLava) {
+        // (26.1+ looks at the fluids again after the move)
+        if (!vanilla.unifiedFluidInteraction) horse.isInLava = inLava
+        if (horse.isInLava) {
           // Strider.floatStrider
           const cell = horse.pos.floored()
           const aboveLava = lavaIds.includes((world.getBlock(cell.offset(0, 1, 0)) || {}).type)
