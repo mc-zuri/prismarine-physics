@@ -371,6 +371,7 @@ function applyInput (state, row, mcData) {
   // (before 1.14 a rocket attached to entity 0 counts as not attached: the recording server's first entity)
   const unattached = state.entityId === 0 && mcData.isOlderThan('1.14')
   state.fireworkRocketDuration = unattached ? 0 : (row.fireworks || []).length
+  state.fireworkRockets = state.fireworkRocketDuration
   state.riptideLaunch = row.riptideLaunch || 0
   for (const key of Object.keys(state.control)) state.control[key] = false
   for (const [key, down] of Object.entries(row.in)) if (KEYS[key] && down) state.control[KEYS[key]] = true
