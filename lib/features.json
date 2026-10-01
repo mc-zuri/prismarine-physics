@@ -112,6 +112,27 @@
     "since": "1.21"
   },
   {
+    "name": "autoJump",
+    "description": "LocalPlayer.updateAutoJump: the auto-jump option",
+    "since": "1.11"
+  },
+  {
+    "name": "autoJumpJumpFactor",
+    "description": "The auto-jump also needs a block that does not weaken the jump (canAutoJump)",
+    "since": "1.16"
+  },
+  {
+    "name": "autoJumpFloatFastInvSqrt",
+    "description": "The auto-jump normalizes its direction with Mth.fastInvSqrt(float)",
+    "since": "1.16",
+    "before": "1.20"
+  },
+  {
+    "name": "autoJumpExactInvSqrt",
+    "description": "The auto-jump normalizes its direction with Mth.invSqrt (1 / sqrt in float)",
+    "since": "1.20"
+  },
+  {
     "name": "legacyWorldBorder",
     "description": "World.getCollisionBoxes: for an entity inside the world border, the cells outside it collide as stone",
     "since": "1.8",

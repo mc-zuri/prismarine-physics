@@ -161,6 +161,10 @@ function Physics (mcData, world) {
     legacyViewVector: supportFeature('legacyViewVector'),
     elytraLegacyLift: supportFeature('elytraLegacyLift'),
     legacyWorldBorder: supportFeature('legacyWorldBorder'),
+    autoJump: supportFeature('autoJump'),
+    autoJumpJumpFactor: supportFeature('autoJumpJumpFactor'),
+    autoJumpFloatFastInvSqrt: supportFeature('autoJumpFloatFastInvSqrt'),
+    autoJumpExactInvSqrt: supportFeature('autoJumpExactInvSqrt'),
     moveWhenBlocked: supportFeature('moveWhenFullyBlocked'),
     collisionEpsilonVelocity: supportFeature('collisionEpsilonVelocityReset'),
     waterSprintSlowdown: supportFeature('proportionalLiquidGravity'),
@@ -622,12 +626,136 @@ function Physics (mcData, world) {
   }
 
   function moveEntity (entity, world, dx, dy, dz) {
+    const x0 = entity.pos.x
+    const z0 = entity.pos.z
     collisionContext = collisionContextOf(entity)
     try {
       moveEntityInContext(entity, world, dx, dy, dz)
     } finally {
       collisionContext = null
     }
+    // LocalPlayer.move: the auto-jump looks at the horizontal move just made
+    if (vanilla.autoJump && entity.autoJump) updateAutoJump(entity, world, f32(entity.pos.x - x0), f32(entity.pos.z - z0))
+  }
+
+  // LocalPlayer.updateAutoJump (1.11+): walking on the ground into a step the player can jump onto (higher than half a
+  // block, no higher than 1.2 plus 0.75 a jump boost level, with room above the head) queues a jump for the next tick.
+  function updateAutoJump (entity, world, moveX, moveZ) {
+    if (entity.autoJumpTime > 0 || !entity.onGround || entity.control.sneak || entity.vehicle) return
+    const control = entity.control
+    let inputX = (control.left ? 1 : 0) - (control.right ? 1 : 0)
+    let inputY = (control.forward ? 1 : 0) - (control.back ? 1 : 0)
+    if (inputX === 0 && inputY === 0) return
+    if (vanilla.squareMovementInput) {
+      const length = f32(Math.sqrt(f32(f32(inputX * inputX) + f32(inputY * inputY))))
+      inputX = f32(inputX / length)
+      inputY = f32(inputY / length)
+    }
+    // (1.16+: not on a block that weakens the jump)
+    if (vanilla.autoJumpJumpFactor && blockFactor(entity, world, block => block.type === honeyblockId ? f32(physics.honeyblockJumpSpeed) : 1, false) < 1) return
+    const pos = entity.pos
+    const box = entityBox(entity)
+    const speed = f32(landSpeed(entity))
+    let dirX = moveX
+    let dirZ = moveZ
+    let lengthSqr = f32(dirX * dirX + dirZ * dirZ)
+    if (lengthSqr <= f32(0.001)) {
+      const ix = f32(speed * inputX)
+      const iy = f32(speed * inputY)
+      const yaw = f32(yawDegrees(entity) * DEG_TO_RAD_F)
+      const sin = mthSin(yaw)
+      const cos = mthCos(yaw)
+      dirX = f32(f32(ix * cos) - f32(iy * sin))
+      dirZ = f32(f32(iy * cos) + f32(ix * sin))
+      lengthSqr = f32(dirX * dirX + dirZ * dirZ)
+      if (lengthSqr <= f32(0.001)) return
+    }
+    const inv = vanilla.autoJumpExactInvSqrt ? f32(1 / f32(Math.sqrt(lengthSqr))) : vanilla.autoJumpFloatFastInvSqrt ? fastInvSqrtFloat(lengthSqr) : f32(fastInvSqrtDouble(lengthSqr))
+    dirX *= inv
+    dirZ *= inv
+    // getForward: the look direction in the old getVectorForRotation form
+    const turned = f32(f32(-yawDegrees(entity) * DEG_TO_RAD_F) - PI_F)
+    const negCosPitch = -mthCos(f32(-pitchDegrees(entity) * DEG_TO_RAD_F))
+    const forwardX = f32(mthSin(turned) * negCosPitch)
+    const forwardZ = f32(mthCos(turned) * negCosPitch)
+    if (f32(forwardX * dirX + forwardZ * dirZ) < f32(-0.15)) return
+    const shapesAt = (x, y, z) => {
+      const block = world.getBlock(new Vec3(x, y, z))
+      return block ? collisionShapesOf(block, block.position) : []
+    }
+    let head = [Math.floor(pos.x), Math.floor(box.maxY), Math.floor(pos.z)]
+    if (shapesAt(...head).length) return
+    head = [head[0], head[1] + 1, head[2]]
+    if (shapesAt(...head).length) return
+    let reach = f32(1.2)
+    if (entity.jumpBoost > 0) reach = f32(reach + f32(entity.jumpBoost * f32(0.75)))
+    const distance = Math.max(f32(speed * 7), f32(1 / inv))
+    const endX = pos.x + moveX + dirX * distance
+    const endZ = pos.z + moveZ + dirZ * distance
+    const width = f32(0.6)
+    const query = new AABB(Math.min(pos.x, endX) - width, box.minY, Math.min(pos.z, endZ) - width,
+      Math.max(pos.x, endX) + width, box.minY + boxHeight, Math.max(pos.z, endZ) + width)
+    const y0 = box.minY + 0.5099999904632568
+    const sideX = -dirZ * f32(width * 0.5)
+    const sideZ = dirX * f32(width * 0.5)
+    const segments = [
+      [pos.x - sideX, pos.z - sideZ, endX - sideX, endZ - sideZ],
+      [pos.x + sideX, pos.z + sideZ, endX + sideX, endZ + sideZ]
+    ]
+    const hits = (shape, [ax, az, bx, bz]) => shape.minX < Math.max(ax, bx) && shape.maxX > Math.min(ax, bx) &&
+      shape.minY < y0 && shape.maxY > y0 && shape.minZ < Math.max(az, bz) && shape.maxZ > Math.min(az, bz)
+    // the colliding shapes in the swept box, in BlockCollisions order (x, then y, then z): the first one a side ray
+    // meets is the step
+    const step = findStep(query, shapesAt, shape => hits(shape, segments[0]) || hits(shape, segments[1]))
+    if (!step) return
+    let top = f32(step.maxY)
+    const cx = Math.floor((step.minX + step.maxX) / 2)
+    const cy = Math.floor((step.minY + step.maxY) / 2)
+    const cz = Math.floor((step.minZ + step.maxZ) / 2)
+    for (let j = 1; j < reach; j++) {
+      const above = shapesAt(cx, cy + j, cz)
+      if (above.length) {
+        top = f32(f32(Math.max(...above.map(a => a[4]))) + f32(cy + j))
+        if (top - box.minY > reach) return
+      }
+      if (j > 1) {
+        head = [head[0], head[1] + 1, head[2]]
+        if (shapesAt(...head).length) return
+      }
+    }
+    const rise = f32(top - box.minY)
+    if (!(rise <= f32(0.5)) && !(rise > reach)) entity.autoJumpTime = 1
+  }
+
+  function findStep (query, shapesAt, meets) {
+    for (let z = Math.floor(query.minZ) - 1; z <= Math.floor(query.maxZ) + 1; z++) {
+      for (let y = Math.floor(query.minY) - 1; y <= Math.floor(query.maxY) + 1; y++) {
+        for (let x = Math.floor(query.minX) - 1; x <= Math.floor(query.maxX) + 1; x++) {
+          for (const s of shapesAt(x, y, z)) {
+            const shape = new AABB(x + s[0], y + s[1], z + s[2], x + s[3], y + s[4], z + s[5])
+            if (shape.intersects(query) && meets(shape)) return shape
+          }
+        }
+      }
+    }
+    return null
+  }
+
+  // Mth.fastInvSqrt: the bit-trick inverse square root with one Newton step (float 1.16-1.19, double before)
+  const fastBuffer = new DataView(new ArrayBuffer(8))
+  function fastInvSqrtFloat (x) {
+    const half = f32(0.5 * x)
+    fastBuffer.setFloat32(0, x)
+    fastBuffer.setInt32(0, 1597463007 - (fastBuffer.getInt32(0) >> 1))
+    const y = fastBuffer.getFloat32(0)
+    return f32(y * f32(1.5 - f32(f32(half * y) * y)))
+  }
+  function fastInvSqrtDouble (x) {
+    const half = 0.5 * x
+    fastBuffer.setFloat64(0, x)
+    fastBuffer.setBigInt64(0, 6910469410427058090n - (fastBuffer.getBigInt64(0) >> 1n))
+    const y = fastBuffer.getFloat64(0)
+    return y * (1.5 - half * y * y)
   }
 
   function moveEntityInContext (entity, world, dx, dy, dz) {
@@ -2071,6 +2199,11 @@ function Physics (mcData, world) {
     }
     if (entity.isInWater) entity.fallDistance = 0
     if (vanilla.crouchLag) updateCrouching(entity, world)
+    // a jump the auto-jump queued last tick presses jump now
+    if (entity.autoJumpTime > 0) {
+      entity.autoJumpTime--
+      entity.control = { ...entity.control, jump: true }
+    }
     if (vanilla.pushOutOfBlocks && entity.gameMode !== 'spectator') {
       // LocalPlayer.moveTowardsClosestSpace from the four corners 0.35 widths out
       const w = f32(f32(0.6) * boxScale) * 0.35
@@ -2281,6 +2414,9 @@ class PlayerState {
     this.jumpTicks = bot.jumpTicks
     this.jumpQueued = bot.jumpQueued
     this.fireworkRocketDuration = bot.fireworkRocketDuration
+    // the auto-jump option and the jump it queued for the next tick
+    this.autoJump = !!bot.autoJump
+    this.autoJumpTime = bot.autoJumpTime || 0
     // Bedrock engine state (float32 collision box, swim pose, pending block slowdowns); undefined on Java.
     this.bedrock = bot.bedrockPhysicsState
     // The Java engine's kept bounding box (before 1.17 vanilla moves the box and centers the position on it).
@@ -2401,6 +2537,7 @@ class PlayerState {
     bot.jumpTicks = this.jumpTicks
     bot.jumpQueued = this.jumpQueued
     bot.fireworkRocketDuration = this.fireworkRocketDuration
+    bot.autoJumpTime = this.autoJumpTime
     bot.riptideLaunch = this.riptideLaunch
     bot.spinHits = this.spinHits
     bot.fireworkUsed = this.fireworkUsed
