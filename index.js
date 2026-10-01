@@ -462,6 +462,9 @@ function Physics (mcData, world) {
   // The entities a player collides with as if they were blocks (canBeCollidedWith): boats and rafts, shulkers. The
   // caller lists the entities around the player as entity.entities ([{ type, pos }]).
   const isSolidEntity = type => /boat$|raft$/.test(type) || type === 'shulker'
+  // The box the player collides with: where the entity was when the player moved (entity.solidBox when the caller
+  // knows it differs from its box after its own tick)
+  const solidBox = other => other.solidBox ? new AABB(...other.solidBox) : otherEntityBox(other)
   function otherEntityBox (other) {
     if (other.box) return new AABB(...other.box) // the box the caller knows
     const p = other.pos
@@ -481,7 +484,7 @@ function Physics (mcData, world) {
     const size = ((swept.maxX - swept.minX) + (swept.maxY - swept.minY) + (swept.maxZ - swept.minZ)) / 3
     if (size < 1.0e-7) return []
     const reach = swept.clone().expand(1.0e-7, 1.0e-7, 1.0e-7)
-    return entities.filter(other => isSolidEntity(other.type)).map(otherEntityBox).filter(box => box.intersects(reach))
+    return entities.filter(other => isSolidEntity(other.type)).map(solidBox).filter(box => box.intersects(reach))
   }
 
   // AbstractBoat.tick (after the player's): a boat pushes the entities in its box grown by 0.2 sideways (0.01 lower)
@@ -590,7 +593,7 @@ function Physics (mcData, world) {
     if (vanilla.legacyWorldBorder) shapes.push(...legacyBorderShapes(queryBB))
     // (World.getCollisionBoxes: the solid entities' boxes too)
     const entities = collisionContext && collisionContext.entities
-    if (entities) shapes.push(...entities.filter(other => isSolidEntity(other.type)).map(otherEntityBox).filter(box => box.intersects(queryBB)))
+    if (entities) shapes.push(...entities.filter(other => isSolidEntity(other.type)).map(solidBox).filter(box => box.intersects(queryBB)))
     return vanilla.voxelCollision ? shapes.filter(shape => shape.intersects(queryBB)) : shapes
   }
 
