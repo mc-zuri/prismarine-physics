@@ -455,6 +455,7 @@ function Physics (mcData, world) {
   // caller lists the entities around the player as entity.entities ([{ type, pos }]).
   const isSolidEntity = type => /boat$|raft$/.test(type) || type === 'shulker'
   function otherEntityBox (other) {
+    if (other.box) return new AABB(...other.box) // the box the caller knows
     const p = other.pos
     if (/boat$|raft$/.test(other.type)) {
       const half = f32(1.375) / 2
@@ -486,18 +487,36 @@ function Physics (mcData, world) {
       const reach = new AABB(boat.minX - 0.20000000298023224, boat.minY + 0.009999999776482582, boat.minZ - 0.20000000298023224,
         boat.maxX + 0.20000000298023224, boat.maxY - 0.009999999776482582, boat.maxZ + 0.20000000298023224)
       if (!reach.intersects(box) || !(box.minY <= boat.minY)) continue
-      let dx = entity.pos.x - other.pos.x
-      let dz = entity.pos.z - other.pos.z
-      let distance = Math.max(Math.abs(dx), Math.abs(dz))
-      if (!(distance >= f32(0.01))) continue
-      distance = vanilla.normalizeFloatSqrt ? f32(Math.sqrt(distance)) : Math.sqrt(distance) // (Mth.sqrt in float before 1.17)
-      dx /= distance
-      dz /= distance
-      const scale = Math.min(1, 1 / distance)
-      dx *= scale
-      dz *= scale
-      entity.vel.x += dx * f32(0.05)
-      entity.vel.z += dz * f32(0.05)
+      pushAway(entity, other)
+    }
+    pushedByMobs(entity, box)
+  }
+
+  // Entity.push(Entity): 0.05 away from the other's center, by the square root of the larger distance (no more than 1)
+  function pushAway (entity, other) {
+    let dx = entity.pos.x - other.pos.x
+    let dz = entity.pos.z - other.pos.z
+    let distance = Math.max(Math.abs(dx), Math.abs(dz))
+    if (!(distance >= f32(0.01))) return
+    distance = vanilla.normalizeFloatSqrt ? f32(Math.sqrt(distance)) : Math.sqrt(distance) // (Mth.sqrt in float before 1.17)
+    dx /= distance
+    dz /= distance
+    const scale = Math.min(1, 1 / distance)
+    dx *= scale
+    dz *= scale
+    entity.vel.x += dx * f32(0.05)
+    entity.vel.z += dz * f32(0.05)
+  }
+
+  // LivingEntity.pushEntities on the client: each mob (after the player's tick) pushes the player whose box its own
+  // touches
+  const PUSHING_KINDS = new Set(['animal', 'mob', 'hostile', 'passive', 'ambient', 'water_creature'])
+  function pushedByMobs (entity, box) {
+    for (const other of entity.entities) {
+      const data = mcData.entitiesByName[other.type]
+      if (!data || !PUSHING_KINDS.has(data.type) || other.type === 'shulker') continue
+      if (!otherEntityBox(other).intersects(box)) continue
+      pushAway(entity, other)
     }
   }
   const BORDER = 29999984
