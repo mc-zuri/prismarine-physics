@@ -387,6 +387,11 @@ function handle (state, packet, ctx) {
       ctx.world.setStateId([p.location.x, p.location.y, p.location.z], p.type)
       break
     case 'multi_block_change':
+      if (p.chunkX !== undefined) {
+        // before 1.16: per chunk column, each record's x << 4 | z, y and state
+        for (const record of p.records) ctx.world.setStateId([p.chunkX * 16 + (record.horizontalPos >> 4), record.y, p.chunkZ * 16 + (record.horizontalPos & 15)], record.blockId)
+        break
+      }
       for (const record of p.records) {
         const stateId = Math.floor(record / 4096)
         const local = record & 4095
