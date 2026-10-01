@@ -168,6 +168,7 @@ function Physics (mcData, world) {
     clientRearingLegacy: supportFeature('clientRearingLegacy'),
     passengerSprintVehicle: supportFeature('passengerSprintVehicle'),
     passengerNoPushOut: supportFeature('passengerNoPushOut'),
+    passengerNoCrouch: supportFeature('passengerNoCrouch'),
     entityAttachments: supportFeature('entityAttachments'),
     attachmentPoints: supportFeature('passengerAttachmentPoints'),
     autoJumpJumpFactor: supportFeature('autoJumpJumpFactor'),
@@ -2206,7 +2207,7 @@ function Physics (mcData, world) {
   // LocalPlayer.aiStep: crouching from the sneak key of the tick before, or forced where standing does not fit
   function updateCrouching (entity, world) {
     const shift = !!entity.isCrouching // the sneak key the last tick ended with
-    entity.crouching = !entity.flying && !(entity.pose === 'swimming' && entity.isInWater) && fitsPose(entity, world, 'crouching') &&
+    entity.crouching = !entity.flying && !(vanilla.passengerNoCrouch && entity.vehicle) && !(entity.pose === 'swimming' && entity.isInWater) && fitsPose(entity, world, 'crouching') &&
       (shift || !fitsPose(entity, world, 'standing'))
   }
 

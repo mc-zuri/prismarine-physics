@@ -127,6 +127,11 @@
     "since": "26.3"
   },
   {
+    "name": "passengerNoCrouch",
+    "description": "LocalPlayer.aiStep excludes passengers when computing the crouching state",
+    "since": "26.3"
+  },
+  {
     "name": "clientRearingLegacy",
     "description": "AbstractHorse.stand: the client rears a horse it controls itself (isControlledByLocalInstance), 20 ticks",
     "before": "1.19.4"
