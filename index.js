@@ -696,7 +696,8 @@ function Physics (mcData, world) {
 
       const BB1 = oldBB.clone()
       const BB2 = oldBB.clone()
-      const BB_XZ = BB1.clone().extend(dx, 0, dz)
+      // (the rise is tried against the box swept by the requested move, not the collided one)
+      const BB_XZ = BB1.clone().extend(oldVelX, 0, oldVelZ)
 
       const dy1 = collideAxis('y', BB_XZ, surroundingBBs, dy)
       const dy2 = collideAxis('y', BB2, surroundingBBs, dy)
