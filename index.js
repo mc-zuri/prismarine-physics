@@ -1,6 +1,7 @@
 const Vec3 = require('vec3').Vec3
 const AABB = require('./lib/aabb')
 const math = require('./lib/math')
+const javaMath = require('./lib/java-math')
 const features = require('./lib/features')
 const attribute = require('./lib/attribute')
 
@@ -1651,7 +1652,7 @@ function Physics (mcData, world) {
       const lookLength = Math.sqrt(look.x * look.x + look.y * look.y + look.z * look.z)
       let lift
       if (vanilla.elytraDoubleCos) {
-        const cos = Math.cos(pitch)
+        const cos = javaMath.cos(pitch)
         lift = vanilla.elytraSquareOnly ? cos * cos : cos * cos * Math.min(1, lookLength / 0.4)
       } else {
         const cos = mthCos(pitch)
@@ -2973,7 +2974,7 @@ function Physics (mcData, world) {
     const angle = f32(-f32(horse.yawDegrees === undefined ? horse.yaw : horse.yawDegrees) * DEG_TO_RAD_F)
     // (before 1.20.5 a float vector turned by JOML)
     const back = (vanilla.entityAttachments ? -0.7 * anim : f32(f32(-0.7) * anim)) + (dims.forward || 0)
-    const sin = vanilla.entityAttachments ? mthSin(angle) : f32(Math.sin(angle))
+    const sin = vanilla.entityAttachments ? mthSin(angle) : f32(javaMath.sin(angle))
     const cos = vanilla.entityAttachments ? mthCos(angle) : jomlCosFromSin(sin, angle)
     const offX = vanilla.entityAttachments ? back * sin : f32(back * sin)
     const offZ = vanilla.entityAttachments ? back * cos : f32(back * cos)
