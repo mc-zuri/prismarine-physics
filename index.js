@@ -2698,7 +2698,9 @@ function Physics (mcData, world) {
     mule: { ...HORSE, seat: f32(1.2125) },
     skeleton_horse: { ...HORSE, seat: f32(1.31875) },
     zombie_horse: { ...HORSE, seat: f32(1.31875) },
-    pig: { width: f32(0.9), height: f32(0.9), seat: f32(0.86875), below: f32(0.03125), step: 0.6, steered: true }
+    pig: { width: f32(0.9), height: f32(0.9), seat: f32(0.86875), below: f32(0.03125), step: 0.6, steered: true },
+    // a camel: the rider 0.5 forward on its back (0.375 under its top), a dash for a jump, 0.1 faster sprinting
+    camel: { width: f32(1.7), height: f32(2.375), seat: f32(2.375) - f32(0.375), below: f32(0.375), forward: f32(0.5), step: 1.5, jumps: true, dash: true }
   }
 
   // LocalPlayer.aiStep: holding jump on a horse charges the jump (0.1 a tick to 0.9, then easing back toward 0.8);
@@ -2712,14 +2714,25 @@ function Physics (mcData, world) {
       ticks++
       if (ticks === 0) scale = 0
     }
+    if (horse.dashCooldown > 0) {
+      // (Camel: no charge while the dash cools down)
+      entity.jumpRidingTicks = ticks
+      horse.jumpRidingScale = 0
+      return
+    }
     if (wasJumping && !jumping) {
       ticks = -10
       const power = Math.floor(f32(scale * 100))
+      if (HORSES[horse.type].dash && !horse.onGround) {
+        entity.jumpRidingTicks = ticks
+        horse.jumpRidingScale = scale
+        return
+      }
       horse.pendingJump = power >= 90 ? 1 : f32(f32(0.4) + f32(f32(f32(0.4) * Math.max(power, 0)) / 90))
       // (and rears for 20 ticks: standIfPossible; before 1.21.5 the client leaves that to the server)
       if (power >= 0) {
         horse.allowStandSliding = true
-        if (!vanilla.riddenDamping) {
+        if (!vanilla.riddenDamping && !HORSES[horse.type].dash) {
           horse.standing = true
           horse.standCounter = 20
         }
@@ -2749,7 +2762,8 @@ function Physics (mcData, world) {
       horse.control = {}
       horse.stepHeight = horse.stepHeight || dims.step
       // getRiddenSpeed: a horse's movement speed; a steered pig's times 0.225 (and its boost)
-      const speed = dims.steered ? f32(horse.movementSpeed * 0.225 * (horse.boostFactor || 1)) : f32(horse.movementSpeed)
+      let speed = dims.steered ? f32(horse.movementSpeed * 0.225 * (horse.boostFactor || 1)) : f32(horse.movementSpeed)
+      if (dims.dash && horse.riderSprinting && !(horse.dashCooldown > 0)) speed = f32(speed + f32(0.1))
       horse.attributes[speedKey] = { value: speed, modifiers: [] }
       horse.airSpeed = f32(speed * f32(0.1))
       // Entity.baseTick: the fluids around it
@@ -2781,7 +2795,24 @@ function Physics (mcData, world) {
       horse.yawDegrees = f32(f32(horse.riderYaw === undefined ? horse.yaw : horse.riderYaw) % 360)
       horse.yaw = horse.yawDegrees
       if (horse.onGround) {
-        if (horse.pendingJump > 0) {
+        if (horse.pendingJump > 0 && dims.dash) {
+          // Camel.executeRidersJump: a dash along its look, 22.2222 its speed by the charge, up 1.4285 its jump power
+          const scale = horse.pendingJump
+          const lookYaw = f32(-horse.yawDegrees * DEG_TO_RAD_F)
+          const lookPitch = f32(f32(horse.pitchDegrees || 0) * DEG_TO_RAD_F)
+          let lx = f32(mthSin(lookYaw) * mthCos(lookPitch))
+          let lz = f32(mthCos(lookYaw) * mthCos(lookPitch))
+          const length = Math.sqrt(lx * lx + lz * lz)
+          lx = length < 1.0e-5 ? 0 : lx / length
+          lz = length < 1.0e-5 ? 0 : lz / length
+          const factor = blockFactor(horse, world, block => (block.type === soulsandId || block.type === honeyblockId) ? f32(physics.soulsandSpeed) : 1, true)
+          const push = f32(f32(22.2222) * scale) * horse.movementSpeed * factor
+          const jumpPower = f32(f32(horse.jumpStrength) * blockFactor(horse, world, block => block.type === honeyblockId ? f32(physics.honeyblockJumpSpeed) : 1, false))
+          vel.x += lx * push
+          vel.y += f32(f32(1.4285) * scale) * jumpPower
+          vel.z += lz * push
+          horse.dashCooldown = 55
+        } else if (horse.pendingJump > 0) {
           // (getJumpPower in float since 1.20.5; the jump strength in double before)
           const factor = blockFactor(horse, world, block => block.type === honeyblockId ? f32(physics.honeyblockJumpSpeed) : 1, false)
           const power = vanilla.playerAttributes ? f32(f32(f32(horse.jumpStrength) * horse.pendingJump) * factor) : horse.jumpStrength * horse.pendingJump * factor
@@ -2795,6 +2826,7 @@ function Physics (mcData, world) {
         horse.pendingJump = 0
       }
       moveEntityWithHeading(horse, world, strafe, forward)
+      if (horse.dashCooldown > 0) horse.dashCooldown--
       // AbstractHorse.tick: the rearing ends when its count runs out; its animation (the value of the tick before places
       // the rider)
       if (horse.standCounter > 0 && --horse.standCounter <= 0) horse.standing = false
@@ -2830,7 +2862,7 @@ function Physics (mcData, world) {
     const anim = f32(horse.standAnimO || 0)
     const angle = f32(-f32(horse.yawDegrees === undefined ? horse.yaw : horse.yawDegrees) * DEG_TO_RAD_F)
     // (before 1.20.5 a float vector turned by JOML)
-    const back = vanilla.entityAttachments ? -0.7 * anim : f32(f32(-0.7) * anim)
+    const back = (vanilla.entityAttachments ? -0.7 * anim : f32(f32(-0.7) * anim)) + (dims.forward || 0)
     const sin = vanilla.entityAttachments ? mthSin(angle) : f32(Math.sin(angle))
     const cos = vanilla.entityAttachments ? mthCos(angle) : jomlCosFromSin(sin, angle)
     const offX = vanilla.entityAttachments ? back * sin : f32(back * sin)
@@ -2849,8 +2881,9 @@ function Physics (mcData, world) {
   physics.simulatePlayer = (entity, world) => {
     const vehicle = entity.vehicle
     if (vanilla.javaBoats && vehicle && HORSES[vehicle.type] && (!HORSES[vehicle.type].steered || vehicle.steered)) {
-      // the horse faces where its rider looks now (the keys are those of the rider's last tick)
+      // the horse faces where its rider looks now, half its pitch (the keys are those of the rider's last tick)
       vehicle.riderYaw = yawDegrees(entity)
+      vehicle.pitchDegrees = f32(pitchDegrees(entity) * f32(0.5))
       tickHorse(vehicle, world)
       entity.vel.x = 0
       entity.vel.y = 0
@@ -2859,6 +2892,7 @@ function Physics (mcData, world) {
       simulateOwn(entity, world)
       positionHorseRider(entity, vehicle)
       vehicle.riderInput = { xxa: entity.xxa, zza: entity.zza }
+      vehicle.riderSprinting = !!entity.sprinting
       return entity
     }
     const boat = entity.vehicle
