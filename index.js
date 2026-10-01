@@ -165,6 +165,8 @@ function Physics (mcData, world) {
     javaBoats: supportFeature('javaBoats'),
     riddenDamping: supportFeature('riddenDamping'),
     airSpeedLastTick: supportFeature('airSpeedLastTick'),
+    clientRearingLegacy: supportFeature('clientRearingLegacy'),
+    passengerSprintVehicle: supportFeature('passengerSprintVehicle'),
     passengerNoPushOut: supportFeature('passengerNoPushOut'),
     entityAttachments: supportFeature('entityAttachments'),
     attachmentPoints: supportFeature('passengerAttachmentPoints'),
@@ -2042,7 +2044,7 @@ function Physics (mcData, world) {
       const canStart = !sprinting && enough && food && !blind && !entity.usingItem && !(vanilla.sprintNotWhileGliding && entity.elytraFlying) &&
         (!vanilla.sprintStopsWhenSlow || !slow || underWater) &&
         // (1.20+: a passenger only on a vehicle that sprints, a camel)
-        !(vanilla.javaBoats && entity.vehicle && !/^camel/.test(entity.vehicle.type))
+        !(vanilla.passengerSprintVehicle && entity.vehicle && !/^camel/.test(entity.vehicle.type))
       if (entity.usingItem || prevSneak) trigger = 0
       if ((entity.onGround || underWater) && !prevSneak && !hadForward && canStart && doubleTap()) sprinting = true
       if ((!inWater || underWater) && canStart && control.sprint) sprinting = true
@@ -2768,7 +2770,8 @@ function Physics (mcData, world) {
       // (and rears for 20 ticks: standIfPossible; before 1.21.5 the client leaves that to the server)
       if (power >= 0) {
         horse.allowStandSliding = true
-        if (!vanilla.riddenDamping && !HORSES[horse.type].dash) {
+        // (the client rears the horse itself before 1.19.4 and since 1.21.5)
+        if ((!vanilla.riddenDamping || vanilla.clientRearingLegacy) && !HORSES[horse.type].dash) {
           horse.standing = true
           horse.standCounter = 20
         }
@@ -2996,7 +2999,8 @@ function Physics (mcData, world) {
       entity.vel.z = 0
       simulateOwn(entity, world)
       entity.pos.x = vehicle.pos.x
-      entity.pos.y = vanilla.entityAttachments ? (vehicle.pos.y + f32(0.1875)) - 0.6 : vehicle.pos.y + f32(0.1875) + f32(-0.6)
+      // (before 1.20.2 the cart's riding offset 0 and the player's -0.35)
+      entity.pos.y = !vanilla.attachmentPoints ? vehicle.pos.y + 0.0 + -0.35 : vanilla.entityAttachments ? (vehicle.pos.y + f32(0.1875)) - 0.6 : vehicle.pos.y + f32(0.1875) + f32(-0.6)
       entity.pos.z = vehicle.pos.z
       return entity
     }
