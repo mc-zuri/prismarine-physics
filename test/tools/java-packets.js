@@ -115,10 +115,10 @@ function movementPackets (after, input, net, version, extra = {}) {
   const asksToGlide = extra.clientStartsGliding
     ? after.elytraFlying && !before.elytraFlying
     : extra.chest === 'elytra' && input.jump && !(extra.prevKeys && extra.prevKeys.jump) && !before.onGround && before.vel && before.vel[1] < 0 && !before.elytraFlying && !after.flying
-  if (asksToGlide) packets.push({ name: 'entity_action', params: { entityId: net.entityId, actionId: 'start_fall_flying', jumpBoost: 0 } })
+  if (asksToGlide) packets.push({ name: 'entity_action', params: { entityId: net.entityId, actionId: actionName(version, 'start_fall_flying', 'start_elytra_flying'), jumpBoost: 0 } })
   const beforeVehicle = before.vehicle
   if (beforeVehicle && after.vehicle && JUMPABLE.has(beforeVehicle.type) && extra.prevKeys && extra.prevKeys.jump && !input.jump) {
-    packets.push({ name: 'entity_action', params: { entityId: net.entityId, actionId: 'start_riding_jump', jumpBoost: Math.floor(Math.fround(beforeVehicle.jumpRidingScale * 100)) } })
+    packets.push({ name: 'entity_action', params: { entityId: net.entityId, actionId: actionName(version, 'start_riding_jump', 'start_horse_jump'), jumpBoost: Math.floor(Math.fround(beforeVehicle.jumpRidingScale * 100)) } })
   }
   if (after.vehicle) return ridingPackets(packets, next, after, input, net, legacy, extra, version)
   if (legacy) return legacyMovementPackets(packets, next, after, input, net, extra, version)
@@ -253,6 +253,14 @@ function ridingPackets (packets, next, after, input, net, legacy, extra, version
 }
 
 const dataVersions = new Map()
+// The protocol's name for an entity_action (minecraft-data renamed some: start_elytra_flying, start_horse_jump).
+function actionName (version, ...names) {
+  if (!version) return names[0]
+  if (!dataVersions.has(version)) dataVersions.set(version, require('minecraft-data')(version))
+  const type = JSON.stringify(dataVersions.get(version).protocol.play.toServer.types.packet_entity_action || '')
+  return names.find(name => type.includes(`"${name}"`)) || names[0]
+}
+
 function isOlder (version, than) {
   if (!dataVersions.has(version)) dataVersions.set(version, require('minecraft-data')(version))
   return dataVersions.get(version).isOlderThan(than)

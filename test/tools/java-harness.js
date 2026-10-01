@@ -502,7 +502,7 @@ function checkClientPackets (version, rec) {
       const expected = sent.filter(p => {
         const d = packets.decode(version, 'toServer', p.bytes)
         if (d.name === 'use_item') usedItem = true
-        return packets.MOVEMENT.has(d.name) && (d.name !== 'entity_action' || /sprinting|sneaking|fall_flying|riding_jump/.test(d.params.actionId))
+        return packets.MOVEMENT.has(d.name) && (d.name !== 'entity_action' || /sprinting|sneaking|fall_flying|elytra_flying|riding_jump|horse_jump/.test(d.params.actionId))
       }).map(p => p.bytes)
       // The keys as vanilla's Input held them after the tick (auto-jump presses jump inside the input).
       const held = row.netState && row.netState.lastSentInput
