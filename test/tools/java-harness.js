@@ -339,7 +339,7 @@ function expand (rec) {
 function applyEvents (state, w, events, ctx) {
   if (events.serverPackets && ctx && packetsSupported(ctx.version)) {
     for (const entry of events.serverPackets) {
-      for (const part of entry.packets || [entry]) packets.handle(state, packets.decode(ctx.version, 'toClient', part.bytes), { ...ctx, world: w })
+      for (const part of entry.packets || [entry]) packets.handle(state, packets.decodeServer(ctx.version, part.bytes), { ...ctx, world: w })
       // Attribute packets: minecraft-protocol's attribute ids do not match every version's registry (1.21.11 decodes
       // movement_speed as generic.scale), so the attributes are taken from what vanilla's handling left.
       if (entry.after && (entry.after.attributes || entry.after.attributeModifiers)) state.attributes = attributesOf({ ...entry.before, ...entry.after }, ctx.mcData)
@@ -457,7 +457,7 @@ function checkServerPackets (version, rec) {
       const state = stateFrom(entry.before, mcData, rec)
       const w = world(version, rec.area)
       const replies = []
-      for (const part of entry.packets || [entry]) replies.push(...packets.handle(state, packets.decode(version, 'toClient', part.bytes), { ...ctx, world: w }))
+      for (const part of entry.packets || [entry]) replies.push(...packets.handle(state, packets.decodeServer(version, part.bytes), { ...ctx, world: w }))
       const snapshot = { ...entry.before, ...entry.after }
       const diffs = differences(state, snapshot, PACKET_FIELDS, 0)
       diffs.push(...stateDifferences(state, snapshot, mcData))

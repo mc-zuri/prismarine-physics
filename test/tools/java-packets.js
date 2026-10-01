@@ -415,4 +415,23 @@ function rotate (v, pitch, yaw) {
   return new Vec3(v.x * c2 + z1 * s2, y1, z1 * c2 - v.x * s2)
 }
 
-module.exports = { decode, encode, movementPackets, MOVEMENT, handle }
+// The packets handle() reads.
+const HANDLED = new Set(['entity_velocity', 'explosion', 'position', 'player_rotation', 'entity_update_attributes', 'entity_status', 'update_health', 'entity_effect', 'remove_entity_effect', 'entity_metadata', 'block_change', 'multi_block_change'])
+
+// A server packet decoded for handle(). A packet the handlers do not read may fail to decode where minecraft-data's
+// protocol lags (26.3 item components): it is passed on by name only. One they read must decode.
+function decodeServer (version, hex) {
+  try {
+    return decode(version, 'toClient', hex)
+  } catch (err) {
+    if (!dataVersions.has(version)) dataVersions.set(version, require('minecraft-data')(version))
+    const type = JSON.stringify(dataVersions.get(version).protocol.play.toClient.types.packet)
+    const mappings = JSON.parse(type.match(/"mappings":({[^}]*})/)[1])
+    const id = readVarInt(Buffer.from(hex, 'hex'), 0).value
+    const name = Object.entries(mappings).find(([key]) => Number(key) === id)
+    if (!name || HANDLED.has(name[1])) throw err
+    return { name: name[1], params: {}, undecoded: true }
+  }
+}
+
+module.exports = { decode, decodeServer, encode, movementPackets, MOVEMENT, handle }
