@@ -69,14 +69,47 @@ if (!compilerTypes.Read.vecDelta) {
 }
 
 const codecs = new Map()
+// The version whose protocol data minecraft-protocol accepts for a version: its own, else another release with the
+// same protocol number whose data matches (minecraft-data's 1.21.7 is 1.21.1's; 1.21.8 speaks the same protocol).
+function protocolVersion (version) {
+  const md = require('minecraft-data')
+  const info = md.versionsByMinecraftVersion.pc[version]
+  const data = md(version)
+  if (!info || !data || data.version.version === info.version) return version
+  const same = md.versions.pc.find(v => v.version === info.version && v.minecraftVersion !== version && md(v.minecraftVersion) && md(v.minecraftVersion).version.version === info.version)
+  return same ? same.minecraftVersion : version
+}
+
 function codec (version) {
   if (!codecs.has(version)) {
-    codecs.set(version, {
-      toServer: { de: createDeserializer({ state: 'play', isServer: true, version }), ser: createSerializer({ state: 'play', isServer: false, version }) },
-      toClient: { de: createDeserializer({ state: 'play', isServer: false, version }), ser: createSerializer({ state: 'play', isServer: true, version }) }
-    })
+    const pv = protocolVersion(version)
+    if (pv !== version) {
+      codecs.set(version, codec(pv))
+    } else {
+      codecs.set(version, {
+        toServer: { de: createDeserializer({ state: 'play', isServer: true, version }), ser: createSerializer({ state: 'play', isServer: false, version }) },
+        toClient: { de: createDeserializer({ state: 'play', isServer: false, version }), ser: createSerializer({ state: 'play', isServer: true, version }) }
+      })
+    }
   }
   return codecs.get(version)
+}
+
+// The data of the protocol the version's packets are read with
+const protocolDatas = new Map()
+function protocolData (version) {
+  if (!protocolDatas.has(version)) protocolDatas.set(version, require('minecraft-data')(protocolVersion(version)))
+  return protocolDatas.get(version)
+}
+
+// Whether the version's packets can be read at all
+function supported (version) {
+  try {
+    codec(version)
+    return true
+  } catch (err) {
+    return false
+  }
 }
 
 const decode = (version, direction, hex) => codec(version)[direction].de.parsePacketBuffer(Buffer.from(hex, 'hex')).data
@@ -259,8 +292,7 @@ const dataVersions = new Map()
 // The protocol's name for an entity_action (minecraft-data renamed some: start_elytra_flying, start_horse_jump).
 function actionName (version, ...names) {
   if (!version) return names[0]
-  if (!dataVersions.has(version)) dataVersions.set(version, require('minecraft-data')(version))
-  const type = JSON.stringify(dataVersions.get(version).protocol.play.toServer.types.packet_entity_action || '')
+  const type = JSON.stringify(protocolData(version).protocol.play.toServer.types.packet_entity_action || '')
   return names.find(name => type.includes(`"${name}"`)) || names[0]
 }
 
@@ -284,7 +316,8 @@ const TO_RAD = Math.PI / 180
 // The attribute an update_attributes property names. Before 1.20.5 it travels by name (key before 1.16); since, by registry id, which
 // minecraft-protocol decodes with a mapper that may be stale: map the decoded name back to its id and take the
 // attribute from the registry (minecraft-data's attributes are in registry order).
-function attributeResource (prop, mcData) {
+function attributeResource (prop, versionData) {
+  const mcData = versionData.protocolData || versionData
   if (prop.name !== undefined) return prop.name
   const type = mcData.protocol.play.toClient.types.packet_entity_update_attributes
   const mappings = JSON.stringify(type).match(/"mappings":({[^}]*})/)
@@ -351,7 +384,7 @@ function handle (state, packet, ctx) {
       state.pitchDegrees = Math.fround(r.pitch ? state.pitchDegrees + p.pitch : p.pitch)
       // ClientPacketListener.handleMovePlayer acknowledges, then reports where it now is (onGround and collision false);
       // since 26.3 the acknowledgement itself carries the position and rotation.
-      if (/"name":"x"/.test(JSON.stringify(ctx.mcData.protocol.play.toServer.types.packet_teleport_confirm))) {
+      if (/"name":"x"/.test(JSON.stringify((ctx.protocolData || ctx.mcData).protocol.play.toServer.types.packet_teleport_confirm))) {
         responses.push({ name: 'teleport_confirm', params: { teleportId: p.teleportId, x: state.pos.x, y: state.pos.y, z: state.pos.z, yaw: state.yawDegrees, pitch: state.pitchDegrees } })
       } else {
         responses.push({ name: 'teleport_confirm', params: { teleportId: p.teleportId } })
@@ -369,7 +402,7 @@ function handle (state, packet, ctx) {
         for (const prop of p.properties) {
           const key = ctx.mcData.attributesByName.movementSpeed.resource
           const bare = r => String(r).replace(/^minecraft:/, '')
-          if (bare(attributeResource(prop, ctx.mcData)) !== bare(key)) continue
+          if (bare(attributeResource(prop, { protocolData: ctx.protocolData || ctx.mcData })) !== bare(key)) continue
           state.attributes = { ...state.attributes, [key]: { value: prop.value, modifiers: prop.modifiers.filter(m => !String(m.uuid).endsWith('sprinting')).map(m => ({ uuid: m.uuid, amount: m.amount, operation: m.operation })) } }
         }
       }
@@ -468,8 +501,7 @@ function decodeServer (version, hex) {
   try {
     return decode(version, 'toClient', hex)
   } catch (err) {
-    if (!dataVersions.has(version)) dataVersions.set(version, require('minecraft-data')(version))
-    const type = JSON.stringify(dataVersions.get(version).protocol.play.toClient.types.packet)
+    const type = JSON.stringify(protocolData(version).protocol.play.toClient.types.packet)
     const mappings = JSON.parse(type.match(/"mappings":({[^}]*})/)[1])
     const id = readVarInt(Buffer.from(hex, 'hex'), 0).value
     const name = Object.entries(mappings).find(([key]) => Number(key) === id)
@@ -478,4 +510,4 @@ function decodeServer (version, hex) {
   }
 }
 
-module.exports = { decode, decodeServer, encode, movementPackets, MOVEMENT, handle }
+module.exports = { supported, protocolData, decode, decodeServer, encode, movementPackets, MOVEMENT, handle }

@@ -78,7 +78,9 @@ const server = (...actions) => ({ op: 'server', actions })
 const registries = new Map()
 function registry (version) {
   if (!registries.has(version)) {
-    const data = require('minecraft-data')(version)
+    // (a version minecraft-data only aliases to an older one, 1.21.7 to 1.21.1, takes the data of the release that
+    // shares its protocol, 1.21.8)
+    const data = require('minecraft-data')(version) && packets.protocolData(version)
     if (!data) throw new Error(`no minecraft-data for ${version}`)
     const registryDir = path.dirname(require.resolve('prismarine-registry'))
     const base = require(path.join(registryDir, 'loader'))(data)
@@ -96,14 +98,7 @@ function hasData (version) {
 const packetSupport = new Map()
 function packetsSupported (version) {
   if (!packetSupport.has(version)) {
-    // (minecraft-data must also hold the version's own protocol: its 1.21.7 is 1.21.1's, which minecraft-protocol refuses)
-    let supported = !!require('minecraft-data')(version)
-    try {
-      if (supported) require('minecraft-protocol').createDeserializer({ state: 'play', isServer: false, version })
-    } catch (err) {
-      supported = false
-    }
-    packetSupport.set(version, supported)
+    packetSupport.set(version, !!require('minecraft-data')(version) && packets.supported(version))
   }
   return packetSupport.get(version)
 }
@@ -523,7 +518,7 @@ function replay (version, rec, { mode = 'trajectory', fields = FIELDS, epsilon =
       state.flying = !!before.flying
     }
     // Inputs synced before this tick are those of the previous row (the state the tick started from).
-    applyInput(state, { ...(i > 0 ? rows[i - 1] : rec.start), ...(rec.start.netState ? {} : { attributes: row.attributes, attributeModifiers: row.attributeModifiers }), usingItem: row.usingItem, fireworks: row.fireworks, riptideLaunch: riptideLaunch(rec, rows, i), in: row.in }, mcData)
+    applyInput(state, { ...(i > 0 ? rows[i - 1] : rec.start), ...(rec.start.netState && packetsSupported(version) ? {} : { attributes: row.attributes, attributeModifiers: row.attributeModifiers }), usingItem: row.usingItem, fireworks: row.fireworks, riptideLaunch: riptideLaunch(rec, rows, i), in: row.in }, mcData)
     applyEvents(state, w, row.events, packetContext(version, mcData, rec))
     if (timeline) useEntities(state, timeline[i])
     physics.simulatePlayer(state, w)
@@ -547,7 +542,7 @@ function packetContext (version, mcData, rec) {
   }
   const setup = rec.setup || {}
   const mainhand = setup.equipment && setup.equipment.mainhand && setup.equipment.mainhand.id
-  return { version, mcData, entityId: net.entityId, effectNames, mainhand }
+  return { version, mcData, protocolData: packets.protocolData(version), entityId: net.entityId, effectNames, mainhand }
 }
 
 // The player state a packet handler sees, rebuilt from a recorded snapshot.
@@ -745,7 +740,7 @@ function replayUntil (version, rec, tick, options) {
   const rows = expand(rec)
   const timeline = entityTimeline(rec)
   for (let i = 0; i < tick; i++) {
-    applyInput(state, { ...(i > 0 ? rows[i - 1] : rec.start), ...(rec.start.netState ? {} : { attributes: rows[i].attributes, attributeModifiers: rows[i].attributeModifiers }), usingItem: rows[i].usingItem, fireworks: rows[i].fireworks, riptideLaunch: riptideLaunch(rec, rows, i), in: rows[i].in }, mcData)
+    applyInput(state, { ...(i > 0 ? rows[i - 1] : rec.start), ...(rec.start.netState && packetsSupported(version) ? {} : { attributes: rows[i].attributes, attributeModifiers: rows[i].attributeModifiers }), usingItem: rows[i].usingItem, fireworks: rows[i].fireworks, riptideLaunch: riptideLaunch(rec, rows, i), in: rows[i].in }, mcData)
     applyEvents(state, w, rows[i].events, packetContext(version, mcData, rec))
     if (timeline) useEntities(state, timeline[i])
     physics.simulatePlayer(state, w)
