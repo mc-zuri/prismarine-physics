@@ -307,7 +307,7 @@ function Physics (mcData, world) {
   }
 
   function collisionContextOf (entity) {
-    return { x: entity.pos.x, z: entity.pos.z, bottom: entity.pos.y, descending: !!entity.control.sneak, fallDistance: entity.fallDistance || 0, walksOnPowderSnow: !!entity.leatherBoots }
+    return { x: entity.pos.x, z: entity.pos.z, bottom: entity.pos.y, descending: !!entity.control.sneak, fallDistance: entity.fallDistance || 0, walksOnPowderSnow: !!entity.leatherBoots, entities: entity.entities }
   }
 
   const POWDER_SNOW_FALLING = [[0, 0, 0, 1, 0.8999999761581421, 1]]
@@ -442,7 +442,60 @@ function Physics (mcData, world) {
     // The world border (the default one, 29999984 out) collides too: always while inside it on 1.14-1.17 (so a move
     // under 1e-7 is dropped even in open space), only near it since (WorldBorder.isInsideCloseToBorder)
     if (vanilla.worldBorderCollider || (collisionContext && closeToBorder(collisionContext, swept))) inside.push(...WORLD_BORDER)
+    inside.push(...entityCollisions(swept))
     return inside
+  }
+
+  // ---- other entities ----
+
+  // The entities a player collides with as if they were blocks (canBeCollidedWith): boats and rafts, shulkers. The
+  // caller lists the entities around the player as entity.entities ([{ type, pos }]).
+  const isSolidEntity = type => /boat$|raft$/.test(type) || type === 'shulker'
+  function otherEntityBox (other) {
+    const p = other.pos
+    if (/boat$|raft$/.test(other.type)) {
+      const half = f32(1.375) / 2
+      return new AABB(p.x - half, p.y, p.z - half, p.x + half, p.y + f32(0.5625), p.z + half)
+    }
+    const data = mcData.entitiesByName[other.type] || { width: 1, height: 1 }
+    const half = f32(data.width) / 2
+    return new AABB(p.x - half, p.y, p.z - half, p.x + half, p.y + f32(data.height), p.z + half)
+  }
+
+  // Level.getEntityCollisions: the boxes of the solid entities touching the swept box (none for a box under 1e-7)
+  function entityCollisions (swept) {
+    const entities = collisionContext && collisionContext.entities
+    if (!entities || !entities.length) return []
+    const size = ((swept.maxX - swept.minX) + (swept.maxY - swept.minY) + (swept.maxZ - swept.minZ)) / 3
+    if (size < 1.0e-7) return []
+    const reach = swept.clone().expand(1.0e-7, 1.0e-7, 1.0e-7)
+    return entities.filter(other => isSolidEntity(other.type)).map(otherEntityBox).filter(box => box.intersects(reach))
+  }
+
+  // AbstractBoat.tick (after the player's): a boat pushes the entities in its box grown by 0.2 sideways (0.01 lower)
+  // whose feet are no higher than its bottom, away from its center (Entity.push).
+  function pushedByBoats (entity) {
+    if (!entity.entities) return
+    const box = getPlayerBB(entity.pos)
+    for (const other of entity.entities) {
+      if (!/boat$|raft$/.test(other.type)) continue
+      const boat = otherEntityBox(other)
+      const reach = new AABB(boat.minX - 0.20000000298023224, boat.minY + 0.009999999776482582, boat.minZ - 0.20000000298023224,
+        boat.maxX + 0.20000000298023224, boat.maxY - 0.009999999776482582, boat.maxZ + 0.20000000298023224)
+      if (!reach.intersects(box) || !(box.minY <= boat.minY)) continue
+      let dx = entity.pos.x - other.pos.x
+      let dz = entity.pos.z - other.pos.z
+      let distance = Math.max(Math.abs(dx), Math.abs(dz))
+      if (!(distance >= f32(0.01))) continue
+      distance = vanilla.normalizeFloatSqrt ? f32(Math.sqrt(distance)) : Math.sqrt(distance) // (Mth.sqrt in float before 1.17)
+      dx /= distance
+      dz /= distance
+      const scale = Math.min(1, 1 / distance)
+      dx *= scale
+      dz *= scale
+      entity.vel.x += dx * f32(0.05)
+      entity.vel.z += dz * f32(0.05)
+    }
   }
   const BORDER = 29999984
   const WORLD_BORDER = [
@@ -505,6 +558,9 @@ function Physics (mcData, world) {
   function legacyShapes (world, queryBB) {
     const shapes = getSurroundingBBs(world, queryBB)
     if (vanilla.legacyWorldBorder) shapes.push(...legacyBorderShapes(queryBB))
+    // (World.getCollisionBoxes: the solid entities' boxes too)
+    const entities = collisionContext && collisionContext.entities
+    if (entities) shapes.push(...entities.filter(other => isSolidEntity(other.type)).map(otherEntityBox).filter(box => box.intersects(queryBB)))
     return vanilla.voxelCollision ? shapes.filter(shape => shape.intersects(queryBB)) : shapes
   }
 
@@ -2630,7 +2686,11 @@ function Physics (mcData, world) {
 
   physics.simulatePlayer = (entity, world) => {
     const boat = entity.vehicle
-    if (!vanilla.javaBoats || !boat || !isBoatType(boat.type)) return simulateOwn(entity, world)
+    if (!vanilla.javaBoats || !boat || !isBoatType(boat.type)) {
+      simulateOwn(entity, world)
+      if (!boat) pushedByBoats(entity)
+      return entity
+    }
     // the boat ticks before its passenger, on the keys the passenger left it the tick before
     tickBoat(boat, world)
     // Entity.rideTick: the passenger's own velocity starts from rest
