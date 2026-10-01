@@ -1955,7 +1955,9 @@ function Physics (mcData, world) {
       if (vanilla.sprintStopsWhenSlow && (slow || blind || entity.elytraFlying || (entity.usingItem && !underWater))) sprinting = false
       const enough = underWater ? hasForward : forward >= 0.8
       const canStart = !sprinting && enough && food && !blind && !entity.usingItem && !(vanilla.sprintNotWhileGliding && entity.elytraFlying) &&
-        (!vanilla.sprintStopsWhenSlow || !slow || underWater)
+        (!vanilla.sprintStopsWhenSlow || !slow || underWater) &&
+        // (1.20+: a passenger only on a vehicle that sprints, a camel)
+        !(vanilla.javaBoats && entity.vehicle && !/^camel/.test(entity.vehicle.type))
       if (entity.usingItem || prevSneak) trigger = 0
       if ((entity.onGround || underWater) && !prevSneak && !hadForward && canStart && doubleTap()) sprinting = true
       if ((!inWater || underWater) && canStart && control.sprint) sprinting = true
