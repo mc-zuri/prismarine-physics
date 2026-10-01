@@ -1855,6 +1855,46 @@ function Physics (mcData, world) {
     else entity.vel.z = 0.1 * best[1]
   }
 
+  // The push out of a block before 1.16. Blocked: before 1.13 a normal cube at the cell or above it; 1.13 the same
+  // (a swimmer: at the cell only); 1.14-1.15 a view-blocking block in the box's height. The push sets the velocity
+  // toward the nearest open side: 0.1F before 1.14, 0.1 since.
+  function pushOutOfBlock (entity, world, box, x, y, z) {
+    const bx = Math.floor(x)
+    const by = Math.floor(y)
+    const bz = Math.floor(z)
+    const solid = (cx, cy, cz) => suffocates(world.getBlock(new Vec3(cx, cy, cz)))
+    let blocked
+    if (vanilla.modernMove) {
+      blocked = (cx, cz) => {
+        for (let cy = Math.floor(box.minY); cy < Math.ceil(box.maxY); cy++) if (solid(cx, cy, cz)) return true
+        return false
+      }
+    } else if (vanilla.fluidHeights && entity.swimming) {
+      blocked = (cx, cz) => solid(cx, by, cz)
+    } else {
+      blocked = (cx, cz) => solid(cx, by, cz) || solid(cx, by + 1, cz)
+    }
+    if (!blocked(bx, bz)) return
+    const dx = x - bx
+    const dz = z - bz
+    let best = null
+    let bestDistance = 9999.0
+    // (a swimmer in 1.13 still looks for a side open two blocks high)
+    const open = (vanilla.fluidHeights && !vanilla.modernMove) ? (cx, cz) => !solid(cx, by, cz) && !solid(cx, by + 1, cz) : (cx, cz) => !blocked(cx, cz)
+    for (const [sx, sz] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) { // west, east, north, south
+      const coord = sx !== 0 ? dx : dz
+      const distance = (sx > 0 || sz > 0) ? 1.0 - coord : coord
+      if (open(bx + sx, bz + sz) && distance < bestDistance) {
+        bestDistance = distance
+        best = [sx, sz]
+      }
+    }
+    if (!best) return
+    const speed = vanilla.modernMove ? 0.1 : f32(0.1)
+    if (best[0] !== 0) entity.vel.x = speed * best[0]
+    else entity.vel.z = speed * best[1]
+  }
+
   // ---- pose (1.14+) ----
 
   // LocalPlayer.isMovingSlowly: crouching (1.15+ the flag set at the tick start; the key before), or crawling
@@ -2005,6 +2045,16 @@ function Physics (mcData, world) {
       moveTowardsClosestSpace(entity, world, pos.x - w, pos.z - w)
       moveTowardsClosestSpace(entity, world, pos.x + w, pos.z - w)
       moveTowardsClosestSpace(entity, world, pos.x + w, pos.z + w)
+    } else if (!vanilla.pushOutOfBlocks && entity.gameMode !== 'spectator') {
+      // before 1.16 (EntityPlayerSP.pushOutOfBlocks / LocalPlayer.checkInBlock): from the four corners 0.35 widths out,
+      // half a block above the feet
+      const box = entityBox(entity)
+      const w = f32(0.6) * 0.35
+      const y = box.minY + 0.5
+      pushOutOfBlock(entity, world, box, pos.x - w, y, pos.z + w)
+      pushOutOfBlock(entity, world, box, pos.x - w, y, pos.z - w)
+      pushOutOfBlock(entity, world, box, pos.x + w, y, pos.z - w)
+      pushOutOfBlock(entity, world, box, pos.x + w, y, pos.z + w)
     }
     if (vanilla.sprintState) updateSprinting(entity, world)
 
