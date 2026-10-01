@@ -678,6 +678,8 @@ function report (name, version, result) {
  */
 function recorded (name, spec) {
   describe(`${name}: ${spec.description}`, function () {
+    // (a group of long recordings across many versions takes longer than mocha's default)
+    this.timeout(0)
     for (const group of spec.groups) {
       const label = group.versions.length > 1 ? `${group.versions[0]} – ${group.versions[group.versions.length - 1]}` : group.versions[0]
       describe(label, function () {
