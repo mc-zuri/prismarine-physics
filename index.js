@@ -2182,9 +2182,13 @@ function Physics (mcData, world) {
     }
     const vel = entity.vel
     const look = viewVector(entity)
-    vel.x += look.x * 0.1 + (look.x * 1.5 - vel.x) * 0.5
-    vel.y += look.y * 0.1 + (look.y * 1.5 - vel.y) * 0.5
-    vel.z += look.z * 0.1 + (look.z * 1.5 - vel.z) * 0.5
+    // each rocket attached to the player boosts it in its own tick (entity.fireworkRockets: how many fly now)
+    const rockets = entity.fireworkRockets > 0 ? entity.fireworkRockets : 1
+    for (let i = 0; i < rockets; i++) {
+      vel.x += look.x * 0.1 + (look.x * 1.5 - vel.x) * 0.5
+      vel.y += look.y * 0.1 + (look.y * 1.5 - vel.y) * 0.5
+      vel.z += look.z * 0.1 + (look.z * 1.5 - vel.z) * 0.5
+    }
     --entity.fireworkRocketDuration
   }
 
