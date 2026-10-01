@@ -2743,13 +2743,17 @@ function Physics (mcData, world) {
     if (!vanilla.attachmentPoints) entity.pos.y = boat.pos.y + f32((/raft$/.test(boat.type) ? 0.25 : -0.1) + -0.35)
     else entity.pos.y = vanilla.entityAttachments ? (boat.pos.y + rideHeight) - 0.6 : (rideHeight + boat.pos.y) + f32(-0.6)
     entity.pos.z = boat.pos.z
-    let yaw = f32(yawDegrees(entity) + boat.deltaRotation)
-    const relative = wrapDegrees(f32(yaw - boat.yaw))
-    const clamped = Math.max(f32(-105), Math.min(f32(105), relative))
-    // AbstractBoat.clampRotation adds before subtracting; reassociation loses a float rounding step.
-    yaw = f32(f32(yaw + clamped) - relative)
+    const yaw = clampBoatYaw(f32(yawDegrees(entity) + boat.deltaRotation), boat.yaw)
     entity.yawDegrees = yaw
     entity.yaw = Math.PI - yaw * Math.PI / 180
+  }
+
+  // Also called by Entity.turn through AbstractBoat.onPassengerTurned, including zero-delta mouse frames.
+  function clampBoatYaw (yaw, boatYaw) {
+    const relative = wrapDegrees(f32(yaw - boatYaw))
+    const clamped = Math.max(f32(-105), Math.min(f32(105), relative))
+    // AbstractBoat.clampRotation adds before subtracting; reassociation loses a float rounding step.
+    return f32(f32(yaw + clamped) - relative)
   }
 
   function wrapDegrees (degrees) {
@@ -3162,6 +3166,7 @@ function Physics (mcData, world) {
 
   // Share Entity.calculateViewVector with interaction rays, which use the same float/Mth arithmetic.
   physics.getViewVector = viewVector
+  physics.clampBoatYaw = clampBoatYaw
   return physics
 }
 
