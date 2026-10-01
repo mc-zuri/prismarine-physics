@@ -1921,7 +1921,8 @@ function Physics (mcData, world) {
     } else if (vanilla.sprintByForwardImpulse) {
       // 1.21.5+: any forward impulse; not in shallow water, not sneaking unless under water
       const hasForward = forwardKeys > 0
-      const possible = !blind && food
+      // (a passenger: only a vehicle that sprints itself, a camel, and no food check)
+      const possible = !blind && (entity.vehicle ? /^camel/.test(entity.vehicle.type) : food)
       const shallow = inWater && !underWater
       if (prevSneak || entity.usingItem || control.back) trigger = 0
       if (!sprinting && hasForward && possible && !shallow && !entity.usingItem && !(entity.elytraFlying && !underWater) && (!slow || underWater)) {
