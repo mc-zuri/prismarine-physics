@@ -220,8 +220,11 @@ function ridingPackets (packets, next, after, input, net, legacy, extra, version
     const up = !!k.forward
     packets.push({ name: 'steer_boat', params: { leftPaddle: (!!k.right && !k.left) || up, rightPaddle: (!!k.left && !k.right) || up } })
   }
-  const yaw = Math.fround(input.yaw)
-  const pitch = Math.fround(input.pitch)
+  // Since 26.3 the packets go out after the whole tick (LocalPlayer.sendChanges), with the rotation the vehicle gave
+  // the rider; before, from the rider's own tick, ahead of the vehicle's.
+  const late = version && !isOlder(version, '26.3') && after.yaw !== undefined
+  const yaw = Math.fround(late ? after.yaw : input.yaw)
+  const pitch = Math.fround(late ? after.pitch : input.pitch)
   if (legacy) {
     packets.push({ name: 'look', params: { yaw, pitch, onGround: !!after.onGround } })
     const strafe = Math.fround(((input.left ? 1 : 0) - (input.right ? 1 : 0)) * Math.fround(0.98))
