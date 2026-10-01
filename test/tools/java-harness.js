@@ -23,6 +23,7 @@ const assert = require('assert')
 const { Vec3 } = require('vec3')
 const { Physics } = require('../..')
 const packets = require('./java-packets')
+const attribute = require('../../lib/attribute')
 
 const FIXTURES = path.join(__dirname, '..', 'fixtures', 'java')
 const SUFFIX = '-recorded'
@@ -437,7 +438,9 @@ function checkServerPackets (version, rec) {
       const w = world(version, rec.area)
       const replies = []
       for (const part of entry.packets || [entry]) replies.push(...packets.handle(state, packets.decode(version, 'toClient', part.bytes), { ...ctx, world: w }))
-      const diffs = differences(state, { ...entry.before, ...entry.after }, PACKET_FIELDS, 0)
+      const snapshot = { ...entry.before, ...entry.after }
+      const diffs = differences(state, snapshot, PACKET_FIELDS, 0)
+      diffs.push(...stateDifferences(state, snapshot, mcData))
       // The client's replies, byte for byte (vanilla's only when the harness knows the reply: teleports, rotations).
       const sent = (entry.responses || []).map(r => r.bytes).join(' ')
       const built = replies.map(r => packets.encode(version, 'toServer', r.name, r.params)).join(' ')
@@ -445,6 +448,22 @@ function checkServerPackets (version, rec) {
       if (diffs.length) out.push({ t: row.t, type: entry.type, diffs })
     }
   })
+  return out
+}
+
+// What else a packet may change in the player: food, flight, effect levels, the movement speed.
+function stateDifferences (state, snapshot, mcData) {
+  const out = []
+  const check = (field, actual, expected) => { if (expected !== undefined && actual !== expected) out.push({ field, expected, actual }) }
+  check('food', state.food, snapshot.food)
+  check('flying', !!state.flying, snapshot.flying === undefined ? undefined : !!snapshot.flying)
+  const expectedLevels = levels(snapshot.effects)
+  for (const field of Object.keys(expectedLevels)) check(field, state[field] || 0, expectedLevels[field])
+  const key = mcData.attributesByName.movementSpeed.resource
+  // As the player reads it (LivingEntity.getSpeed casts to float): the multiplying modifiers' order (a HashSet's
+  // before 1.20.5) can move the double by an ulp.
+  const speed = a => a && a[key] ? Math.fround(attribute.getAttributeValue(a[key])) : undefined
+  check('movement_speed', speed(state.attributes), speed(attributesOf(snapshot, mcData)))
   return out
 }
 
