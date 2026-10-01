@@ -606,11 +606,14 @@ function recorded (name, spec) {
         })
 
         it('sends byte-exact movement packets', function () {
+          const failures = []
           for (const { version, rec } of runs) {
             if (!rec.start.netState || !packetsSupported(version)) this.skip()
             const bad = checkClientPackets(version, rec)
-            expectation(group.packetKnownFailure ? { knownFailure: group.packetKnownFailure } : {}, bad.length === 0, () => `${name} on ${version}: ${bad.length} ticks differ; first at tick ${bad[0].t}:\n  vanilla ${bad[0].expected.join(' ')}\n  built   ${bad[0].actual.join(' ')}`)
+            if (bad.length) failures.push(`${name} on ${version}: ${bad.length} ticks differ; first at tick ${bad[0].t}:\n  vanilla ${bad[0].expected.join(' ')}\n  built   ${bad[0].actual.join(' ')}`)
           }
+          // a known failure holds for the group while any of its versions still fails
+          expectation(group.packetKnownFailure ? { knownFailure: group.packetKnownFailure } : {}, failures.length === 0, () => failures.join('\n'))
         })
       })
     }
