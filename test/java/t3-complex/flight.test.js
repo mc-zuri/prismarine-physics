@@ -9,7 +9,18 @@ describe('vanilla recordings: flight', () => {
     steps: [hold('forward'), press('jump', 1), until('onGround', 40), release(), stopped(3)],
     groups: [
       {
-        versions: ['1.20.4', '1.21.10', '1.21.11'],
+        versions: ['1.12.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.05350800074768003, 0.33319999363422365, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [0.5979999899864197, 101.41999998688698, 2619.5], vel: [0.05350800074768003, 0.33319999363422365, 0], onGround: false },
+          'peak height 1.252': { tick: 6, pos: [1.0825423944010324, 102.25220334025373, 2619.5] },
+          'lands (1)': { tick: 12, pos: [1.955740778983589, 101, 2619.5], onGround: true },
+          'top speed 3.229 b/s': { tick: 12, pos: [1.955740778983589, 101, 2619.5], vel: [0.1469113679031433, -0.0784000015258789, 0] },
+          'final state': { tick: 22, pos: [2.2746530397005875, 101, 2619.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5980000033676625, 101.41999998688698, 2619.5], vel: [0.053508008053839436, 0.33319999363422365, 0], onGround: false },
@@ -27,6 +38,14 @@ describe('vanilla recordings: flight', () => {
     steps: [press(['back', 'left'], 40), stable(5)],
     groups: [
       {
+        versions: ['1.12.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [-0.03217336095460355, 0, -0.03217336095460355] },
+          'top speed 10.856 b/s': { tick: 40, pos: [-11.332808585008186, 105, 2607.6671914149915], vel: [-0.34926116525384626, 0, -0.34926116525384626] },
+          'final state': { tick: 54, pos: [-14.177184353862788, 105, 2604.8228156461373], vel: [-0.09326742065365515, 0, -0.09326742065365515], onGround: false }
+        }
+      },
+      {
         versions: ['1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [-0.032173359950639, 0, -0.032173359950639] },
@@ -35,7 +54,7 @@ describe('vanilla recordings: flight', () => {
         }
       },
       {
-        versions: ['1.21.10', '1.21.11'],
+        versions: ['1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [-0.03217335668800394, 0, -0.03217335668800394] },
           'top speed 10.856 b/s': { tick: 40, pos: [-11.33280701582626, 105, 2607.6671929841737], vel: [-0.3492611189373438, 0, -0.3492611189373438] },
@@ -50,6 +69,15 @@ describe('vanilla recordings: flight', () => {
     steps: [press(['forward', 'right', 'jump'], 30), stable(5)],
     groups: [
       {
+        versions: ['1.12.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.03217336095460355, 0.09000000357627869, 0.03217336095460355] },
+          'top speed 10.455 b/s': { tick: 30, pos: [8.54765473466613, 115.6875005490372, 2627.5476547346666], vel: [0.336371505620814, 0.22499995919906277, 0.336371505620814] },
+          'peak height 11.244': { tick: 39, pos: [10.685745103432529, 116.24433174406282, 2629.685745103433] },
+          'final state': { tick: 43, pos: [11.188348218409807, 116.24433174406282, 2630.1883482184103], vel: [0.09870916133882582, 0, 0.09870916133882582], onGround: false }
+        }
+      },
+      {
         versions: ['1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [0.032173359950639, 0.09000000357627869, 0.032173359950639] },
@@ -59,7 +87,7 @@ describe('vanilla recordings: flight', () => {
         }
       },
       {
-        versions: ['1.21.10', '1.21.11'],
+        versions: ['1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.03217335668800394, 0.09000000357627869, 0.03217335668800394] },
           'top speed 10.455 b/s': { tick: 30, pos: [8.547653667444068, 115.6875005490372, 2627.547653667444], vel: [0.33637146101364546, 0.22499995919906277, 0.33637146101364546] },
@@ -75,7 +103,7 @@ describe('vanilla recordings: flight', () => {
     steps: [press('sneak', 40), ticks(10)],
     groups: [
       {
-        versions: ['1.20.4', '1.21.10', '1.21.11'],
+        versions: ['1.12.2', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.09000000357627869, 0] },
           'lands (1)': { tick: 13, pos: [0.5, 101, 2619.5], onGround: true },
@@ -90,7 +118,15 @@ describe('vanilla recordings: flight', () => {
     steps: [press('forward', 40), stable(5)],
     groups: [
       {
-        versions: ['1.20.4', '1.21.10', '1.21.11'],
+        versions: ['1.12.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.0445900035089255, 0, 0] },
+          'top speed 10.638 b/s': { tick: 40, pos: [16.899436076026845, 105, 2619.5], vel: [0.48405128100152883, 0, 0] },
+          'final state': { tick: 57, pos: [21.195472214424377, 105, 2619.5], vel: [0.09740814121378194, 0, 0], onGround: false }
+        }
+      },
+      {
+        versions: ['1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.044590002817362605, 0, 0] },
           'top speed 10.638 b/s': { tick: 40, pos: [16.89943582168191, 105, 2619.5], vel: [0.4840512734941979, 0, 0] },
@@ -105,7 +141,7 @@ describe('vanilla recordings: flight', () => {
     steps: [ticks(40)],
     groups: [
       {
-        versions: ['1.20.4', '1.21.10', '1.21.11'],
+        versions: ['1.12.2', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0, 0] },
           'final state': { tick: 40, pos: [0.5, 105, 2619.5], vel: [0, 0, 0], onGround: false }
@@ -119,7 +155,7 @@ describe('vanilla recordings: flight', () => {
     steps: [press('jump', 20), stable(5)],
     groups: [
       {
-        versions: ['1.20.4', '1.21.10', '1.21.11'],
+        versions: ['1.12.2', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.09000000357627869, 0] },
           'peak height 0.2': { tick: 2, pos: [0.5, 110.20000004768372, 2629.5] },
@@ -134,7 +170,16 @@ describe('vanilla recordings: flight', () => {
     steps: [press(['forward', 'sprint'], 30), stable(5)],
     groups: [
       {
-        versions: ['1.20.4', '1.21.10', '1.21.11'],
+        versions: ['1.12.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.089180007017851, 0, 0] },
+          'top speed 14.06 b/s': { tick: 11, pos: [29.369457136839415, 105, 2619.5], vel: [0.6397490391544378, 0, 0] },
+          'touches a wall': { tick: 12, pos: [29.69999998807907, 105, 2619.5], isCollidedHorizontally: true },
+          'final state': { tick: 35, pos: [29.69999998807907, 105, 2619.5], vel: [0, 0, 0], onGround: false }
+        }
+      },
+      {
+        versions: ['1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.08918000563472521, 0, 0] },
           'top speed 14.06 b/s': { tick: 11, pos: [29.369457061317195, 105, 2619.5], vel: [0.639749029232333, 0, 0] },
@@ -150,7 +195,15 @@ describe('vanilla recordings: flight', () => {
     steps: [press('forward', 20), stable(5)],
     groups: [
       {
-        versions: ['1.20.4', '1.21.10', '1.21.11'],
+        versions: ['1.12.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.0445900035089255, 0, 0] },
+          'top speed 9.238 b/s': { tick: 20, pos: [6.718747610822209, 101.5, 2619.5], vel: [0.4203129269949565, 0, 0] },
+          'final state': { tick: 36, pos: [10.356148221596797, 101.5, 2619.5], vel: [0.09294696741987082, 0, 0], onGround: false }
+        }
+      },
+      {
+        versions: ['1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.044590002817362605, 0, 0] },
           'top speed 9.238 b/s': { tick: 20, pos: [6.718747514373348, 101.5, 2619.5], vel: [0.4203129204761675, 0, 0] },
@@ -165,7 +218,15 @@ describe('vanilla recordings: flight', () => {
     steps: [press('forward', 30), stable(5)],
     groups: [
       {
-        versions: ['1.20.4', '1.21.10', '1.21.11'],
+        versions: ['1.12.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.0445900035089255, 0, 0] },
+          'top speed 10.246 b/s': { tick: 30, pos: [11.653480463657875, 105, 2619.5], vel: [0.46618712409617047, 0, 0] },
+          'final state': { tick: 47, pos: [15.790969219454475, 105, 2619.5], vel: [0.09381324458443738, 0, 0], onGround: false }
+        }
+      },
+      {
+        versions: ['1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.044590002817362605, 0, 0] },
           'top speed 10.246 b/s': { tick: 30, pos: [11.65348029067441, 105, 2619.5], vel: [0.4661871168659017, 0, 0] },
@@ -180,7 +241,16 @@ describe('vanilla recordings: flight', () => {
     steps: [hold('forward', 'sprint'), ticks(20), release('sprint'), ticks(20), release(), stable(5)],
     groups: [
       {
-        versions: ['1.20.4', '1.21.10', '1.21.11'],
+        versions: ['1.12.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.089180007017851, 0, 0] },
+          'top speed 21.047 b/s': { tick: 36, pos: [29.05933942869411, 105, 2619.5], vel: [0.957660376368926, 0, 0] },
+          'touches a wall': { tick: 37, pos: [29.69999998807907, 105, 2619.5], isCollidedHorizontally: true },
+          'final state': { tick: 45, pos: [29.69999998807907, 105, 2619.5], vel: [0, 0, 0], onGround: false }
+        }
+      },
+      {
+        versions: ['1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.08918000563472521, 0, 0] },
           'top speed 21.047 b/s': { tick: 36, pos: [29.05933898575672, 105, 2619.5], vel: [0.9576603615162164, 0, 0] },
@@ -196,7 +266,16 @@ describe('vanilla recordings: flight', () => {
     steps: [press(['forward', 'sprint'], 40), stable(5)],
     groups: [
       {
-        versions: ['1.20.4', '1.21.10', '1.21.11'],
+        versions: ['1.12.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.089180007017851, 0, 0] },
+          'top speed 21.047 b/s': { tick: 36, pos: [29.05933942869411, 105, 2619.5], vel: [0.957660376368926, 0, 0] },
+          'touches a wall': { tick: 37, pos: [29.69999998807907, 105, 2619.5], isCollidedHorizontally: true },
+          'final state': { tick: 45, pos: [29.69999998807907, 105, 2619.5], vel: [0, 0, 0], onGround: false }
+        }
+      },
+      {
+        versions: ['1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.08918000563472521, 0, 0] },
           'top speed 21.047 b/s': { tick: 36, pos: [29.05933898575672, 105, 2619.5], vel: [0.9576603615162164, 0, 0] },
@@ -212,7 +291,15 @@ describe('vanilla recordings: flight', () => {
     steps: [hold('forward', 'sprint'), turn(6, 0, 40), release(), stable(5)],
     groups: [
       {
-        versions: ['1.20.4', '1.21.10', '1.21.11'],
+        versions: ['1.12.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.0886917025824725, 0, 0.009319581453124948] },
+          'top speed 15.864 b/s': { tick: 22, pos: [7.574974687352723, 105, 2629.2283117767033], vel: [-0.023639571916673027, 0, 0.7214367250994597] },
+          'final state': { tick: 60, pos: [-8.214680781556412, 105, 2634.882263613129], vel: [-0.09883037022171506, 0, -0.024326795134956912], onGround: false }
+        }
+      },
+      {
+        versions: ['1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.0886917039488184, 0, 0.009319581298780123] },
           'top speed 15.864 b/s': { tick: 22, pos: [7.574974597901763, 105, 2629.2283116092854], vel: [-0.023639572718839354, 0, 0.7214367150713339] },
@@ -227,7 +314,7 @@ describe('vanilla recordings: flight', () => {
     steps: [ticks(5), press('jump', 1), ticks(3), press('jump', 1), until('onGround', 100), ticks(5)],
     groups: [
       {
-        versions: ['1.20.4', '1.21.10', '1.21.11'],
+        versions: ['1.12.2', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0, 0] },
           'peak height 0.346': { tick: 10, pos: [0.5, 105.34584001374245, 2619.5] },
@@ -243,7 +330,7 @@ describe('vanilla recordings: flight', () => {
     steps: [press('jump', 1), ticks(3), press('jump', 1), ticks(30)],
     groups: [
       {
-        versions: ['1.20.4', '1.21.10', '1.21.11'],
+        versions: ['1.12.2', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 101.41999998688698, 2619.5], vel: [0, 0.33319999363422365, 0], onGround: false },
@@ -259,7 +346,7 @@ describe('vanilla recordings: flight', () => {
     steps: [press('jump', 1), ticks(8), press('jump', 1), ticks(30)],
     groups: [
       {
-        versions: ['1.20.4', '1.21.10', '1.21.11'],
+        versions: ['1.12.2', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 101.41999998688698, 2619.5], vel: [0, 0.33319999363422365, 0], onGround: false },
@@ -276,7 +363,7 @@ describe('vanilla recordings: flight', () => {
     steps: [press('jump', 20), stable(5)],
     groups: [
       {
-        versions: ['1.20.4', '1.21.10', '1.21.11'],
+        versions: ['1.12.2', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.09000000357627869, 0] },
           'peak height 7.474': { tick: 26, pos: [0.5, 112.47375725650267, 2619.5] },
@@ -291,7 +378,15 @@ describe('vanilla recordings: flight', () => {
     steps: [press(['forward', 'sprint'], 12), stable(5)],
     groups: [
       {
-        versions: ['1.20.4', '1.21.10', '1.21.11'],
+        versions: ['1.12.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.089180007017851, 0, 0] },
+          'top speed 14.755 b/s': { tick: 12, pos: [30.107206180881434, 105, 2619.5], vel: [0.6713516494264756, 0, 0] },
+          'final state': { tick: 33, pos: [36.53728768214883, 105, 2619.5], vel: [0.09264448294800876, 0, 0], onGround: false }
+        }
+      },
+      {
+        versions: ['1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.08918000563472521, 0, 0] },
           'top speed 14.755 b/s': { tick: 12, pos: [30.107206093917192, 105, 2619.5], vel: [0.6713516390142342, 0, 0] },
@@ -306,7 +401,7 @@ describe('vanilla recordings: flight', () => {
     steps: [press('jump', 20), press('sneak', 30), stable(5)],
     groups: [
       {
-        versions: ['1.20.4', '1.21.10', '1.21.11'],
+        versions: ['1.12.2', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.09000000357627869, 0] },
           'peak height 7.013': { tick: 21, pos: [0.5, 112.01251261818695, 2619.5] },

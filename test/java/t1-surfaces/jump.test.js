@@ -69,7 +69,7 @@ describe('vanilla recordings: jump', () => {
         }
       },
       {
-        versions: ['1.20.5', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9'],
+        versions: ['1.20.5', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [-4.5, 101.20000004768372, 287.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -79,7 +79,7 @@ describe('vanilla recordings: jump', () => {
         }
       },
       {
-        versions: ['1.21.10', '1.21.11'],
+        versions: ['1.21.9', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [-4.5, 101.20000004768372, 287.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -99,7 +99,7 @@ describe('vanilla recordings: jump', () => {
         }
       },
       {
-        versions: ['26.2'],
+        versions: ['26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [-4.5, 101.20000004768372, 287.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -186,7 +186,7 @@ describe('vanilla recordings: jump', () => {
         }
       },
       {
-        versions: ['1.20.5', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9'],
+        versions: ['1.20.5', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [-0.5, 97.41999998688698, 1106.5], vel: [0, 0.33319999363422365, 0], onGround: false },
@@ -196,7 +196,7 @@ describe('vanilla recordings: jump', () => {
         }
       },
       {
-        versions: ['1.21.10', '1.21.11'],
+        versions: ['1.21.9', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [-0.5, 96.41999998688698, 1106.5], vel: [0, 0.33319999363422365, 0], onGround: false },
@@ -216,7 +216,7 @@ describe('vanilla recordings: jump', () => {
         }
       },
       {
-        versions: ['26.2'],
+        versions: ['26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [-0.5, 96.41999998688698, 1106.5], vel: [0, 0.33319999363422365, 0], onGround: false },

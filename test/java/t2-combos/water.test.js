@@ -9,7 +9,31 @@ describe('vanilla recordings: water', () => {
     steps: [ticks(250)],
     groups: [
       {
-        versions: ['1.20.4', '1.21.10', '1.21.11'],
+        versions: ['1.12.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.011200000166893006, -0.02, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [-3.486, 101, 1887.5], vel: [0.011200000166893006, -0.02, 0], onGround: false },
+          'enters water': { tick: 1, pos: [-3.486, 101, 1887.5], isInWater: true },
+          'lands (1)': { tick: 2, pos: [-3.460799999833107, 101, 1887.5], onGround: true },
+          'top speed 1.4 b/s': { tick: 50, pos: [-0.27999583263760647, 101, 1887.5], vel: [0.05599920491296243, -0.02, 0] },
+          'touches a wall': { tick: 67, pos: [0.6999999880790709, 101, 1888.002992856818], isCollidedHorizontally: true },
+          'final state': { tick: 250, pos: [0.6999999880790709, 101, 1890.699999988079], vel: [0, -0.02, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.20.4', '1.21.9', '1.21.10', '1.21.11'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.011200000166893006, -0.005, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [-3.486, 101, 1887.5], vel: [0.011200000166893006, -0.005, 0], onGround: false },
+          'enters water': { tick: 1, pos: [-3.486, 101, 1887.5], isInWater: true },
+          'lands (1)': { tick: 2, pos: [-3.460799999833107, 101, 1887.5], onGround: true },
+          'top speed 1.4 b/s': { tick: 50, pos: [-0.2799958326376065, 101, 1887.5], vel: [0.05599920491296243, -0.005, 0] },
+          'touches a wall': { tick: 68, pos: [0.699999988079071, 101, 1887.9951209216142], isCollidedHorizontally: true },
+          'final state': { tick: 250, pos: [0.699999988079071, 101, 1890.699999988079], vel: [0, -0.005, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.011200000166893006, -0.005, 0] },
           'leaves the ground (1)': { tick: 1, pos: [-3.486, 101, 1887.5], vel: [0.011200000166893006, -0.005, 0], onGround: false },
@@ -28,7 +52,17 @@ describe('vanilla recordings: water', () => {
     steps: [ticks(200)],
     groups: [
       {
-        versions: ['1.20.4', '1.21.10', '1.21.11'],
+        versions: ['1.12.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.02, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [-3.5, 101, 1881.5], vel: [0, -0.02, 0], onGround: false },
+          'enters water': { tick: 1, pos: [-3.5, 101, 1881.5], isInWater: true },
+          'lands (1)': { tick: 2, pos: [-3.5, 101, 1881.5], onGround: true },
+          'final state': { tick: 200, pos: [-3.5, 101, 1881.5], vel: [0, -0.02, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.005, 0] },
           'leaves the ground (1)': { tick: 1, pos: [-3.5, 101, 1881.5], vel: [0, -0.005, 0], onGround: false },
@@ -45,7 +79,18 @@ describe('vanilla recordings: water', () => {
     steps: [press(['forward', 'sprint'], 30), stable(5)],
     groups: [
       {
-        versions: ['1.20.4', '1.21.10', '1.21.11'],
+        versions: ['1.12.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.015680000419616702, -0.02, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [-3.480399999767542, 101, 1881.5], vel: [0.015680000419616702, -0.02, 0], onGround: false },
+          'enters water': { tick: 1, pos: [-3.480399999767542, 101, 1881.5], isInWater: true },
+          'lands (1)': { tick: 2, pos: [-3.445119999115467, 101, 1881.5], onGround: true },
+          'top speed 3.352 b/s': { tick: 30, pos: [0.519543303054387, 101, 1881.5], vel: [0.13409139427955635, -0.02, 0] },
+          'final state': { tick: 35, pos: [1.1320553470147767, 101, 1881.5], vel: [0.08158899278919098, -0.02, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.01568000018835067, -0.005, 0] },
           'leaves the ground (1)': { tick: 1, pos: [-3.4804000000566244, 101, 1881.5], vel: [0.01568000018835067, -0.005, 0], onGround: false },
@@ -63,7 +108,18 @@ describe('vanilla recordings: water', () => {
     steps: [press('forward', 20), stable(5)],
     groups: [
       {
-        versions: ['1.20.4', '1.21.10', '1.21.11'],
+        versions: ['1.12.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.05350800074768003] },
+          'leaves the ground (1)': { tick: 1, pos: [3.5, 101, 1879.5979999899864], vel: [0, -0.0784000015258789, 0.05350800074768003], onGround: false },
+          'lands (1)': { tick: 2, pos: [3.5, 101, 1879.6711079909664], onGround: true },
+          'enters water': { tick: 3, pos: [3.5, 101, 1879.8356362637621], isInWater: true },
+          'top speed 3.291 b/s': { tick: 3, pos: [3.5, 101, 1879.8356362637621], vel: [0.007644000887870789, -0.0784000015258789, 0.08983244738071554] },
+          'final state': { tick: 25, pos: [4.800004083282888, 101, 1881.8219262754026], vel: [0.05564319972854948, -0.02, 0.025774472682892558], onGround: true }
+        }
+      },
+      {
+        versions: ['1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'leaves the ground (1)': { tick: 1, pos: [3.5, 101, 1879.5980000033676], vel: [0, -0.0784000015258789, 0.053508008053839436], onGround: false },
@@ -81,6 +137,17 @@ describe('vanilla recordings: water', () => {
     steps: [press('forward', 60), stable(5)],
     groups: [
       {
+        versions: ['1.12.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [-0.004480000252723697, -0.02, 1.9202463847881833e-18] },
+          'leaves the ground (1)': { tick: 1, pos: [9.494399999767541, 101, 1881.5], vel: [-0.004480000252723697, -0.02, 1.9202463847881833e-18], onGround: false },
+          'enters water': { tick: 1, pos: [9.494399999767541, 101, 1881.5], isInWater: true },
+          'lands (1)': { tick: 2, pos: [9.48431999928236, 101, 1881.5], onGround: true },
+          'top speed 0.827 b/s': { tick: 65, pos: [8.471212785891149, 101, 1881.5], vel: [0.03306240109615328, -0.02, 0] },
+          'final state': { tick: 65, pos: [8.471212785891149, 101, 1881.5], vel: [0.03306240109615328, -0.02, 0], onGround: true }
+        }
+      },
+      {
         versions: ['1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [-0.01208000013470649, -0.005, 1.9202462879198486e-18] },
@@ -92,7 +159,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.21.10', '1.21.11'],
+        versions: ['1.21.9', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [-0.01208000013470649, -0.005, 1.9202462879198486e-18] },
           'leaves the ground (1)': { tick: 1, pos: [9.484900000056625, 101, 1881.5], vel: [-0.01208000013470649, -0.005, 1.9202462879198486e-18], onGround: false },
@@ -100,6 +167,17 @@ describe('vanilla recordings: water', () => {
           'lands (1)': { tick: 2, pos: [9.456317099221707, 101, 1881.5], onGround: true },
           'top speed 1.626 b/s': { tick: 19, pos: [8.264439173555031, 101, 1881.5], vel: [-0.0650400619872233, -0.005, 9.462863636986973e-18] },
           'final state': { tick: 65, pos: [5.7766968357658754, 101, 1881.5], vel: [0.029878637269210813, -0.005, 3.146127118619548e-18], onGround: true }
+        }
+      },
+      {
+        versions: ['26.2', '26.3'],
+        milestones: {
+          'first tick': { tick: 1, vel: [-0.01208000013470649, -0.005, 1.9202462879198486e-18] },
+          'leaves the ground (1)': { tick: 1, pos: [9.484900000056625, 101, 1881.5], vel: [-0.01208000013470649, -0.005, 1.9202462879198486e-18], onGround: false },
+          'enters water': { tick: 1, pos: [9.484900000056625, 101, 1881.5], isInWater: true },
+          'lands (1)': { tick: 2, pos: [9.456331111112833, 101, 1881.5], onGround: true },
+          'top speed 1.625 b/s': { tick: 19, pos: [8.265425054289327, 101, 1881.5], vel: [-0.06498502408204918, -0.005, 9.462863636986973e-18] },
+          'final state': { tick: 65, pos: [5.779770075870305, 101, 1881.5], vel: [0.02987928124138854, -0.005, 3.146127118619548e-18], onGround: true }
         }
       }
     ]
@@ -110,7 +188,19 @@ describe('vanilla recordings: water', () => {
     steps: [press('forward', 18), look(0, 0), press('forward', 25), stable(5)],
     groups: [
       {
-        versions: ['1.20.4', '1.21.10', '1.21.11'],
+        versions: ['1.12.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.026880000586509707, -0.02, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [-3.466399999767542, 101, 1887.5], vel: [0.026880000586509707, -0.02, 0], onGround: false },
+          'enters water': { tick: 1, pos: [-3.466399999767542, 101, 1887.5], isInWater: true },
+          'lands (1)': { tick: 2, pos: [-3.4059199989485744, 101, 1887.5], onGround: true },
+          'top speed 3.299 b/s': { tick: 18, pos: [-1.1358942128530887, 101, 1887.5], vel: [0.13197887493720092, -0.02, 0] },
+          'touches a wall': { tick: 23, pos: [-0.5304836140793641, 101, 1887.699999988079], isCollidedHorizontally: true },
+          'final state': { tick: 48, pos: [0.6999999880790709, 101, 1889.2697350158985], vel: [0, -0.02, 0.07595077519750067], onGround: true }
+        }
+      },
+      {
+        versions: ['1.20.4', '1.21.9', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0.026880000355243676, -0.005, 0] },
           'leaves the ground (1)': { tick: 1, pos: [-3.4664000000566246, 101, 1887.5], vel: [0.026880000355243676, -0.005, 0], onGround: false },
@@ -119,6 +209,18 @@ describe('vanilla recordings: water', () => {
           'top speed 3.299 b/s': { tick: 18, pos: [-1.13589423319302, 101, 1887.5], vel: [0.13197887380170126, -0.005, 0] },
           'touches a wall': { tick: 23, pos: [-0.5304836382363911, 101, 1887.699999988079], isCollidedHorizontally: true },
           'final state': { tick: 48, pos: [0.699999988079071, 101, 1889.0571564786183], vel: [0, -0.005, 0.045735607834015944], onGround: true }
+        }
+      },
+      {
+        versions: ['26.2', '26.3'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.026880000355243676, -0.005, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [-3.4664000000566246, 101, 1887.5], vel: [0.026880000355243676, -0.005, 0], onGround: false },
+          'enters water': { tick: 1, pos: [-3.4664000000566246, 101, 1887.5], isInWater: true },
+          'lands (1)': { tick: 2, pos: [-3.405919999758005, 101, 1887.5], onGround: true },
+          'top speed 3.299 b/s': { tick: 18, pos: [-1.13589423319302, 101, 1887.5], vel: [0.13197887380170126, -0.005, 0] },
+          'touches a wall': { tick: 23, pos: [-0.5304836382363911, 101, 1887.699999988079], isCollidedHorizontally: true },
+          'final state': { tick: 48, pos: [0.699999988079071, 101, 1889.0574245181583], vel: [0, -0.005, 0.045779751675828664], onGround: true }
         }
       }
     ]

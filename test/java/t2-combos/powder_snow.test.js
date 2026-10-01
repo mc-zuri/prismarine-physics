@@ -9,6 +9,18 @@ describe('vanilla recordings: powder_snow', () => {
     steps: [press('jump', 60), stable(5, 200)],
     groups: [
       {
+        versions: ['1.12.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [0.5, 98.20000004768372, 920.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'peak height 0.2': { tick: 1, pos: [0.5, 98.20000004768372, 920.5] },
+          'lands (1)': { tick: 3, pos: [0.5, 98, 920.5], onGround: true },
+          'leaves the ground (2)': { tick: 11, pos: [0.5, 98.20000004768372, 920.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'lands (2)': { tick: 13, pos: [0.5, 98, 920.5], onGround: true },
+          'final state': { tick: 65, pos: [0.5, 98, 920.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
         versions: ['1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.11760000228881837, 0] },
@@ -22,7 +34,7 @@ describe('vanilla recordings: powder_snow', () => {
         }
       },
       {
-        versions: ['1.21.10', '1.21.11'],
+        versions: ['1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 98.41999998688698, 920.5], vel: [0, 0.33319999363422365, 0], onGround: false },
@@ -42,6 +54,15 @@ describe('vanilla recordings: powder_snow', () => {
     steps: [ticks(60), stable(5, 200)],
     groups: [
       {
+        versions: ['1.12.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [0.5, 113, 920.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 19, pos: [0.5, 101, 920.5], onGround: true },
+          'final state': { tick: 65, pos: [0.5, 101, 920.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
         versions: ['1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
@@ -54,7 +75,7 @@ describe('vanilla recordings: powder_snow', () => {
         }
       },
       {
-        versions: ['1.21.10', '1.21.11'],
+        versions: ['1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 113, 920.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -73,7 +94,16 @@ describe('vanilla recordings: powder_snow', () => {
     steps: [until('onGround', 60), ticks(5), press('sneak', 40), stable(5, 200)],
     groups: [
       {
-        versions: ['1.20.4', '1.21.10', '1.21.11'],
+        versions: ['1.12.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [0.5, 107.5, 920.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'lands (1)': { tick: 14, pos: [0.5, 101, 920.5], onGround: true },
+          'final state': { tick: 64, pos: [0.5, 101, 920.5], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 107.5, 920.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -92,7 +122,17 @@ describe('vanilla recordings: powder_snow', () => {
     steps: [press('forward', 40), stable(5, 200)],
     groups: [
       {
-        versions: ['1.20.4', '1.21.10', '1.21.11'],
+        versions: ['1.12.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.05350800074768003] },
+          'leaves the ground (1)': { tick: 1, pos: [0.5, 107, 915.5979999899864], vel: [0, -0.0784000015258789, 0.05350800074768003], onGround: false },
+          'lands (1)': { tick: 14, pos: [0.5, 101, 917.293377496722], onGround: true },
+          'top speed 5.074 b/s': { tick: 15, pos: [0.5, 101, 917.5471015593349], vel: [0, -0.0784000015258789, 0.13853335427765615] },
+          'final state': { tick: 45, pos: [0.5, 101, 923.2361200207457], vel: [0, -0.0784000015258789, 0.005719083251375377], onGround: true }
+        }
+      },
+      {
+        versions: ['1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 107, 915.5980000033677], vel: [0, -0.0784000015258789, 0.053508008053839436], onGround: false },

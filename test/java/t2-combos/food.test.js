@@ -9,7 +9,18 @@ describe('vanilla recordings: food', () => {
     steps: [hold('forward'), press('jump', 1), until('onGround', 40), release(), stopped(3)],
     groups: [
       {
-        versions: ['1.20.4', '1.21.10', '1.21.11'],
+        versions: ['1.12.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0.05350800074768003] },
+          'leaves the ground (1)': { tick: 1, pos: [0.5, 101.41999998688698, 38.59799998998642], vel: [0, 0.33319999363422365, 0.05350800074768003], onGround: false },
+          'peak height 1.252': { tick: 6, pos: [0.5, 102.25220334025373, 39.08254239440103] },
+          'lands (1)': { tick: 12, pos: [0.5, 101, 39.95574077898359], onGround: true },
+          'top speed 3.229 b/s': { tick: 12, pos: [0.5, 101, 39.95574077898359], vel: [0, -0.0784000015258789, 0.1469113679031433] },
+          'final state': { tick: 22, pos: [0.5, 101, 40.274653039700596], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0.053508008053839436] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 101.41999998688698, 38.59800000336766], vel: [0, 0.33319999363422365, 0.053508008053839436], onGround: false },
@@ -27,7 +38,15 @@ describe('vanilla recordings: food', () => {
     steps: [press(['forward', 'sprint'], 30), stopped(3)],
     groups: [
       {
-        versions: ['1.20.4', '1.21.10', '1.21.11'],
+        versions: ['1.12.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.06956039771757005] },
+          'top speed 5.612 b/s': { tick: 30, pos: [0.5, 101, 46.58102023939666], vel: [0, -0.0784000015258789, 0.15321675446334057] },
+          'final state': { tick: 40, pos: [0.5, 101, 46.91362010721519], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.0695604148553142] },
           'top speed 5.612 b/s': { tick: 30, pos: [0.5, 101, 46.5810222303349], vel: [0, -0.0784000015258789, 0.15321679221168047] },
@@ -42,7 +61,15 @@ describe('vanilla recordings: food', () => {
     steps: [press(['forward', 'sprint'], 30), stopped(3)],
     groups: [
       {
-        versions: ['1.20.4', '1.21.10', '1.21.11'],
+        versions: ['1.12.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.06956039771757005] },
+          'top speed 5.612 b/s': { tick: 30, pos: [0.5, 101, 46.58102023939666], vel: [0, -0.0784000015258789, 0.15321675446334057] },
+          'final state': { tick: 40, pos: [0.5, 101, 46.91362010721519], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.0695604148553142] },
           'top speed 5.612 b/s': { tick: 30, pos: [0.5, 101, 46.5810222303349], vel: [0, -0.0784000015258789, 0.15321679221168047] },
@@ -57,6 +84,14 @@ describe('vanilla recordings: food', () => {
     steps: [hold('forward', 'sprint'), ticks(15), server({ food: 6 }), ticks(25), release(), stopped(3)],
     groups: [
       {
+        versions: ['1.12.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.06956039771757005] },
+          'top speed 5.612 b/s': { tick: 40, pos: [0.5, 101, 49.06339952794539], vel: [0, -0.0784000015258789, 0.15321656993458024] },
+          'final state': { tick: 50, pos: [0.5, 101, 49.39599899519258], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
         versions: ['1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.0695604148553142] },
@@ -65,11 +100,35 @@ describe('vanilla recordings: food', () => {
         }
       },
       {
+        versions: ['1.21.9'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.0695604148553142] },
+          'top speed 5.612 b/s': { tick: 40, pos: [0.5, 101, 48.998645272927895], vel: [0, -0.0784000015258789, 0.1532161540432461] },
+          'final state': { tick: 50, pos: [0.5, 101, 49.331243837366486], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
         versions: ['1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.0695604148553142] },
           'top speed 5.612 b/s': { tick: 40, pos: [0.5, 101, 49.38719029215573], vel: [0, -0.0784000015258789, 0.15321679420723386] },
           'final state': { tick: 50, pos: [0.5, 101, 49.71979024624951], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['26.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.0695604148553142] },
+          'top speed 5.612 b/s': { tick: 40, pos: [0.5, 101, 48.86913320667827], vel: [0, -0.0784000015258789, 0.15321460582295549] },
+          'final state': { tick: 50, pos: [0.5, 101, 49.20172841027121], vel: [0, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['26.3'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.0695604148553142] },
+          'top speed 5.612 b/s': { tick: 40, pos: [0.5, 101, 49.128159732726175], vel: [0, -0.0784000015258789, 0.15321661559259347] },
+          'final state': { tick: 50, pos: [0.5, 101, 49.46075929908686], vel: [0, -0.0784000015258789, 0], onGround: true }
         }
       }
     ]

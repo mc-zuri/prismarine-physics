@@ -53,7 +53,7 @@ describe('vanilla recordings: scaffolding', () => {
         }
       },
       {
-        versions: ['1.20.5', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9'],
+        versions: ['1.20.5', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 112, 673.5980000033677], vel: [0, -0.0784000015258789, 0.053508008053839436], onGround: false },
@@ -65,7 +65,7 @@ describe('vanilla recordings: scaffolding', () => {
         }
       },
       {
-        versions: ['1.21.10', '1.21.11'],
+        versions: ['1.21.9', '1.21.10', '1.21.11'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'leaves the ground (1)': { tick: 16, pos: [0.5, 111.92159999847412, 676.6941597887683], vel: [0, -0.1552320045166016, 0.11785171235343735], onGround: false },
@@ -87,7 +87,7 @@ describe('vanilla recordings: scaffolding', () => {
         }
       },
       {
-        versions: ['26.2'],
+        versions: ['26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'leaves the ground (1)': { tick: 16, pos: [0.5, 111.92159999847412, 676.6941597887683], vel: [0, -0.1552320045166016, 0.11785171235343735], onGround: false },
