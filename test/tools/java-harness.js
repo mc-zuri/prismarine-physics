@@ -304,26 +304,28 @@ function makeState (rec, mcData) {
     // the auto-jump option the recording ran with
     autoJump: !!setup.autoJump,
     // the vehicle ridden, with the keys it last had from its rider
-    vehicle: vehicleFrom(s.vehicle, s.netState && s.netState.lastSentInput ? keysOf(s.netState.lastSentInput) : {}, s.netState && s.netState.vehicleId)
+    vehicle: vehicleFrom(s.vehicle, s.netState && s.netState.lastSentInput ? keysOf(s.netState.lastSentInput) : {}, s.netState && s.netState.vehicleId, setup.mount && setup.mount.entity)
   }
 }
 
 const keysOf = held => ({ forward: held[0], back: held[1], left: held[2], right: held[3], jump: held[4], sneak: held[5], sprint: held[6] })
 
 // A recorded vehicle as the engine keeps it; input: the rider's keys of the tick before.
-function vehicleFrom (v, keys, id) {
+function vehicleFrom (v, keys, id, mount) {
   if (!v) return undefined
   return {
     id,
-    type: v.type,
+    // (before 1.21.2 every boat is a "boat": the variant mounted tells a raft)
+    type: v.type === 'boat' && mount ? mount : v.type,
     pos: new Vec3(...v.pos),
     vel: new Vec3(...v.vel),
-    yaw: v.yaw,
-    pitch: v.pitch,
+    // (the rotation, turn and friction are Java floats, written as their shortest decimal)
+    yaw: Math.fround(v.yaw),
+    pitch: Math.fround(v.pitch),
     onGround: v.onGround,
     status: v.status,
-    deltaRotation: v.deltaRotation || 0,
-    landFriction: v.landFriction || 0,
+    deltaRotation: Math.fround(v.deltaRotation || 0),
+    landFriction: Math.fround(v.landFriction || 0),
     waterLevel: v.waterLevel,
     jumpRidingScale: v.jumpRidingScale,
     input: { left: !!keys.left, right: !!keys.right, up: !!keys.forward, down: !!keys.back }
@@ -446,7 +448,7 @@ function replay (version, rec, { mode = 'trajectory', fields = FIELDS, epsilon =
       state.jumpTicks = before.jumpTicks
       // the state the tick carries over: sprinting, and the sneak key the next crouching comes from
       state.sprinting = before.sprinting
-      state.vehicle = vehicleFrom(before.vehicle, before.in || {}, before.netState && before.netState.vehicleId)
+      state.vehicle = vehicleFrom(before.vehicle, before.in || {}, before.netState && before.netState.vehicleId, rec.setup && rec.setup.mount && rec.setup.mount.entity)
       state.isCrouching = before.shiftKeyDown
       state.pose = before.pose
       state.fallDistance = before.fallDistance || 0
