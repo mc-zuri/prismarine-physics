@@ -405,7 +405,8 @@ describe('Elytra tests', () => {
     expect(player.fireworkRocketDuration).toEqual(19)
 
     const playerState = new PlayerState(player, controls)
-    while (playerState.isInLava) {
+    // (the 0.6 tall gliding box of 1.9-1.13 is out of lava now and then on the way up: fly until above it)
+    while (playerState.isInLava || playerState.pos.y < 60) {
       playerState.fireworkRocketDuration = 1
       physics.simulatePlayer(playerState, lavaWorld)
     }

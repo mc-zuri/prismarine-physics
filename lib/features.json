@@ -112,6 +112,12 @@
     "since": "1.21"
   },
   {
+    "name": "legacyPlayerSize",
+    "description": "EntityPlayer.updateSize: 1.65 tall while sneaking, 0.6 while gliding; a resized box keeps its lower corner",
+    "since": "1.9",
+    "before": "1.14"
+  },
+  {
     "name": "positionFromBoxCenter",
     "description": "After a move the position is the center of the moved bounding box",
     "since": "1.14",

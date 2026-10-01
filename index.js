@@ -157,6 +157,7 @@ function Physics (mcData, world) {
     modernMove: supportFeature('modernMove'),
     candidateStepHeights: supportFeature('candidateStepUpHeights'),
     positionFromBoxCenter: supportFeature('positionFromBoxCenter'),
+    legacyPlayerSize: supportFeature('legacyPlayerSize'),
     moveWhenBlocked: supportFeature('moveWhenFullyBlocked'),
     collisionEpsilonVelocity: supportFeature('collisionEpsilonVelocityReset'),
     waterSprintSlowdown: supportFeature('proportionalLiquidGravity'),
@@ -341,13 +342,36 @@ function Physics (mcData, world) {
   }
 
   // The player's box. Before 1.17 vanilla keeps the box across ticks, moves it and takes the position from its
-  // center; while the position is still that center (nobody moved the player), the kept box is the one to use.
+  // center; while the position is still the one the box was kept at (nobody moved the player), the kept box is the
+  // one to use. (A resized box keeps its corner, so its center may be an ulp off the position.)
   function entityBox (entity) {
     const box = entity.javaBox
     const pos = entity.pos
-    if (box && (vanilla.positionFromBoxCenter || !vanilla.modernMove) && (box.minX + box.maxX) / 2 === pos.x &&
-      box.minY === pos.y && (box.minZ + box.maxZ) / 2 === pos.z) return box.clone()
+    if (box && (vanilla.positionFromBoxCenter || !vanilla.modernMove) && (box.at
+      ? box.at[0] === pos.x && box.at[1] === pos.y && box.at[2] === pos.z
+      : (box.minX + box.maxX) / 2 === pos.x && box.minY === pos.y && (box.minZ + box.maxZ) / 2 === pos.z)) return box.clone()
     return getPlayerBB(pos)
+  }
+
+  function keepBox (entity, box) {
+    const kept = box.clone()
+    kept.at = [entity.pos.x, entity.pos.y, entity.pos.z]
+    entity.javaBox = kept
+  }
+
+  // EntityPlayer.updateSize at the end of the tick (1.9-1.13): 1.65 tall sneaking, 0.6 gliding (1.13: swimming); the
+  // box keeps its lower corner and grows to the new size, unless that box would collide.
+  const LEGACY_HEIGHT = { standing: Math.fround(1.8), crouching: Math.fround(1.65), fall_flying: Math.fround(0.6), swimming: Math.fround(0.6) }
+  function updateLegacySize (entity, world) {
+    const desired = entity.elytraFlying ? 'fall_flying' : (vanilla.fluidHeights && entity.swimming) ? 'swimming' : entity.control.sneak ? 'crouching' : 'standing'
+    const current = LEGACY_HEIGHT[entity.pose] ? entity.pose : 'standing'
+    if (LEGACY_HEIGHT[desired] === LEGACY_HEIGHT[current]) return
+    const box = entityBox(entity)
+    const width = Math.fround(0.6)
+    const resized = new AABB(box.minX, box.minY, box.minZ, box.minX + width, box.minY + LEGACY_HEIGHT[desired], box.minZ + width)
+    if (collidesWithBlocks(world, resized)) return
+    entity.pose = desired
+    keepBox(entity, resized)
   }
 
   // ---- collision as vanilla computes it ----
@@ -625,7 +649,7 @@ function Physics (mcData, world) {
           pos.x = (playerBB.minX + playerBB.maxX) / 2
           pos.y = playerBB.minY
           pos.z = (playerBB.minZ + playerBB.maxZ) / 2
-          entity.javaBox = playerBB.clone()
+          keepBox(entity, playerBB)
         } else {
           const from = pos.clone()
           pos.x += moved.x
@@ -744,7 +768,7 @@ function Physics (mcData, world) {
     pos.x = (playerBB.minX + playerBB.maxX) / 2
     pos.y = playerBB.minY
     pos.z = (playerBB.minZ + playerBB.maxZ) / 2
-    entity.javaBox = playerBB.clone()
+    keepBox(entity, playerBB)
     entity.isCollidedHorizontally = dx !== oldVelX || dz !== oldVelZ
     entity.isCollidedVertically = dy !== oldVelY
     entity.onGround = entity.isCollidedVertically && oldVelY < 0
@@ -1929,7 +1953,7 @@ function Physics (mcData, world) {
     const pos = entity.pos
     const startPos = pos.clone()
     boxScale = vanilla.playerAttributes ? f32(attributeValue(entity, 'scale', 1)) : 1
-    boxHeight = f32((vanilla.crouchPose ? POSE_HEIGHT[entity.pose] || physics.playerHeight : physics.playerHeight) * boxScale)
+    boxHeight = f32((vanilla.crouchPose ? POSE_HEIGHT[entity.pose] || physics.playerHeight : vanilla.legacyPlayerSize ? LEGACY_HEIGHT[entity.pose] || physics.playerHeight : physics.playerHeight) * boxScale)
     boxHalfWidth = f32(f32(f32(0.6) * boxScale) / 2)
     entity.movementsThisTick = vanilla.effectsAfterTravel ? [] : undefined
 
@@ -2085,6 +2109,7 @@ function Physics (mcData, world) {
     // The sneak key the next tick's crouching comes from
     entity.isCrouching = !!entity.control.sneak && !entity.elytraFlying
     if (vanilla.crouchPose) updatePose(entity, world)
+    else if (vanilla.legacyPlayerSize) updateLegacySize(entity, world)
 
     return entity
   }
