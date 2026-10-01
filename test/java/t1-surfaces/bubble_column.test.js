@@ -9,13 +9,23 @@ describe('vanilla recordings: bubble_column', () => {
     steps: [ticks(80), stable(5, 200)],
     groups: [
       {
-        versions: ['1.20', '1.20.4'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [5.5, 109, 1003.5], vel: [0, -0.0784000015258789, 0], onGround: false },
           'enters water': { tick: 16, pos: [5.5, 100.41564586078748, 1003.5], isInWater: true },
           'lands (1)': { tick: 43, pos: [5.5, 93, 1003.5], onGround: true },
           'final state': { tick: 85, pos: [5.5, 93, 1003.5], vel: [0, -0.053000000715255735, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.21.7', '1.21.8'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [5.5, 109, 1003.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'enters water': { tick: 16, pos: [5.5, 100.41564586078748, 1003.5], isInWater: true },
+          'lands (1)': { tick: 39, pos: [5.5, 93, 1003.5], onGround: true },
+          'final state': { tick: 85, pos: [5.5, 93, 1003.5], vel: [0, -0.065, 0], onGround: true }
         }
       },
       {
@@ -46,13 +56,23 @@ describe('vanilla recordings: bubble_column', () => {
     steps: [ticks(60), stable(5, 200)],
     groups: [
       {
-        versions: ['1.20', '1.20.4'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [5.5, 101, 1003.5], vel: [0, -0.0784000015258789, 0], onGround: false },
           'enters water': { tick: 3, pos: [5.5, 100.73696799338532, 1003.5], isInWater: true },
           'lands (1)': { tick: 35, pos: [5.5, 93, 1003.5], onGround: true },
           'final state': { tick: 65, pos: [5.5, 93, 1003.5], vel: [0, -0.053000000715255735, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.21.7', '1.21.8'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [5.5, 101, 1003.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'enters water': { tick: 3, pos: [5.5, 100.73636799395751, 1003.5], isInWater: true },
+          'lands (1)': { tick: 30, pos: [5.5, 93, 1003.5], onGround: true },
+          'final state': { tick: 65, pos: [5.5, 93, 1003.5], vel: [0, -0.065, 0], onGround: true }
         }
       },
       {
@@ -73,7 +93,7 @@ describe('vanilla recordings: bubble_column', () => {
     steps: [press('jump', 60), stable(5, 200)],
     groups: [
       {
-        versions: ['1.20', '1.20.4'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.021000000953674325, 0] },
           'leaves the ground (1)': { tick: 1, pos: [5.5, 98.03999999910593, 1003.5], vel: [0, -0.021000000953674325, 0], onGround: false },
@@ -81,6 +101,17 @@ describe('vanilla recordings: bubble_column', () => {
           'peak height 0.061': { tick: 3, pos: [5.5, 98.06119999439716, 1003.5] },
           'lands (1)': { tick: 41, pos: [5.5, 93, 1003.5], onGround: true },
           'final state': { tick: 65, pos: [5.5, 93, 1003.5], vel: [0, -0.053000000715255735, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.21.7', '1.21.8'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.03300000023841859, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [5.5, 98.03999999910593, 1003.5], vel: [0, -0.03300000023841859, 0], onGround: false },
+          'enters water': { tick: 1, pos: [5.5, 98.03999999910593, 1003.5], isInWater: true },
+          'peak height 0.047': { tick: 2, pos: [5.5, 98.04699999797344, 1003.5] },
+          'lands (1)': { tick: 27, pos: [5.5, 93, 1003.5], onGround: true },
+          'final state': { tick: 65, pos: [5.5, 93, 1003.5], vel: [0, -0.065, 0], onGround: true }
         }
       },
       {
@@ -113,7 +144,7 @@ describe('vanilla recordings: bubble_column', () => {
     steps: [ticks(60), settleFor(5, 60)],
     groups: [
       {
-        versions: ['1.20', '1.20.4'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.09100000143051147, 0] },
           'leaves the ground (1)': { tick: 1, pos: [5.5, 94, 959.5], vel: [0, 0.09100000143051147, 0], onGround: false },
@@ -123,6 +154,19 @@ describe('vanilla recordings: bubble_column', () => {
           'enters water (tick 61)': { tick: 61, pos: [5.5, 100.84450838992848, 959.5], isInWater: true },
           'enters water (tick 74)': { tick: 74, pos: [5.5, 100.87044354460058, 959.5], isInWater: true },
           'enters water (tick 87)': { tick: 87, pos: [5.5, 100.75637663074563, 959.5], isInWater: true }
+        }
+      },
+      {
+        versions: ['1.21.7', '1.21.8'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, 0.11499999999999999, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [5.5, 94, 959.5], vel: [0, 0.11499999999999999, 0], onGround: false },
+          'enters water': { tick: 1, pos: [5.5, 94, 959.5], isInWater: true },
+          'enters water (tick 32)': { tick: 32, pos: [5.5, 100.41297573949218, 959.5], isInWater: true },
+          'enters water (tick 49)': { tick: 49, pos: [5.5, 100.87522017143274, 959.5], isInWater: true },
+          'enters water (tick 63)': { tick: 63, pos: [5.5, 100.81870706079172, 959.5], isInWater: true },
+          'enters water (tick 78)': { tick: 78, pos: [5.5, 100.75395783840436, 959.5], isInWater: true },
+          'enters water (tick 91)': { tick: 91, pos: [5.5, 100.73672764723679, 959.5], isInWater: true }
         }
       },
       {
@@ -159,7 +203,7 @@ describe('vanilla recordings: bubble_column', () => {
     steps: [ticks(60)],
     groups: [
       {
-        versions: ['1.20', '1.20.4'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [5.5, 101, 959.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -169,6 +213,19 @@ describe('vanilla recordings: bubble_column', () => {
           'enters water (tick 35)': { tick: 35, pos: [5.5, 100.84504190131328, 959.5], isInWater: true },
           'enters water (tick 48)': { tick: 48, pos: [5.5, 100.83459996686562, 959.5], isInWater: true },
           'enters water (tick 58)': { tick: 58, pos: [5.5, 100.84898415349002, 959.5], isInWater: true }
+        }
+      },
+      {
+        versions: ['1.21.7', '1.21.8'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [5.5, 101, 959.5], vel: [0, -0.0784000015258789, 0], onGround: false },
+          'enters water': { tick: 3, pos: [5.5, 100.86636799395752, 959.5], isInWater: true },
+          'enters water (tick 10)': { tick: 10, pos: [5.5, 100.85581323575202, 959.5], isInWater: true },
+          'enters water (tick 21)': { tick: 21, pos: [5.5, 100.81380220049958, 959.5], isInWater: true },
+          'enters water (tick 34)': { tick: 34, pos: [5.5, 100.75906287531431, 959.5], isInWater: true },
+          'peak height 0.574': { tick: 44, pos: [5.5, 101.57442732038159, 959.5] },
+          'enters water (tick 49)': { tick: 49, pos: [5.5, 100.70618299786192, 959.5], isInWater: true }
         }
       },
       {
@@ -205,7 +262,7 @@ describe('vanilla recordings: bubble_column', () => {
     steps: [press('left', 30), settleFor(5, 100)],
     groups: [
       {
-        versions: ['1.20', '1.20.4'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [0.01568000018835067, 0.09100000143051147, 0] },
           'leaves the ground (1)': { tick: 1, pos: [5.519599999943376, 97, 959.5], vel: [0.01568000018835067, 0.09100000143051147, 0], onGround: false },
@@ -215,6 +272,19 @@ describe('vanilla recordings: bubble_column', () => {
           'top speed 3.671 b/s': { tick: 25, pos: [8.31849921393409, 100.5071180579496, 959.5], vel: [0.14683530146099344, -0.22400809919030393, 0] },
           'lands (1)': { tick: 44, pos: [9.772598993076095, 101, 959.5], onGround: true },
           'final state': { tick: 44, pos: [9.772598993076095, 101, 959.5], vel: [0.023669876491288717, -0.0784000015258789, 0], onGround: true }
+        }
+      },
+      {
+        versions: ['1.21.7', '1.21.8'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.01568000018835067, 0.11499999999999999, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [5.519599999943376, 97, 959.5], vel: [0.01568000018835067, 0.11499999999999999, 0], onGround: false },
+          'enters water': { tick: 1, pos: [5.519599999943376, 97, 959.5], isInWater: true },
+          'enters water (tick 29)': { tick: 29, pos: [9.169935520267291, 100.24935249766295, 959.5], isInWater: true },
+          'touches a wall': { tick: 33, pos: [9.699999988079071, 99.6287211067114, 959.5], isCollidedHorizontally: true },
+          'enters water (tick 47)': { tick: 47, pos: [9.699999988079071, 100.78454860845335, 959.5], isInWater: true },
+          'enters water (tick 63)': { tick: 63, pos: [9.699999988079071, 100.82098399838287, 959.5], isInWater: true },
+          'enters water (tick 78)': { tick: 78, pos: [9.699999988079071, 100.75122979111764, 959.5], isInWater: true }
         }
       },
       {

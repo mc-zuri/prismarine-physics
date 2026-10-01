@@ -49,7 +49,7 @@ describe('vanilla recordings: slime', () => {
         }
       },
       {
-        versions: ['1.14.4', '1.15', '1.16', '1.17', '1.18', '22w19a', '1.19', '1.19.2'],
+        versions: ['1.14.4', '1.15', '1.16', '1.17', '1.18', '22w19a'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'lands (1)': { tick: 37, pos: [0.5, 101, 517.5], onGround: true },
@@ -60,7 +60,7 @@ describe('vanilla recordings: slime', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 141, 517.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -71,7 +71,7 @@ describe('vanilla recordings: slime', () => {
         }
       },
       {
-        versions: ['1.20.5', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8'],
+        versions: ['1.20.5', '1.21', '1.21.3', '1.21.5', '1.21.6'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'lands (1)': { tick: 37, pos: [0.5, 101, 517.5], onGround: true },
@@ -82,7 +82,7 @@ describe('vanilla recordings: slime', () => {
         }
       },
       {
-        versions: ['1.21.9', '1.21.10', '1.21.11', '26.1'],
+        versions: ['1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 141, 517.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -183,7 +183,7 @@ describe('vanilla recordings: slime', () => {
         }
       },
       {
-        versions: ['1.18', '22w19a', '1.19', '1.19.2'],
+        versions: ['1.18', '22w19a'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'lands (1)': { tick: 2, pos: [0.5, 101, 512.5], onGround: true },
@@ -195,7 +195,7 @@ describe('vanilla recordings: slime', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 101.41999998688698, 512.5], vel: [0, 0.33319999363422365, 0], onGround: false },
@@ -231,7 +231,7 @@ describe('vanilla recordings: slime', () => {
         }
       },
       {
-        versions: ['1.21.5', '1.21.6', '1.21.7'],
+        versions: ['1.21.5', '1.21.6'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'lands (1)': { tick: 2, pos: [0.5, 101, 512.5], onGround: true },
@@ -243,7 +243,7 @@ describe('vanilla recordings: slime', () => {
         }
       },
       {
-        versions: ['1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
+        versions: ['1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 101.41999998688698, 512.5], vel: [0, 0.33319999363422365, 0], onGround: false },
@@ -346,7 +346,7 @@ describe('vanilla recordings: slime', () => {
         }
       },
       {
-        versions: ['1.18', '22w19a', '1.19', '1.19.2'],
+        versions: ['1.18', '22w19a'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'lands (1)': { tick: 2, pos: [0.5, 101, 512.5], onGround: true },
@@ -358,7 +358,7 @@ describe('vanilla recordings: slime', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 101.41999998688698, 512.5], vel: [0, 0.33319999363422365, 0], onGround: false },
@@ -394,7 +394,7 @@ describe('vanilla recordings: slime', () => {
         }
       },
       {
-        versions: ['1.21.5', '1.21.6', '1.21.7'],
+        versions: ['1.21.5', '1.21.6'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'lands (1)': { tick: 2, pos: [0.5, 101, 512.5], onGround: true },
@@ -406,7 +406,7 @@ describe('vanilla recordings: slime', () => {
         }
       },
       {
-        versions: ['1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
+        versions: ['1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 101.41999998688698, 512.5], vel: [0, 0.33319999363422365, 0], onGround: false },
@@ -509,7 +509,7 @@ describe('vanilla recordings: slime', () => {
         }
       },
       {
-        versions: ['1.18', '22w19a', '1.19', '1.19.2'],
+        versions: ['1.18', '22w19a'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.017836000462502232] },
           'lands (1)': { tick: 2, pos: [0.5, 101, 512.5433160008657], onGround: true },
@@ -521,7 +521,7 @@ describe('vanilla recordings: slime', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.030098255628258283] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 101, 512.5413437551856], vel: [0, -0.0784000015258789, 0.030098255628258283], onGround: false },
@@ -569,7 +569,7 @@ describe('vanilla recordings: slime', () => {
         }
       },
       {
-        versions: ['1.21.5', '1.21.6', '1.21.7'],
+        versions: ['1.21.5', '1.21.6'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.017836000462502232] },
           'lands (1)': { tick: 2, pos: [0.5, 101, 512.5433160008657], onGround: true },
@@ -581,7 +581,7 @@ describe('vanilla recordings: slime', () => {
         }
       },
       {
-        versions: ['1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
+        versions: ['1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.030098255628258283] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 101, 512.5413437551856], vel: [0, -0.0784000015258789, 0.030098255628258283], onGround: false },
@@ -680,7 +680,7 @@ describe('vanilla recordings: slime', () => {
         }
       },
       {
-        versions: ['1.18', '22w19a', '1.19', '1.19.2'],
+        versions: ['1.18', '22w19a'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.017836000462502232] },
           'lands (1)': { tick: 2, pos: [0.5, 101, 512.5570360003493], onGround: true },
@@ -692,7 +692,7 @@ describe('vanilla recordings: slime', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.030098255628258283] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 101, 512.5413437551856], vel: [0, -0.0784000015258789, 0.030098255628258283], onGround: false },
@@ -740,7 +740,7 @@ describe('vanilla recordings: slime', () => {
         }
       },
       {
-        versions: ['1.21.5', '1.21.6', '1.21.7'],
+        versions: ['1.21.5', '1.21.6'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.017836000462502232] },
           'lands (1)': { tick: 2, pos: [0.5, 101, 512.5570360003493], onGround: true },
@@ -752,7 +752,7 @@ describe('vanilla recordings: slime', () => {
         }
       },
       {
-        versions: ['1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
+        versions: ['1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.030098255628258283] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 101, 512.5413437551856], vel: [0, -0.0784000015258789, 0.030098255628258283], onGround: false },

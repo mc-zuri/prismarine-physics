@@ -9,7 +9,7 @@ describe('vanilla recordings: water', () => {
     steps: [until('isInWater', 60), ticks(40), stable(5)],
     groups: [
       {
-        versions: ['1.12.2'],
+        versions: ['1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1833.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -19,7 +19,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 111, 1833.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -36,7 +36,7 @@ describe('vanilla recordings: water', () => {
     steps: [press(['forward', 'sprint'], 50), stable(5)],
     groups: [
       {
-        versions: ['1.12.2'],
+        versions: ['1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.06956039771757005, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [-8.372600018978119, 107, 1833.5], vel: [0.06956039771757005, -0.0784000015258789, 0], onGround: false },
@@ -48,7 +48,19 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.19', '1.19.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.0695604148553142, -0.0784000015258789, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [-8.372599987590313, 107, 1833.5], vel: [0.0695604148553142, -0.0784000015258789, 0], onGround: false },
+          'enters water': { tick: 14, pos: [-6.168609073031666, 100.40617885469534, 1833.5], isInWater: true },
+          'top speed 4.449 b/s': { tick: 14, pos: [-6.168609073031666, 100.40617885469534, 1833.5], vel: [0.20244130362810506, -0.9657237242233685, 0] },
+          'lands (1)': { tick: 15, pos: [-5.946567769460185, 100, 1833.5], onGround: true },
+          'leaves the ground (2)': { tick: 25, pos: [-4.52367782859831, 99.995, 1833.5], vel: [0.08905507372767377, -0.009000000059604645, 0], onGround: false },
+          'final state': { tick: 55, pos: [-1.7569188326025127, 99.3249009319553, 1833.5], vel: [0.025703306095241372, -0.02498019443886232, 0], onGround: false }
+        }
+      },
+      {
+        versions: ['1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.0695604148553142, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [-8.372599987590313, 107, 1833.5], vel: [0.0695604148553142, -0.0784000015258789, 0], onGround: false },
@@ -67,7 +79,7 @@ describe('vanilla recordings: water', () => {
     steps: [press('jump', 50), stable(5)],
     groups: [
       {
-        versions: ['1.12.2'],
+        versions: ['1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.01199999976158141, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 98.53999999910593, 1833.5], vel: [0, 0.01199999976158141, 0], onGround: false },
@@ -78,7 +90,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.02699999976158141, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 98.53999999910593, 1833.5], vel: [0, 0.02699999976158141, 0], onGround: false },
@@ -97,7 +109,7 @@ describe('vanilla recordings: water', () => {
     steps: [press(['forward', 'jump'], 40), stable(5)],
     groups: [
       {
-        versions: ['1.12.2'],
+        versions: ['1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.05350800074768003, 0.33319999363422365, 0] },
           'leaves the ground (1)': { tick: 1, pos: [12.59799998998642, 101.11999998688698, 1826.5], vel: [0.05350800074768003, 0.33319999363422365, 0], onGround: false },
@@ -109,7 +121,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.01568000018835067, 0.3309999945163725, 0] },
           'leaves the ground (1)': { tick: 1, pos: [12.519599999943376, 101.11999998688698, 1826.5], vel: [0.01568000018835067, 0.3309999945163725, 0], onGround: false },
@@ -129,7 +141,7 @@ describe('vanilla recordings: water', () => {
     steps: [press(['forward', 'sprint', 'jump'], 40), stable(5)],
     groups: [
       {
-        versions: ['1.12.2'],
+        versions: ['1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.015680000419616702, 0.01199999976158141, 0] },
           'leaves the ground (1)': { tick: 1, pos: [10.519600000232458, 100.03999999910593, 1826.5], vel: [0.015680000419616702, 0.01199999976158141, 0], onGround: false },
@@ -142,7 +154,20 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.19', '1.19.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.01568000018835067, 0.02699999976158141, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [10.519599999943376, 100.03999999910593, 1826.5], vel: [0.01568000018835067, 0.02699999976158141, 0], onGround: false },
+          'enters water': { tick: 14, pos: [11.640924377465874, 100.78361058168534, 1826.5], isInWater: true },
+          'top speed 3.103 b/s': { tick: 15, pos: [11.796073739306115, 100.55263090715852, 1826.5], vel: [0.12411949132171692, -0.1897837423749491, 0] },
+          'touches a wall': { tick: 31, pos: [13.699999988079071, 100.72947792607799, 1826.5], isCollidedHorizontally: true },
+          'enters water (tick 31)': { tick: 31, pos: [13.699999988079071, 100.72947792607799, 1826.5], isInWater: true },
+          'peak height 1.87': { tick: 38, pos: [13.699999988079071, 101.86960367227675, 1826.5] },
+          'enters water (tick 44)': { tick: 44, pos: [13.699999988079071, 100.56692322226793, 1826.5], isInWater: true }
+        }
+      },
+      {
+        versions: ['1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.01568000018835067, 0.02699999976158141, 0] },
           'leaves the ground (1)': { tick: 1, pos: [10.519599999943376, 100.03999999910593, 1826.5], vel: [0.01568000018835067, 0.02699999976158141, 0], onGround: false },
@@ -162,7 +187,7 @@ describe('vanilla recordings: water', () => {
     steps: [press('jump', 40), stable(5)],
     groups: [
       {
-        versions: ['1.20', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, 0.02699999976158141, 0] },
           'leaves the ground (1)': { tick: 1, pos: [2.5, 99.03999999910593, 1839.5], vel: [0, 0.02699999976158141, 0], onGround: false },
@@ -180,7 +205,7 @@ describe('vanilla recordings: water', () => {
     steps: [press('sneak', 40), stable(5)],
     groups: [
       {
-        versions: ['1.12.2'],
+        versions: ['1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.02, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 100, 1833.5], vel: [0, -0.02, 0], onGround: false },
@@ -189,7 +214,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.03699999976158141, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 99.96000000089407, 1833.5], vel: [0, -0.03699999976158141, 0], onGround: false },
@@ -205,7 +230,7 @@ describe('vanilla recordings: water', () => {
     steps: [press(['forward', 'sprint'], 40), stable(5)],
     groups: [
       {
-        versions: ['1.12.2'],
+        versions: ['1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.015680000419616702, -0.02, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5196000002324581, 99, 1833.5], vel: [0.015680000419616702, -0.02, 0], onGround: false },
@@ -215,7 +240,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.01568000018835067, -0.005, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5195999999433756, 99, 1833.5], vel: [0.01568000018835067, -0.005, 0], onGround: false },
@@ -232,7 +257,7 @@ describe('vanilla recordings: water', () => {
     steps: [press(['forward', 'sprint'], 30), stable(5)],
     groups: [
       {
-        versions: ['1.12.2'],
+        versions: ['1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.015680000419616702, -0.02, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5196000002324581, 100, 1833.5], vel: [0.015680000419616702, -0.02, 0], onGround: false },
@@ -242,7 +267,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.01568000018835067, -0.005, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5195999999433756, 100, 1833.5], vel: [0.01568000018835067, -0.005, 0], onGround: false },
@@ -258,7 +283,7 @@ describe('vanilla recordings: water', () => {
     steps: [hold('forward', 'sprint'), ticks(20), release('sprint'), ticks(20), release(), stable(5)],
     groups: [
       {
-        versions: ['1.12.2'],
+        versions: ['1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.015680000419616702, -0.02, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5196000002324581, 99, 1833.5], vel: [0.015680000419616702, -0.02, 0], onGround: false },
@@ -268,7 +293,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.01568000018835067, -0.005, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5195999999433756, 99, 1833.5], vel: [0.01568000018835067, -0.005, 0], onGround: false },
@@ -285,7 +310,7 @@ describe('vanilla recordings: water', () => {
     steps: [press(['forward', 'sprint'], 30), stable(5)],
     groups: [
       {
-        versions: ['1.12.2'],
+        versions: ['1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.015680000419616702, -0.02, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5196000002324581, 99, 1833.5], vel: [0.015680000419616702, -0.02, 0], onGround: false },
@@ -295,7 +320,18 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.19', '1.19.2'],
+        milestones: {
+          'first tick': { tick: 1, vel: [0.01568000018835067, -0.005, 0] },
+          'leaves the ground (1)': { tick: 1, pos: [0.5195999999433756, 99, 1833.5], vel: [0.01568000018835067, -0.005, 0], onGround: false },
+          'peak height 1.923': { tick: 19, pos: [2.669675861179506, 100.92272882189252, 1833.5] },
+          'enters water': { tick: 20, pos: [2.838244636912917, 100.8760640593725, 1833.5], isInWater: true },
+          'top speed 3.46 b/s': { tick: 21, pos: [3.0112422271945887, 100.75193258968693, 1833.5], vel: [0.13839807428762935, -0.10430517722821493, 0] },
+          'final state': { tick: 35, pos: [4.443588385107179, 100.02284606375103, 1833.5], vel: [0.028328859270388283, -0.028487880732418785, 0], onGround: false }
+        }
+      },
+      {
+        versions: ['1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.01568000018835067, -0.005, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5195999999433756, 99, 1833.5], vel: [0.01568000018835067, -0.005, 0], onGround: false },
@@ -313,7 +349,7 @@ describe('vanilla recordings: water', () => {
     steps: [hold('forward', 'sprint'), turn(6, 0, 40), release(), stable(5)],
     groups: [
       {
-        versions: ['1.12.2'],
+        versions: ['1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.015594145888002897, -0.02, 0.001638607705214734] },
           'leaves the ground (1)': { tick: 1, pos: [0.51949268206954, 99, 1833.502048259601], vel: [0.015594145888002897, -0.02, 0.001638607705214734], onGround: false },
@@ -323,7 +359,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [0.015594144951265895, -0.005, 0.001638607617034291] },
           'leaves the ground (1)': { tick: 1, pos: [0.5194926808986188, 99, 1833.5020482594907], vel: [0.015594144951265895, -0.005, 0.001638607617034291], onGround: false },
@@ -332,7 +368,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.015594144951265895, -0.005, 0.001638607617034291] },
           'leaves the ground (1)': { tick: 1, pos: [0.5194926808986188, 99, 1833.5020482594907], vel: [0.015594144951265895, -0.005, 0.001638607617034291], onGround: false },
@@ -348,7 +384,7 @@ describe('vanilla recordings: water', () => {
     steps: [ticks(60)],
     groups: [
       {
-        versions: ['1.12.2'],
+        versions: ['1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 101, 1833.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -358,7 +394,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 101, 1833.5], vel: [0, -0.0784000015258789, 0], onGround: false },
@@ -374,7 +410,7 @@ describe('vanilla recordings: water', () => {
     steps: [press('forward', 40), stable(5)],
     groups: [
       {
-        versions: ['1.12.2'],
+        versions: ['1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.05350800074768003, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.59799998998642, 101, 1833.5], vel: [0.05350800074768003, -0.0784000015258789, 0], onGround: false },
@@ -385,7 +421,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.053508008053839436, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.5980000033676625, 101, 1833.5], vel: [0.053508008053839436, -0.0784000015258789, 0], onGround: false },
@@ -403,7 +439,7 @@ describe('vanilla recordings: water', () => {
     steps: [press('back', 30), stable(5)],
     groups: [
       {
-        versions: ['1.12.2'],
+        versions: ['1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [-0.015680000419616702, -0.02, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.480399999767542, 99, 1833.5], vel: [-0.015680000419616702, -0.02, 0], onGround: false },
@@ -413,7 +449,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [-0.01568000018835067, -0.005, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.480400000056624, 99, 1833.5], vel: [-0.01568000018835067, -0.005, 0], onGround: false },
@@ -429,7 +465,7 @@ describe('vanilla recordings: water', () => {
     steps: [press('forward', 30), stable(5)],
     groups: [
       {
-        versions: ['1.12.2'],
+        versions: ['1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.015680000419616702, -0.02, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.519600000232458, 99, 1833.5], vel: [0.015680000419616702, -0.02, 0], onGround: false },
@@ -439,7 +475,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.01568000018835067, -0.005, 0] },
           'leaves the ground (1)': { tick: 1, pos: [4.519599999943376, 99, 1833.5], vel: [0.01568000018835067, -0.005, 0], onGround: false },
@@ -456,7 +492,7 @@ describe('vanilla recordings: water', () => {
     steps: [press(['forward', 'left'], 30), stable(5)],
     groups: [
       {
-        versions: ['1.12.2'],
+        versions: ['1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.011313708295132341, -0.02, -0.011313708295132341] },
           'leaves the ground (1)': { tick: 1, pos: [4.514142135158181, 99, 1833.4858578648418], vel: [0.011313708295132341, -0.02, -0.011313708295132341], onGround: false },
@@ -466,7 +502,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [0.01131370841469106, -0.005, -0.01131370841469106] },
           'leaves the ground (1)': { tick: 1, pos: [4.51414213530763, 99, 1833.4858578646924], vel: [0.01131370841469106, -0.005, -0.01131370841469106], onGround: false },
@@ -476,7 +512,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.011313707267390878, -0.005, -0.011313707267390878] },
           'leaves the ground (1)': { tick: 1, pos: [4.514142133873504, 99, 1833.4858578661265], vel: [0.011313707267390878, -0.005, -0.011313707267390878], onGround: false },
@@ -493,7 +529,7 @@ describe('vanilla recordings: water', () => {
     steps: [press('left', 30), stable(5)],
     groups: [
       {
-        versions: ['1.12.2'],
+        versions: ['1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.02, -0.015680000419616702] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 99, 1833.4803999997675], vel: [0, -0.02, -0.015680000419616702], onGround: false },
@@ -503,7 +539,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.005, -0.01568000018835067] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 99, 1833.4804000000565], vel: [0, -0.005, -0.01568000018835067], onGround: false },
@@ -519,7 +555,7 @@ describe('vanilla recordings: water', () => {
     steps: [press('right', 30), stable(5)],
     groups: [
       {
-        versions: ['1.12.2'],
+        versions: ['1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.02, 0.015680000419616702] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 99, 1833.5196000002325], vel: [0, -0.02, 0.015680000419616702], onGround: false },
@@ -529,7 +565,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.005, 0.01568000018835067] },
           'leaves the ground (1)': { tick: 1, pos: [4.5, 99, 1833.5195999999435], vel: [0, -0.005, 0.01568000018835067], onGround: false },
@@ -545,7 +581,7 @@ describe('vanilla recordings: water', () => {
     steps: [press('forward', 40), stable(5)],
     groups: [
       {
-        versions: ['1.12.2'],
+        versions: ['1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [-0.015680000419616702, -0.02, 1.9202463847881833e-18] },
           'leaves the ground (1)': { tick: 1, pos: [-4.519600000232458, 100.5, 1833.5], vel: [-0.015680000419616702, -0.02, 1.9202463847881833e-18], onGround: false },
@@ -555,7 +591,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [-0.01568000018835067, -0.005, 1.9202462879198486e-18] },
           'leaves the ground (1)': { tick: 1, pos: [-4.519599999943376, 100.5, 1833.5], vel: [-0.01568000018835067, -0.005, 1.9202462879198486e-18], onGround: false },
@@ -565,7 +601,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [-0.01568000018835067, -0.005, 1.9202462879198486e-18] },
           'leaves the ground (1)': { tick: 1, pos: [-4.519599999943376, 100.5, 1833.5], vel: [-0.01568000018835067, -0.005, 1.9202462879198486e-18], onGround: false },
@@ -582,7 +618,7 @@ describe('vanilla recordings: water', () => {
     steps: [press('forward', 40), stable(5)],
     groups: [
       {
-        versions: ['1.12.2'],
+        versions: ['1.11.2', '1.12.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0.015680000419616702, -0.02, 0] },
           'leaves the ground (1)': { tick: 34, pos: [-4.55980105135606, 99.98, 1833.5], vel: [0.07836025322469084, -0.03600000023841858, 0], onGround: false },
@@ -591,7 +627,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0.01568000018835067, -0.005, 0] },
           'leaves the ground (1)': { tick: 34, pos: [-4.559801094721378, 99.995, 1833.5], vel: [0.07836025206894695, -0.009000000059604645, 0], onGround: false },
@@ -607,7 +643,7 @@ describe('vanilla recordings: water', () => {
     steps: [press('forward', 40), stable(5)],
     groups: [
       {
-        versions: ['1.20', '1.20.4', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.005, 0.01568000018835067] },
           'leaves the ground (1)': { tick: 1, pos: [8.5, 100.5, 1833.5195999999435], vel: [0, -0.005, 0.01568000018835067], onGround: false },
@@ -1048,7 +1084,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.18', '22w19a', '1.19', '1.19.2'],
+        versions: ['1.18', '22w19a'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 101, 746.5980000033677], vel: [0, -0.0784000015258789, 0.053508008053839436], onGround: false },
@@ -1060,7 +1096,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.20', '1.20.4'],
+        versions: ['1.19', '1.19.2', '1.20', '1.20.4'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'leaves the ground (1)': { tick: 16, pos: [0.5, 100.92159999847412, 749.6941597887683], vel: [0, -0.1552320045166016, 0.11785171235343735], onGround: false },
@@ -1070,7 +1106,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.20.5', '1.21', '1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8'],
+        versions: ['1.20.5', '1.21', '1.21.3', '1.21.5', '1.21.6'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 101, 746.5980000033677], vel: [0, -0.0784000015258789, 0.053508008053839436], onGround: false },
@@ -1082,7 +1118,7 @@ describe('vanilla recordings: water', () => {
         }
       },
       {
-        versions: ['1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
+        versions: ['1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.053508008053839436] },
           'leaves the ground (1)': { tick: 16, pos: [0.5, 100.92159999847412, 749.6941597887683], vel: [0, -0.1552320045166016, 0.11785171235343735], onGround: false },
