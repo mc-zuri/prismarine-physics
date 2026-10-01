@@ -95,7 +95,16 @@ function hasData (version) {
 // through the extracted events and skip the packet tests.
 const packetSupport = new Map()
 function packetsSupported (version) {
-  if (!packetSupport.has(version)) packetSupport.set(version, !!require('minecraft-data')(version))
+  if (!packetSupport.has(version)) {
+    // (minecraft-data must also hold the version's own protocol: its 1.21.7 is 1.21.1's, which minecraft-protocol refuses)
+    let supported = !!require('minecraft-data')(version)
+    try {
+      if (supported) require('minecraft-protocol').createDeserializer({ state: 'play', isServer: false, version })
+    } catch (err) {
+      supported = false
+    }
+    packetSupport.set(version, supported)
+  }
   return packetSupport.get(version)
 }
 
