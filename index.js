@@ -3159,6 +3159,8 @@ function Physics (mcData, world) {
     return entity
   }
 
+  // Share Entity.calculateViewVector with interaction rays, which use the same float/Mth arithmetic.
+  physics.getViewVector = viewVector
   return physics
 }
 
