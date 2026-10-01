@@ -132,6 +132,11 @@
     "since": "26.3"
   },
   {
+    "name": "shiftKeyWhileGliding",
+    "description": "LocalPlayer.isShiftKeyDown reads the held input even while fall flying",
+    "since": "26.3"
+  },
+  {
     "name": "clientRearingLegacy",
     "description": "AbstractHorse.stand: the client rears a horse it controls itself (isControlledByLocalInstance), 20 ticks",
     "before": "1.19.4"

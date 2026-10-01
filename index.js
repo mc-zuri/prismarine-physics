@@ -169,6 +169,7 @@ function Physics (mcData, world) {
     passengerSprintVehicle: supportFeature('passengerSprintVehicle'),
     passengerNoPushOut: supportFeature('passengerNoPushOut'),
     passengerNoCrouch: supportFeature('passengerNoCrouch'),
+    shiftKeyWhileGliding: supportFeature('shiftKeyWhileGliding'),
     entityAttachments: supportFeature('entityAttachments'),
     attachmentPoints: supportFeature('passengerAttachmentPoints'),
     autoJumpJumpFactor: supportFeature('autoJumpJumpFactor'),
@@ -2485,7 +2486,7 @@ function Physics (mcData, world) {
     entity.jumpHeld = !!entity.control.jump
 
     // The sneak key the next tick's crouching comes from
-    entity.isCrouching = !!entity.control.sneak && !entity.elytraFlying
+    entity.isCrouching = !!entity.control.sneak && (vanilla.shiftKeyWhileGliding || !entity.elytraFlying)
     if (vanilla.crouchPose) updatePose(entity, world)
     else if (vanilla.legacyPlayerSize) updateLegacySize(entity, world)
 
