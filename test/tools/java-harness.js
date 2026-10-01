@@ -346,6 +346,9 @@ function applyEvents (state, w, events, ctx) {
       // Effect ids likewise (the effect registry is 0-based in play packets): the effects vanilla's handling left.
       if (entry.after && entry.after.effects) Object.assign(state, levels(entry.after.effects))
     }
+    // Block states likewise, by the names the recorder resolved: minecraft-data's 26.3 state ids are 26.2's (mud is
+    // 30415 there, 33772 on the wire). Where the data is right this repeats what the packets did.
+    for (const change of events.blockChanges || []) w.setBlock(change)
     return
   }
   for (const change of events.blockChanges || []) w.setBlock(change)
