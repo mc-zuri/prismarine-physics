@@ -3278,8 +3278,9 @@ class PlayerState {
     this.fireworkUsed = !!bot.fireworkUsed
     // An item use the bot started this tick (consumed by the tick): the packet's start_using_item.
     this.itemUseStarted = !!bot.itemUseStarted
-    // The vehicle the bot rides (the Bedrock engine's, kept by mineflayer's vehicles plugin as bot.bedrockVehicle).
-    this.vehicle = bot.bedrockVehicle || undefined
+    // The vehicle the bot rides (the Bedrock engine's, kept by mineflayer's vehicles plugin as bot.bedrockVehicle;
+    // the Java engine's, kept by mineflayer's physics plugin as bot.javaVehicle).
+    this.vehicle = bot.bedrockVehicle || bot.javaVehicle || undefined
     // The big-wave roll of a boat the bot steers (a uniform draw in [0, 1)), where the caller supplies the client's.
     this.bigWaveRoll = typeof bot.bedrockBigWaveRoll === 'function' ? bot.bedrockBigWaveRoll : undefined
     // The client's core random state (a recording's), from which the boat draws the roll itself.
@@ -3376,6 +3377,12 @@ class PlayerState {
     bot.fireworkUsed = this.fireworkUsed
     bot.itemUseStarted = this.itemUseStarted
     if (bot.bedrockVehicle) bot.bedrockVehicle = this.vehicle
+    if (bot.javaVehicle) bot.javaVehicle = this.vehicle
+    // the rotation a tick turned (a boat's rider turns with it), where the bot keeps it in degrees
+    if (typeof bot.entity.yawDegrees === 'number' && this.yawDegrees !== bot.entity.yawDegrees) {
+      bot.entity.yawDegrees = this.yawDegrees
+      bot.entity.yaw = this.yaw
+    }
     if (this.bedrock !== undefined) bot.bedrockPhysicsState = this.bedrock
     if (this.javaBox !== undefined) bot.javaPhysicsBox = this.javaBox
   }
