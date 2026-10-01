@@ -82,6 +82,14 @@ function registry (version) {
     // shares its protocol, 1.21.8)
     const data = require('minecraft-data')(version) && packets.protocolData(version)
     if (!data) throw new Error(`no minecraft-data for ${version}`)
+    // (minecraft-data's 1.11 and older blocks lack the metadata variations that pick their shape per state: snow
+    // layers, stairs and trapdoors all took their first state's; give them one variation per shape listed)
+    if (data.blockCollisionShapes && !data.supportFeature('blockStateId')) {
+      for (const block of data.blocksArray) {
+        const ids = data.blockCollisionShapes.blocks[block.name]
+        if (!block.variations && Array.isArray(ids) && new Set(ids).size > 1) block.variations = ids.map((_, metadata) => ({ metadata, displayName: block.displayName }))
+      }
+    }
     const registryDir = path.dirname(require.resolve('prismarine-registry'))
     const base = require(path.join(registryDir, 'loader'))(data)
     registries.set(version, Object.assign(base, require(path.join(registryDir, 'pc'))(base, data)))
