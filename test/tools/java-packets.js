@@ -158,9 +158,10 @@ function movementPackets (after, input, net, version, extra = {}) {
 }
 // Before 1.21.2 (LocalPlayer.sendPosition): the sprint and shift commands, then the move packet carrying onGround only;
 // no player_input or tick_end.
-function legacyMovementPackets (packets, next, after, input, net, extra) {
-  if (extra.usedItem && extra.before) {
-    // MultiPlayerGameMode.useItem first reports where the player is (before the tick) and how it looks
+function legacyMovementPackets (packets, next, after, input, net, extra, version) {
+  if (extra.usedItem && extra.before && !(version && isOlder(version, '1.17'))) {
+    // MultiPlayerGameMode.useItem first reports where the player is (before the tick) and how it looks; not yet in
+    // 1.16 (1.16.4 sends use_item alone, 1.18.1 does this)
     const [bx, by, bz] = extra.before.pos
     packets.push({ name: 'position_look', params: { x: bx, y: by, z: bz, yaw: Math.fround(input.yaw), pitch: Math.fround(input.pitch), onGround: extra.before.onGround } })
   }
@@ -168,16 +169,20 @@ function legacyMovementPackets (packets, next, after, input, net, extra) {
     packets.push({ name: 'entity_action', params: { entityId: net.entityId, actionId: after.sprinting ? 'start_sprinting' : 'stop_sprinting', jumpBoost: 0 } })
     next.wasSprinting = after.sprinting
   }
-  if (after.shiftKeyDown !== undefined && !!after.shiftKeyDown !== !!net.wasShiftKeyDown) {
+  // the sneak state the server last heard of (wasSneaking in recordings before 1.13)
+  const sneakField = net.wasSneaking !== undefined ? 'wasSneaking' : 'wasShiftKeyDown'
+  if (after.shiftKeyDown !== undefined && !!after.shiftKeyDown !== !!net[sneakField]) {
     packets.push({ name: 'entity_action', params: { entityId: net.entityId, actionId: after.shiftKeyDown ? 'start_sneaking' : 'stop_sneaking', jumpBoost: 0 } })
-    next.wasShiftKeyDown = after.shiftKeyDown
+    next[sneakField] = after.shiftKeyDown
   }
   const [x, y, z] = after.pos
   const dx = x - net.lastPos[0]
   const dy = y - net.lastPos[1]
   const dz = z - net.lastPos[2]
   const reminder = net.positionReminder + 1
-  const moved = dx * dx + dy * dy + dz * dz > 2.0e-4 * 2.0e-4 || reminder >= 20
+  // a move counts past 0.03 blocks before 1.19, past 2e-4 since
+  const threshold = version && isOlder(version, '1.19') ? 9.0e-4 : 2.0e-4 * 2.0e-4
+  const moved = dx * dx + dy * dy + dz * dz > threshold || reminder >= 20
   const yaw = Math.fround(input.yaw)
   const pitch = Math.fround(input.pitch)
   const turned = yaw - Math.fround(net.lastYaw) !== 0 || pitch - Math.fround(net.lastPitch) !== 0
@@ -185,7 +190,8 @@ function legacyMovementPackets (packets, next, after, input, net, extra) {
   if (moved && turned) packets.push({ name: 'position_look', params: { x, y, z, yaw, pitch, onGround } })
   else if (moved) packets.push({ name: 'position', params: { x, y, z, onGround } })
   else if (turned) packets.push({ name: 'look', params: { yaw, pitch, onGround } })
-  else if (net.lastOnGround !== onGround) packets.push({ name: 'flying', params: { onGround } })
+  // before 1.9 the bare move packet goes out every tick; since, only when onGround changed
+  else if (net.lastOnGround !== onGround || (version && isOlder(version, '1.9'))) packets.push({ name: 'flying', params: { onGround } })
   next.positionReminder = moved ? 0 : reminder
   if (moved) next.lastPos = [x, y, z]
   if (turned) { next.lastYaw = yaw; next.lastPitch = pitch }
@@ -206,7 +212,7 @@ function drives (vehicle, extra) {
 // LocalPlayer.tick while riding: a boat's paddles (sent in its own tick, from the keys of the tick before), the input
 // (1.21.2+ when it changed; before, steer_vehicle every tick), the rotation, then the driven vehicle's move and the
 // sprint command; tick_end from 1.21.2.
-function ridingPackets (packets, next, after, input, net, legacy, extra) {
+function ridingPackets (packets, next, after, input, net, legacy, extra, version) {
   const vehicle = after.vehicle
   const driven = drives(vehicle, extra)
   if (driven && /boat$|raft$/.test(vehicle.type)) {
@@ -236,7 +242,8 @@ function ridingPackets (packets, next, after, input, net, legacy, extra) {
     const params = { x, y, z, yaw: Math.fround(vehicle.yaw), pitch: Math.fround(vehicle.pitch) }
     if (!legacy) params.onGround = !!vehicle.onGround
     packets.push({ name: 'vehicle_move', params })
-    if (after.sprinting !== net.wasSprinting) {
+    // (the sprint command while riding since 1.19.3)
+    if (after.sprinting !== net.wasSprinting && !(version && isOlder(version, '1.19.3'))) {
       packets.push({ name: 'entity_action', params: { entityId: net.entityId, actionId: after.sprinting ? 'start_sprinting' : 'stop_sprinting', jumpBoost: 0 } })
       next.wasSprinting = after.sprinting
     }
