@@ -358,6 +358,9 @@ function vehicleFrom (v, keys, id, mount, mountAttributes, rider, steerItem) {
     riderInput: rider ? { xxa: Math.fround(rider.xxa || 0), zza: Math.fround(rider.zza || 0) } : undefined,
     riderYaw: rider ? rider.yaw : undefined,
     riderSprinting: rider ? !!rider.sprinting : undefined,
+    // a living mount's walk animation (a strider's rider bobs with it)
+    walkSpeed: v.walkAnimationSpeed !== undefined ? Math.fround(v.walkAnimationSpeed) : undefined,
+    walkPosition: v.walkAnimationPosition !== undefined ? Math.fround(v.walkAnimationPosition) : undefined,
     // a pig the rider steers with a carrot on a stick, a strider with a warped fungus on one
     steered: !!(steerItem && ((v.type === 'pig' && steerItem === 'carrot_on_a_stick') || (v.type === 'strider' && steerItem === 'warped_fungus_on_a_stick'))),
     input: { left: !!keys.left, right: !!keys.right, up: !!keys.forward, down: !!keys.back }
@@ -513,7 +516,7 @@ function replay (version, rec, { mode = 'trajectory', fields = FIELDS, epsilon =
       const engineVehicle = state.vehicle
       if (before.vehicle) state.vehicle = vehicleFrom(before.vehicle, before.in || {}, before.netState && before.netState.vehicleId, rec.setup && rec.setup.mount && rec.setup.mount.entity, rec.setup && rec.setup.mount && rec.setup.mount.attributes, before, rec.setup && rec.setup.equipment && rec.setup.equipment.mainhand && rec.setup.equipment.mainhand.id)
       if (state.vehicle && engineVehicle && engineVehicle !== state.vehicle) {
-        for (const key of ['pendingJump', 'dashCooldown', 'walkSpeed', 'walkPosition', 'standing', 'standCounter', 'standAnim', 'standAnimO', 'allowStandSliding', 'lastYd']) {
+        for (const key of ['pendingJump', 'dashCooldown', 'walkSpeed', 'walkPosition', 'lavaHeight', 'supportingBlockPos', 'standing', 'standCounter', 'standAnim', 'standAnimO', 'allowStandSliding', 'lastYd']) {
           if (state.vehicle[key] === undefined && engineVehicle[key] !== undefined) state.vehicle[key] = engineVehicle[key]
         }
       }
