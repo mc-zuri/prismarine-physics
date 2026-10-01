@@ -164,6 +164,7 @@ function Physics (mcData, world) {
     autoJump: supportFeature('autoJump'),
     javaBoats: supportFeature('javaBoats'),
     riddenDamping: supportFeature('riddenDamping'),
+    airSpeedLastTick: supportFeature('airSpeedLastTick'),
     passengerNoPushOut: supportFeature('passengerNoPushOut'),
     entityAttachments: supportFeature('entityAttachments'),
     attachmentPoints: supportFeature('passengerAttachmentPoints'),
@@ -1671,7 +1672,7 @@ function Physics (mcData, world) {
         if (acceleration < 0) acceleration = 0 // acceleration should not be negative
       } else {
         // (a ridden horse: a tenth of its speed, getFlyingSpeed)
-        acceleration = entity.airSpeed !== undefined ? entity.airSpeed : entity.flying ? flySpeedOf(entity) : isSprinting(entity) ? vanilla.airSprintSpeed : f32(physics.airborneAcceleration)
+        acceleration = entity.airSpeed !== undefined ? entity.airSpeed : entity.flying ? flySpeedOf(entity) : (vanilla.airSpeedLastTick ? entity.sprintedLastTick : isSprinting(entity)) ? vanilla.airSprintSpeed : f32(physics.airborneAcceleration)
         inertia = f32(physics.airborneInertia)
       }
 
@@ -2291,6 +2292,8 @@ function Physics (mcData, world) {
     const vel = entity.vel
     const pos = entity.pos
     if (entity.riptideLaunch) riptide(entity, world)
+    // (before 1.19.4 the air speed is set after the travel, from the sprint the tick before ended with)
+    entity.sprintedLastTick = vanilla.sprintState ? !!entity.sprinting : !!entity.control.sprint
     const startPos = pos.clone()
     boxScale = vanilla.playerAttributes ? f32(attributeValue(entity, 'scale', 1)) : 1
     boxHeight = f32((vanilla.crouchPose ? POSE_HEIGHT[entity.pose] || physics.playerHeight : vanilla.legacyPlayerSize ? LEGACY_HEIGHT[entity.pose] || physics.playerHeight : physics.playerHeight) * boxScale)

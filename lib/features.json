@@ -127,6 +127,11 @@
     "since": "26.3"
   },
   {
+    "name": "airSpeedLastTick",
+    "description": "Player.aiStep sets the air speed (flyingSpeed, 0.026 sprinting) after the travel: a tick uses the sprint the tick before ended with (getFlyingSpeed since 1.19.4)",
+    "before": "1.19.4"
+  },
+  {
     "name": "riddenDamping",
     "description": "LivingEntity.aiStep damps a mount the client drives by 0.98 (it is not its effective AI; canSimulateMovement since)",
     "before": "1.21.5"
