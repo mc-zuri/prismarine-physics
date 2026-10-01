@@ -333,9 +333,14 @@ function handle (state, packet, ctx) {
       state.vel = new Vec3(r.dx ? v.x + p.dx : p.dx, r.dy ? v.y + p.dy : p.dy, r.dz ? v.z + p.dz : p.dz)
       state.yawDegrees = Math.fround(r.yaw ? state.yawDegrees + p.yaw : p.yaw)
       state.pitchDegrees = Math.fround(r.pitch ? state.pitchDegrees + p.pitch : p.pitch)
-      // ClientPacketListener.handleMovePlayer acknowledges, then reports where it now is (onGround and collision false).
-      responses.push({ name: 'teleport_confirm', params: { teleportId: p.teleportId } })
-      responses.push({ name: 'position_look', params: { x: state.pos.x, y: state.pos.y, z: state.pos.z, yaw: state.yawDegrees, pitch: state.pitchDegrees, flags: flags(false, false) } })
+      // ClientPacketListener.handleMovePlayer acknowledges, then reports where it now is (onGround and collision false);
+      // since 26.3 the acknowledgement itself carries the position and rotation.
+      if (/"name":"x"/.test(JSON.stringify(ctx.mcData.protocol.play.toServer.types.packet_teleport_confirm))) {
+        responses.push({ name: 'teleport_confirm', params: { teleportId: p.teleportId, x: state.pos.x, y: state.pos.y, z: state.pos.z, yaw: state.yawDegrees, pitch: state.pitchDegrees } })
+      } else {
+        responses.push({ name: 'teleport_confirm', params: { teleportId: p.teleportId } })
+        responses.push({ name: 'position_look', params: { x: state.pos.x, y: state.pos.y, z: state.pos.z, yaw: state.yawDegrees, pitch: state.pitchDegrees, flags: flags(false, false) } })
+      }
       break
     }
     case 'player_rotation':
