@@ -310,7 +310,7 @@ function Physics (mcData, world) {
   }
 
   function collisionContextOf (entity) {
-    return { x: entity.pos.x, z: entity.pos.z, bottom: entity.pos.y, descending: !!entity.control.sneak, fallDistance: entity.fallDistance || 0, walksOnPowderSnow: !!entity.leatherBoots, entities: entity.entities }
+    return { x: entity.pos.x, z: entity.pos.z, bottom: entity.pos.y, descending: !!entity.control.sneak, fallDistance: entity.fallDistance || 0, walksOnPowderSnow: !!entity.leatherBoots, entities: entity.entities, standsOnLava: !!entity.standsOnLava }
   }
 
   const POWDER_SNOW_FALLING = [[0, 0, 0, 1, 0.8999999761581421, 1]]
@@ -332,6 +332,11 @@ function Physics (mcData, world) {
       return String(props.distance) !== '0' && (props.bottom === true || props.bottom === 'true') && above(0) ? SCAFFOLDING_UNSTABLE_BOTTOM : []
     }
     if (block.type === pointedDripstoneId) return pointedDripstoneShapes(block, blockPos)
+    if (collisionContext && collisionContext.standsOnLava && lavaIds.includes(block.type) && block.metadata === 0 &&
+      collisionContext.bottom > blockPos.y + 0.5 - 9.999999747378752e-6 && !lavaIds.includes((world.getBlock(blockPos.offset(0, 1, 0)) || {}).type)) {
+      // LiquidBlock.getCollisionShape: a lava source holds a strider above its lower half
+      return [[0, 0, 0, 1, 0.5, 1]]
+    }
     if (vanilla.thinLadder && block.type === ladderId) {
       // before 1.9 a ladder is 0.125 thick (0.1875 since)
       return block.shapes.map(shape => shape.map(v => v === 0.8125 ? 0.875 : v === 0.1875 ? 0.125 : v))
@@ -2725,6 +2730,8 @@ function Physics (mcData, world) {
     skeleton_horse: { ...HORSE, seat: f32(1.31875) },
     zombie_horse: { ...HORSE, seat: f32(1.31875) },
     pig: { width: f32(0.9), height: f32(0.9), seat: f32(0.86875), below: f32(0.03125), step: 0.6, steered: true },
+    // a strider: steered at 0.55 its speed, standing on lava, its rider bobbing with its gait
+    strider: { width: f32(0.9), height: f32(1.7), seat: f32(1.7), below: 0, step: 0.6, steered: true, steerFactor: f32(0.55), onLava: true },
     // a camel: the rider 0.5 forward on its back (0.375 under its top), a dash for a jump, 0.1 faster sprinting
     camel: { width: f32(1.7), height: f32(2.375), seat: f32(2.375) - f32(0.375), below: f32(0.375), forward: f32(0.5), step: 1.5, jumps: true, dash: true }
   }
@@ -2788,7 +2795,7 @@ function Physics (mcData, world) {
       horse.control = {}
       horse.stepHeight = horse.stepHeight || dims.step
       // getRiddenSpeed: a horse's movement speed; a steered pig's times 0.225 (and its boost)
-      let speed = dims.steered ? f32(horse.movementSpeed * 0.225 * (horse.boostFactor || 1)) : f32(horse.movementSpeed)
+      let speed = dims.steered ? f32(horse.movementSpeed * (dims.steerFactor || 0.225) * (horse.boostFactor || 1)) : f32(horse.movementSpeed)
       if (dims.dash && horse.riderSprinting && !(horse.dashCooldown > 0)) speed = f32(speed + f32(0.1))
       horse.attributes[speedKey] = { value: speed, modifiers: [] }
       horse.airSpeed = f32(speed * f32(0.1))
@@ -2798,6 +2805,13 @@ function Physics (mcData, world) {
       horse.waterHeight = water.height
       const lava = updateFluid(horse, world, getPlayerBB(horse.pos), 'lava', 0.0023333333333333335)
       horse.isInLava = lava.height > 0
+      // a strider stands on lava: it travels as on land (canStandOnFluid) and floats up out of it after
+      const inLava = horse.isInLava
+      if (dims.onLava) {
+        horse.standsOnLava = true
+        horse.isInLava = false
+      }
+      const before = horse.pos.clone()
       // LivingEntity.aiStep: before 1.21.5 the client damps the horse it drives (it is not its "effective AI"), then tiny
       // speeds stop
       const vel = horse.vel
@@ -2852,6 +2866,25 @@ function Physics (mcData, world) {
         horse.pendingJump = 0
       }
       moveEntityWithHeading(horse, world, strafe, forward)
+      if (dims.onLava) {
+        horse.isInLava = inLava
+        if (inLava) {
+          // Strider.floatStrider
+          const cell = horse.pos.floored()
+          const aboveLava = lavaIds.includes((world.getBlock(cell.offset(0, 1, 0)) || {}).type)
+          if (horse.pos.y > cell.y + 0.5 - 9.999999747378752e-6 && !aboveLava) horse.onGround = true
+          else {
+            vel.x = vel.x * 0.5
+            vel.y = vel.y * 0.5 + 0.05
+            vel.z = vel.z * 0.5
+          }
+        }
+        // LivingEntity.calculateEntityAnimation: the gait from the horizontal distance moved
+        const moved = f32(Math.sqrt((horse.pos.x - before.x) ** 2 + (horse.pos.z - before.z) ** 2))
+        const target = Math.min(f32(moved * 4), 1)
+        horse.walkSpeed = f32((horse.walkSpeed || 0) + f32(f32(target - (horse.walkSpeed || 0)) * f32(0.4)))
+        horse.walkPosition = f32((horse.walkPosition || 0) + horse.walkSpeed)
+      }
       if (horse.dashCooldown > 0) horse.dashCooldown--
       // AbstractHorse.tick: the rearing ends when its count runs out; its animation (the value of the tick before places
       // the rider)
@@ -2896,8 +2929,10 @@ function Physics (mcData, world) {
     const offZ = vanilla.entityAttachments ? back * cos : f32(back * cos)
     entity.pos.x = horse.pos.x + offX
     entity.pos.z = horse.pos.z + offZ
+    // (a strider's rider bobs: 0.24 by the cosine of its gait, by its pace up to 0.25)
+    const bob = dims.onLava ? f32(f32(f32(f32(0.12) * mthCos(f32((horse.walkPosition || 0) * f32(1.5)))) * f32(2)) * Math.min(f32(0.25), horse.walkSpeed || 0)) : 0
     if (vanilla.entityAttachments) {
-      entity.pos.y = (horse.pos.y + (dims.seat + 0.15 * anim)) - 0.6
+      entity.pos.y = (horse.pos.y + (dims.seat + 0.15 * anim + bob)) - 0.6
     } else {
       // before 1.20.5: float offsets, the seat 0.15625 under the top
       const seat = f32(f32(dims.height - dims.below) + f32(f32(0.15) * anim))
