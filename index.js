@@ -159,6 +159,7 @@ function Physics (mcData, world) {
     positionFromBoxCenter: supportFeature('positionFromBoxCenter'),
     legacyPlayerSize: supportFeature('legacyPlayerSize'),
     legacyViewVector: supportFeature('legacyViewVector'),
+    elytraLegacyLift: supportFeature('elytraLegacyLift'),
     moveWhenBlocked: supportFeature('moveWhenFullyBlocked'),
     collisionEpsilonVelocity: supportFeature('collisionEpsilonVelocityReset'),
     waterSprintSlowdown: supportFeature('proportionalLiquidGravity'),
@@ -1385,7 +1386,8 @@ function Physics (mcData, world) {
         const cos = mthCos(pitch)
         lift = f32(cos * cos * Math.min(1, lookLength / 0.4))
       }
-      vel.y += effectiveGravity * (-1.0 + lift * 0.75)
+      // (before 1.13: -0.08 + lift * 0.06, no gravity factor)
+      vel.y += vanilla.elytraLegacyLift ? -0.08 + lift * 0.06 : effectiveGravity * (-1.0 + lift * 0.75)
       if (vel.y < 0 && lookHorizontal > 0) {
         const down = vel.y * -0.1 * lift
         vel.x += look.x * down / lookHorizontal

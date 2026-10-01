@@ -112,6 +112,11 @@
     "since": "1.21"
   },
   {
+    "name": "elytraLegacyLift",
+    "description": "EntityLivingBase.travel gliding before 1.13: motionY += -0.08 + lift * 0.06",
+    "before": "1.13"
+  },
+  {
     "name": "legacyViewVector",
     "description": "Entity.getVectorForRotation before 1.13: cos/sin of (-yaw - PI), the pitch's cosine negated",
     "before": "1.13"
