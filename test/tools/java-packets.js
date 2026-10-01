@@ -7,6 +7,67 @@
 const { createSerializer, createDeserializer } = require('minecraft-protocol')
 const { Vec3 } = require('vec3')
 
+// 26.3's entity moves carry a VecDelta that minecraft-protocol does not know yet: properties (onGround | steps << 1),
+// then either one delta (three shorts) or each step's ticks (varint) and delta. Read as { onGround, x, y, z } or
+// { onGround, steps: [{ ticks, x, y, z }] }.
+function readVarInt (buffer, offset) {
+  let value = 0
+  let size = 0
+  let byte
+  do {
+    if (offset + size >= buffer.length) throw new Error('varint past the end')
+    byte = buffer[offset + size]
+    value |= (byte & 0x7f) << (7 * size++)
+  } while (byte & 0x80)
+  return { value, size }
+}
+function writeVarInt (value, buffer, offset) {
+  value >>>= 0
+  do {
+    let byte = value & 0x7f
+    value >>>= 7
+    if (value) byte |= 0x80
+    buffer[offset++] = byte
+  } while (value)
+  return offset
+}
+const varIntSize = value => { let size = 1; value >>>= 0; while (value >= 0x80) { value >>>= 7; size++ } return size }
+const vecDelta = {
+  read (buffer, offset) {
+    const properties = readVarInt(buffer, offset)
+    let at = offset + properties.size
+    const onGround = (properties.value & 1) !== 0
+    const count = properties.value >>> 1
+    const delta = () => { const d = { x: buffer.readInt16BE(at), y: buffer.readInt16BE(at + 2), z: buffer.readInt16BE(at + 4) }; at += 6; return d }
+    if (count <= 0) return { value: { onGround, ...delta() }, size: at - offset }
+    const steps = []
+    for (let i = 0; i < count; i++) {
+      const ticks = readVarInt(buffer, at)
+      at += ticks.size
+      steps.push({ ticks: ticks.value, ...delta() })
+    }
+    return { value: { onGround, steps }, size: at - offset }
+  },
+  write (value, buffer, offset) {
+    const steps = value.steps || []
+    offset = writeVarInt((value.onGround ? 1 : 0) | (steps.length << 1), buffer, offset)
+    const delta = d => { buffer.writeInt16BE(d.x, offset); buffer.writeInt16BE(d.y, offset + 2); buffer.writeInt16BE(d.z, offset + 4); offset += 6 }
+    if (!value.steps) delta(value)
+    for (const step of steps) { offset = writeVarInt(step.ticks, buffer, offset); delta(step) }
+    return offset
+  },
+  sizeOf (value) {
+    const steps = value.steps || []
+    return varIntSize((value.onGround ? 1 : 0) | (steps.length << 1)) + (value.steps ? steps.reduce((n, step) => n + varIntSize(step.ticks) + 6, 0) : 6)
+  }
+}
+const compilerTypes = require('minecraft-protocol/src/datatypes/compiler-minecraft')
+if (!compilerTypes.Read.vecDelta) {
+  compilerTypes.Read.vecDelta = ['native', vecDelta.read]
+  compilerTypes.Write.vecDelta = ['native', vecDelta.write]
+  compilerTypes.SizeOf.vecDelta = ['native', vecDelta.sizeOf]
+}
+
 const codecs = new Map()
 function codec (version) {
   if (!codecs.has(version)) {
