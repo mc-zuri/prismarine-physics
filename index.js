@@ -2885,7 +2885,7 @@ function Physics (mcData, world) {
       horse.lavaHeight = lava.height
       // a strider stands on lava: it travels as on land (canStandOnFluid) and floats up out of it after
       if (dims.onLava) horse.standsOnLava = true
-      const before = horse.pos.clone()
+      const before = horse.tickStartPos || horse.pos.clone()
       // LivingEntity.aiStep: before 1.21.5 the client damps the horse it drives (it is not its "effective AI"), then tiny
       // speeds stop
       const vel = horse.vel
