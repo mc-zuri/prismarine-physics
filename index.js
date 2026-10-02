@@ -2889,7 +2889,7 @@ function Physics (mcData, world) {
       // LivingEntity.aiStep: before 1.21.5 the client damps the horse it drives (it is not its "effective AI"), then tiny
       // speeds stop
       const vel = horse.vel
-      if (vanilla.riddenDamping) {
+      if (vanilla.riddenDamping && !horse.interpolating) {
         vel.x *= 0.98
         vel.y *= 0.98
         vel.z *= 0.98
