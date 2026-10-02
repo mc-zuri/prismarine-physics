@@ -3168,6 +3168,17 @@ function Physics (mcData, world) {
   // Share Entity.calculateViewVector with interaction rays, which use the same float/Mth arithmetic.
   physics.getViewVector = viewVector
   physics.clampBoatYaw = clampBoatYaw
+  // AbstractInterpolationHandler only shifts a pending target into collision-free space.
+  physics.isVehiclePositionFree = (vehicle, world, pos) => {
+    const saved = collisionContext
+    collisionContext = collisionContextOf({ ...vehicle, control: vehicle.control || {} })
+    try {
+      const box = otherEntityBox({ ...vehicle, pos })
+      return !collisionShapes(world, box, 0, 0, 0).some(shape => shape.intersects(box))
+    } finally {
+      collisionContext = saved
+    }
+  }
   return physics
 }
 
