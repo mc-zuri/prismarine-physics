@@ -514,7 +514,7 @@ function Physics (mcData, world) {
     if (!entity.entities) return
     const box = getPlayerBB(entity.pos)
     for (const other of entity.entities) {
-      if (!/boat$|raft$/.test(other.type)) continue
+      if (other.tickEnabled === false || !/boat$|raft$/.test(other.type)) continue
       const boat = otherEntityBox(other)
       const reach = new AABB(boat.minX - 0.20000000298023224, boat.minY + 0.009999999776482582, boat.minZ - 0.20000000298023224,
         boat.maxX + 0.20000000298023224, boat.maxY - 0.009999999776482582, boat.maxZ + 0.20000000298023224)
@@ -3178,8 +3178,9 @@ function Physics (mcData, world) {
       if (!boat) pushedByBoats(entity)
       return entity
     }
-    // the boat ticks before its passenger, on the keys the passenger left it the tick before
-    tickBoat(boat, world)
+    // The boat ticks before its passenger, on the keys left by the passenger's previous tick.
+    // An explicitly paused boat still runs its passenger's rideTick and accepts the next keys.
+    if (boat.tickEnabled !== false) tickBoat(boat, world)
     // Entity.rideTick: the passenger's own velocity starts from rest
     entity.vel.x = 0
     entity.vel.y = 0
