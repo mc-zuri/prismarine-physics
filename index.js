@@ -538,6 +538,12 @@ function Physics (mcData, world) {
     dz *= scale
     entity.vel.x += dx * f32(0.05)
     entity.vel.z += dz * f32(0.05)
+    // Entity.push applies the opposite impulse to the mob too. Its client-side
+    // velocity survives until a motion packet replaces it, including mounting.
+    if (other.vel && other.receivesPush !== false) {
+      other.vel.x -= dx * f32(0.05)
+      other.vel.z -= dz * f32(0.05)
+    }
   }
 
   // LivingEntity.pushEntities on the client: each mob (after the player's tick) pushes the player whose box its own
