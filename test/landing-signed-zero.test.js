@@ -19,9 +19,15 @@ for (const version of ['1.21.11', '26.1']) {
       entity: {
         position: new Vec3(0.5, 60, 0.5),
         velocity: new Vec3(0, -0.0784000015258789, 0),
-        onGround: true, yaw: 0, pitch: 0, effects: {}
+        onGround: true,
+        yaw: 0,
+        pitch: 0,
+        effects: {}
       },
-      inventory: { slots: [] }, jumpTicks: 0, jumpQueued: false, fireworkRocketDuration: 0
+      inventory: { slots: [] },
+      jumpTicks: 0,
+      jumpQueued: false,
+      fireworkRocketDuration: 0
     }
     const state = new PlayerState(bot, { forward: false, back: false, left: false, right: false, jump: false, sprint: false, sneak: false })
     state.attributes = { [registry.attributesByName.gravity.resource]: { value: 0, modifiers: [] } }

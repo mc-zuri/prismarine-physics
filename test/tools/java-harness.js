@@ -11,6 +11,7 @@ const path = require('path')
 require('../../lib/session-data')()
 const assert = require('assert')
 const { Vec3 } = require('vec3')
+const AABB = require('../../lib/aabb')
 const { Physics } = require('../..')
 const packets = require('./java-packets')
 const attribute = require('../../lib/attribute')
@@ -89,11 +90,20 @@ function packetsSupported (version) {
 
 const cache = new Map()
 
+let fixtureVersions
 function recordedVersions () {
-  if (BINARY_FIXTURES) return [JSON.parse(fs.readFileSync(path.join(BINARY_FIXTURES, 'index.json'), 'utf8')).version]
-  if (FIXTURE_ARCHIVE) return fixtureStore.versions()
-  if (!fs.existsSync(FIXTURES)) return []
-  return [...new Set([...fixtureStore.versions(), ...fs.readdirSync(FIXTURES).filter(d => d.endsWith(SUFFIX)).map(d => d.slice(0, -SUFFIX.length))])]
+  // Fixtures are fixed for a test run. Do not reopen and decode a selected archive's
+  // catalog for each of the thousands of generated version groups.
+  if (!fixtureVersions) {
+    if (BINARY_FIXTURES) fixtureVersions = [JSON.parse(fs.readFileSync(path.join(BINARY_FIXTURES, 'index.json'), 'utf8')).version]
+    else if (FIXTURE_ARCHIVE) fixtureVersions = fixtureStore.versions()
+    else {
+      fixtureVersions = fs.existsSync(FIXTURES)
+        ? [...new Set([...fixtureStore.versions(), ...fs.readdirSync(FIXTURES).filter(d => d.endsWith(SUFFIX)).map(d => d.slice(0, -SUFFIX.length))])]
+        : []
+    }
+  }
+  return fixtureVersions
 }
 
 function load (version) {
@@ -245,7 +255,7 @@ const camel = name => name.replace(/[._]([a-z])/g, (m, c) => c.toUpperCase())
 function attributesOf (row, mcData) {
   const out = { [mcData.attributesByName.movementSpeed.resource]: speedAttribute(row) }
   for (const [name, value] of Object.entries(row.attributes || {})) {
-    const known = mcData.attributesByName[camel(name)] || mcData.attributesByName[camel(name.replace(/^player./, ''))]
+    const known = mcData.attributesByName[camel(name)] || mcData.attributesByName[camel(name.replace(/^player./, ''))] || mcData.attributesByName[camel('player.' + name)]
     if (!known || known.name === 'movementSpeed') continue
     const withModifiers = row.attributeModifiers && row.attributeModifiers[name]
     out[known.resource] = withModifiers
@@ -303,7 +313,7 @@ function makeState (rec, mcData) {
     autoJump: !!setup.autoJump,
     // the vehicle ridden, with the keys it last had from its rider
     entities: summoned(rec),
-    vehicle: vehicleFrom(s.vehicle, s.netState && s.netState.lastSentInput ? keysOf(s.netState.lastSentInput) : {}, s.netState && s.netState.vehicleId, setup.mount && setup.mount.entity, setup.mount && setup.mount.attributes, s, setup.equipment && setup.equipment.mainhand && setup.equipment.mainhand.id)
+    vehicle: vehicleFrom(s.vehicle, s.netState && s.netState.lastSentInput ? keysOf(s.netState.lastSentInput) : {}, s.netState && s.netState.vehicleId, setup.mount && setup.mount.entity, setup.mount && setup.mount.attributes, s, setup.equipment && setup.equipment.mainhand && setup.equipment.mainhand.id, mcData.isOlderThan('1.9'))
   }
 }
 
@@ -317,10 +327,17 @@ function summoned (rec) {
 const keysOf = held => ({ forward: held[0], back: held[1], left: held[2], right: held[3], jump: held[4], sneak: held[5], sprint: held[6] })
 
 // A recorded vehicle as the engine keeps it; input: the rider's keys of the tick before.
-function vehicleFrom (v, keys, id, mount, mountAttributes, rider, steerItem) {
+const entityType = type => ({ Boat: 'boat', EntityHorse: 'horse', MinecartRideable: 'minecart' })[type] || type.toLowerCase()
+function vehicleFrom (v, keys, id, mount, mountAttributes, rider, steerItem, serverControlled = false) {
   if (!v) return undefined
+  v = { ...v, type: entityType(v.type) }
+  const initialBox = rider && rider.entities && rider.entities.find(e => e.id === id)?.box
+  const javaBox = initialBox ? new AABB(...initialBox) : undefined
+  if (javaBox) javaBox.at = [...v.pos]
   return {
     id,
+    serverControlled,
+    javaBox,
     // (before 1.21.2 every boat is a "boat": the variant mounted tells a raft)
     type: v.type === 'boat' && mount ? mount : v.type,
     pos: new Vec3(...v.pos),
@@ -337,6 +354,11 @@ function vehicleFrom (v, keys, id, mount, mountAttributes, rider, steerItem) {
     // a horse's attributes (the step height from the mount's setup)
     movementSpeed: v.movementSpeed,
     jumpStrength: v.jumpStrength,
+    standing: v.standing,
+    standCounter: v.standCounter > 0 ? 21 - v.standCounter : 0,
+    standAnim: v.standAnim === undefined ? undefined : Math.fround(v.standAnim),
+    standAnimO: v.standAnimO === undefined ? undefined : Math.fround(v.standAnimO),
+    allowStandSliding: v.allowStandSliding,
     stepHeight: mountAttributes && mountAttributes.step_height,
     // the rider's input and yaw of the tick before (a horse moves on them)
     riderInput: rider ? { xxa: Math.fround(rider.xxa || 0), zza: Math.fround(rider.zza || 0) } : undefined,
@@ -383,7 +405,7 @@ function applyInput (state, row, mcData) {
 }
 
 // What the server sent before a tick; it belongs to that tick only and is never filled forward.
-const EVENTS = ['velocityPackets', 'blockChanges', 'vehicleServer', 'explosionKnockback', 'corrected', 'serverPackets', 'clientPackets']
+const EVENTS = ['velocityPackets', 'blockChanges', 'vehicleServer', 'vehicleRearing', 'explosionKnockback', 'corrected', 'serverPackets', 'clientPackets']
 
 // The other entities as the client held them after each tick (recordings with "entities": the start's, then each
 // row's changes by id), or null.
@@ -405,9 +427,10 @@ function useEntities (state, entities, before) {
   const previous = new Map((before || []).map(e => [e.id, e]))
   state.entities = entities.filter(e => e.id !== vehicleId).map(e => ({ id: e.id, type: e.type, pos: new Vec3(...e.pos), vel: new Vec3(...e.vel), box: e.box, solidBox: (previous.get(e.id) || e).box }))
   const ridden = entities.find(e => e.id === vehicleId)
-  if (ridden && SERVER_DRIVEN.test(state.vehicle.type)) {
+  if (ridden && (SERVER_DRIVEN.test(state.vehicle.type) || state.vehicle.serverControlled)) {
     state.vehicle.pos = new Vec3(...ridden.pos)
     state.vehicle.yaw = Math.fround(ridden.yaw)
+    if (state.vehicle.serverControlled && ridden.walkAnimationSpeed !== undefined) state.vehicle.walkSpeed = Math.fround(ridden.walkAnimationSpeed)
   }
 }
 
@@ -420,6 +443,7 @@ function expand (rec) {
     const events = {}
     for (const [key, value] of Object.entries(row)) (EVENTS.includes(key) ? events : state)[key] = value
     last = { ...last, ...state }
+    if (last.vehicle) last.vehicle = { ...last.vehicle, type: entityType(last.vehicle.type) }
     return { ...last, events }
   })
 }
@@ -427,6 +451,7 @@ function expand (rec) {
 // Applies a tick's events before its physics. Recordings with packets are replayed through the packet handlers
 // (java-packets.js); older ones through the extracted events: block changes, velocity, explosion knockback.
 function applyEvents (state, w, events, ctx) {
+  if (state.vehicle && (events.vehicleRearing || []).some(e => e.entityId === state.vehicle.id)) state.vehicle.rearingRequested = true
   if (events.serverPackets && ctx && packetsSupported(ctx.version)) {
     for (const entry of events.serverPackets) {
       for (const part of entry.packets || [entry]) packets.handle(state, packets.decodeServer(ctx.version, part.bytes), { ...ctx, world: w })
@@ -498,7 +523,7 @@ function replay (version, rec, { mode = 'trajectory', fields = FIELDS, epsilon =
       // (rows the recorder left without the vehicle keep the engine's; what the recording does not hold, a pending jump
       // and the rearing, carries over from the engine)
       const engineVehicle = state.vehicle
-      if (before.vehicle) state.vehicle = vehicleFrom(before.vehicle, before.in || {}, before.netState && before.netState.vehicleId, rec.setup && rec.setup.mount && rec.setup.mount.entity, rec.setup && rec.setup.mount && rec.setup.mount.attributes, before, rec.setup && rec.setup.equipment && rec.setup.equipment.mainhand && rec.setup.equipment.mainhand.id)
+      if (before.vehicle) state.vehicle = vehicleFrom(before.vehicle, before.in || {}, before.netState && before.netState.vehicleId, rec.setup && rec.setup.mount && rec.setup.mount.entity, rec.setup && rec.setup.mount && rec.setup.mount.attributes, before, rec.setup && rec.setup.equipment && rec.setup.equipment.mainhand && rec.setup.equipment.mainhand.id, mcData.isOlderThan('1.9'))
       if (state.vehicle && engineVehicle && engineVehicle !== state.vehicle) {
         for (const key of ['pendingJump', 'dashCooldown', 'walkSpeed', 'walkPosition', 'lavaHeight', 'supportingBlockPos', 'standing', 'standCounter', 'standAnim', 'standAnimO', 'allowStandSliding', 'lastYd']) {
           if (state.vehicle[key] === undefined && engineVehicle[key] !== undefined) state.vehicle[key] = engineVehicle[key]
@@ -609,10 +634,11 @@ const packetHex = packets => packets.map(bytes => bytes.toString('hex'))
 function checkClientPackets (version, rec) {
   const out = []
   let before = rec.start
+  let rebuiltNet = { wasShiftKeyDown: !!before.shiftKeyDown, ...before.netState }
   // A piston moves the player after its own tick, which reported where it was before: the engine, replayed tick by
   // tick, tells where that was.
   const beforePistons = new Map()
-  if (rec.ticks.some(t => (t.serverPackets || []).some(p => /block_event|BlockEvent/.test(p.type)))) replay(version, rec, { mode: 'stepwise', beforePistons })
+  if (registry(version).isOlderThan('26.3') && rec.ticks.some(t => (t.serverPackets || []).some(p => /block_event|BlockEvent|BlockAction/.test(p.type)))) replay(version, rec, { mode: 'stepwise', beforePistons })
   for (const recorded of expand(rec)) {
     const row = beforePistons.has(recorded.t) ? { ...recorded, ...beforePistons.get(recorded.t), pos: beforePistons.get(recorded.t).pos.toArray() } : recorded
     const sent = row.events.clientPackets
@@ -638,7 +664,9 @@ function checkClientPackets (version, rec) {
         mainhand: setup.equipment && setup.equipment.mainhand && setup.equipment.mainhand.id,
         chest: setup.equipment && setup.equipment.chest && setup.equipment.chest.id
       }
-      const built = packets.movementPackets(row, input, before.netState, version, extra).packets
+      const movement = packets.movementPackets(row, input, { ...rebuiltNet, ...before.netState }, version, extra)
+      rebuiltNet = movement.net
+      const built = movement.packets
       const actual = built.map(p => packets.encode(version, 'toServer', p.name, p.params))
       if (!equalPackets(expected, actual)) out.push({ t: row.t, expected: packetHex(expected), actual: packetHex(actual) })
     }
@@ -682,6 +710,7 @@ function recorded (name, spec) {
         // versions whose game data is at hand (26.2+ need PHYSREC_MCDATA)
         const available = group.versions.filter(v => recordedVersions().includes(v) && hasData(v))
         let runs
+        let packetRuns
         before(function () {
           // replays every version of the group (the first loads their data)
           this.timeout(0)
@@ -692,6 +721,9 @@ function recorded (name, spec) {
             assert.deepStrictEqual(rec.steps, spec.steps, `${name}: the test's steps no longer match the ${version} recording; regenerate`)
             return { version, rec, result: replay(version, rec, spec.options), rows: expand(rec) }
           })
+          // An older capture without packets must not skip newer versions in
+          // the same movement group that do contain network checkpoints.
+          packetRuns = runs.filter(({ version, rec }) => rec.start.netState && packetsSupported(version))
         })
 
         for (const [title, milestone] of Object.entries(group.milestones || {})) {
@@ -717,8 +749,8 @@ function recorded (name, spec) {
         })
 
         it('handles server packets like vanilla', function () {
-          for (const { version, rec } of runs) {
-            if (!rec.start.netState || !packetsSupported(version)) this.skip()
+          if (!packetRuns.length) this.skip()
+          for (const { version, rec } of packetRuns) {
             const bad = checkServerPackets(version, rec)
             // (packet known failures are about the packets the client sends: the server side must always match)
             expectation({}, bad.length === 0, () => `${name} on ${version}: ${bad.length} packets handled differently; first at tick ${bad[0].t} (${bad[0].type}):\n` +
@@ -728,8 +760,8 @@ function recorded (name, spec) {
 
         it('sends byte-exact movement packets', function () {
           const failures = []
-          for (const { version, rec } of runs) {
-            if (!rec.start.netState || !packetsSupported(version)) this.skip()
+          if (!packetRuns.length) this.skip()
+          for (const { version, rec } of packetRuns) {
             const bad = checkClientPackets(version, rec)
             if (bad.length) failures.push(`${name} on ${version}: ${bad.length} ticks differ; first at tick ${bad[0].t}:\n  vanilla ${bad[0].expected.join(' ')}\n  built   ${bad[0].actual.join(' ')}`)
           }

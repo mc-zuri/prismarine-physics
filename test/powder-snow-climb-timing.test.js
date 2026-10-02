@@ -18,10 +18,18 @@ for (const version of ['1.21.4', '1.21.5']) {
     const state = new PlayerState({
       registry,
       entity: {
-        position: new Vec3(0.5, 98, 920.5), velocity: new Vec3(0, 0, 0),
-        onGround: true, yaw: 0, pitch: 0, effects: {}, isInPowderSnow: false
+        position: new Vec3(0.5, 98, 920.5),
+        velocity: new Vec3(0, 0, 0),
+        onGround: true,
+        yaw: 0,
+        pitch: 0,
+        effects: {},
+        isInPowderSnow: false
       },
-      inventory: { slots: [] }, jumpTicks: 0, jumpQueued: false, fireworkRocketDuration: 0
+      inventory: { slots: [] },
+      jumpTicks: 0,
+      jumpQueued: false,
+      fireworkRocketDuration: 0
     }, { forward: false, back: false, left: false, right: false, jump: true, sprint: false, sneak: false })
     state.leatherBoots = true
     Physics(registry, world).simulatePlayer(state, world)

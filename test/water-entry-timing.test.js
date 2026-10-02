@@ -21,9 +21,15 @@ for (const version of ['1.21.4', '1.21.5']) {
       entity: {
         position: new Vec3(4.5, 101.30543845175121, 1549.5),
         velocity: new Vec3(0, -0.6517088341626173, 0),
-        onGround: false, yaw: 0, pitch: 0, effects: {}
+        onGround: false,
+        yaw: 0,
+        pitch: 0,
+        effects: {}
       },
-      inventory: { slots: [] }, jumpTicks: 0, jumpQueued: false, fireworkRocketDuration: 0
+      inventory: { slots: [] },
+      jumpTicks: 0,
+      jumpQueued: false,
+      fireworkRocketDuration: 0
     }, { forward: false, back: false, left: false, right: false, jump: false, sprint: false, sneak: false })
     const physics = Physics(registry, world)
     physics.simulatePlayer(state, world)

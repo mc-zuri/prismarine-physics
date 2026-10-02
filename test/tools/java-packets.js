@@ -113,8 +113,27 @@ function supported (version) {
   }
 }
 
-const decode = (version, direction, bytes) => codec(version)[direction].de.parsePacketBuffer(Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes, 'hex')).data
-const encode = (version, direction, name, params) => codec(version)[direction].ser.createPacketBuffer({ name, params })
+// Older protocol schemas expose PlayerCommand's enum ordinal rather than a mapper.
+// Keep the harness's action names consistent for both packet filtering and serialization.
+const LEGACY_ACTIONS = ['start_sneaking', 'stop_sneaking', 'leave_bed', 'start_sprinting', 'stop_sprinting', 'start_riding_jump', 'stop_riding_jump', 'open_inventory', 'start_fall_flying']
+function decode (version, direction, bytes) {
+  const packet = codec(version)[direction].de.parsePacketBuffer(Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes, 'hex')).data
+  if (packet.name === 'entity_action' && typeof packet.params.actionId === 'number') {
+    packet.params.actionId = LEGACY_ACTIONS[packet.params.actionId] ?? packet.params.actionId
+  }
+  return packet
+}
+function encode (version, direction, name, params) {
+  if (name === 'entity_action' && typeof params.actionId === 'string') {
+    const action = protocolData(version).protocol.play.toServer.types.packet_entity_action[1].find(field => field.name === 'actionId')
+    if (typeof action.type === 'string') {
+      const ordinal = LEGACY_ACTIONS.indexOf(params.actionId)
+      if (ordinal < 0) throw new Error(`unknown player command: ${params.actionId}`)
+      params = { ...params, actionId: ordinal }
+    }
+  }
+  return codec(version)[direction].ser.createPacketBuffer({ name, params })
+}
 
 // ---- outgoing: vanilla LocalPlayer.tick ----
 
@@ -153,6 +172,11 @@ function movementPackets (after, input, net, version, extra = {}) {
   const beforeVehicle = before.vehicle
   if (beforeVehicle && after.vehicle && JUMPABLE.has(beforeVehicle.type) && extra.prevKeys && extra.prevKeys.jump && !input.jump) {
     packets.push({ name: 'entity_action', params: { entityId: net.entityId, actionId: actionName(version, 'start_riding_jump', 'start_horse_jump'), jumpBoost: Math.floor(Math.fround(beforeVehicle.jumpRidingScale * 100)) } })
+  }
+  // 1.21.2-1.21.5 still reports shift separately, before the input packet.
+  if (!after.vehicle && !legacy && version && isOlder(version, '1.21.6') && !!after.shiftKeyDown !== !!(net.wasShiftKeyDown ?? before.shiftKeyDown)) {
+    packets.push({ name: 'entity_action', params: { entityId: net.entityId, actionId: after.shiftKeyDown ? 'start_sneaking' : 'stop_sneaking', jumpBoost: 0 } })
+    next.wasShiftKeyDown = !!after.shiftKeyDown
   }
   if (after.vehicle) return ridingPackets(packets, next, after, input, net, legacy, extra, version)
   if (legacy) return legacyMovementPackets(packets, next, after, input, net, extra, version)
@@ -193,7 +217,7 @@ function movementPackets (after, input, net, version, extra = {}) {
 // Before 1.21.2 (LocalPlayer.sendPosition): the sprint and shift commands, then the move packet carrying onGround only;
 // no player_input or tick_end.
 function legacyMovementPackets (packets, next, after, input, net, extra, version) {
-  if (extra.usedItem && extra.before && !(version && isOlder(version, '1.17'))) {
+  if (extra.usedItem && extra.before && version && !isOlder(version, '1.17') && isOlder(version, '1.21')) {
     // MultiPlayerGameMode.useItem first reports where the player is (before the tick) and how it looks; not yet in
     // 1.16 (1.16.4 sends use_item alone, 1.18.1 does this)
     const [bx, by, bz] = extra.before.pos
@@ -205,7 +229,7 @@ function legacyMovementPackets (packets, next, after, input, net, extra, version
   }
   // the sneak state the server last heard of (wasSneaking in recordings before 1.13)
   const sneakField = net.wasSneaking !== undefined ? 'wasSneaking' : 'wasShiftKeyDown'
-  if (after.shiftKeyDown !== undefined && !!after.shiftKeyDown !== !!net[sneakField]) {
+  if (after.shiftKeyDown !== undefined && !!after.shiftKeyDown !== !!(net[sneakField] ?? extra.before?.shiftKeyDown)) {
     packets.push({ name: 'entity_action', params: { entityId: net.entityId, actionId: after.shiftKeyDown ? 'start_sneaking' : 'stop_sneaking', jumpBoost: 0 } })
     next[sneakField] = after.shiftKeyDown
   }
@@ -215,8 +239,9 @@ function legacyMovementPackets (packets, next, after, input, net, extra, version
   const dz = z - net.lastPos[2]
   const reminder = net.positionReminder + 1
   // a move counts past 0.03 blocks before 1.19, past 2e-4 since
-  const threshold = version && isOlder(version, '1.19') ? 9.0e-4 : 2.0e-4 * 2.0e-4
-  const moved = dx * dx + dy * dy + dz * dz > threshold || reminder >= 20
+  const threshold = version && isOlder(version, '22w19a') ? 9.0e-4 : 2.0e-4 * 2.0e-4
+  // 1.8 increments the reminder after deciding whether to send a position.
+  const moved = dx * dx + dy * dy + dz * dz > threshold || (version && isOlder(version, '1.9') ? net.positionReminder : reminder) >= 20
   const yaw = Math.fround(input.yaw)
   const pitch = Math.fround(input.pitch)
   const turned = yaw - Math.fround(net.lastYaw) !== 0 || pitch - Math.fround(net.lastPitch) !== 0
@@ -248,11 +273,15 @@ function drives (vehicle, extra) {
 // sprint command; tick_end from 1.21.2.
 function ridingPackets (packets, next, after, input, net, legacy, extra, version) {
   const vehicle = after.vehicle
-  const driven = drives(vehicle, extra)
+  const driven = !(version && isOlder(version, '1.9')) && drives(vehicle, extra)
   if (driven && /boat$|raft$/.test(vehicle.type)) {
     const k = extra.prevKeys || {}
     const up = !!k.forward
     packets.push({ name: 'steer_boat', params: { leftPaddle: (!!k.right && !k.left) || up, rightPaddle: (!!k.left && !k.right) || up } })
+  }
+  if (!legacy && version && isOlder(version, '1.21.6') && !!after.shiftKeyDown !== !!(net.wasShiftKeyDown ?? extra.before?.shiftKeyDown)) {
+    packets.push({ name: 'entity_action', params: { entityId: net.entityId, actionId: after.shiftKeyDown ? 'start_sneaking' : 'stop_sneaking', jumpBoost: 0 } })
+    next.wasShiftKeyDown = !!after.shiftKeyDown
   }
   // Since 26.3 the packets go out after the whole tick (LocalPlayer.sendChanges), with the rotation the vehicle gave
   // the rider; before, from the rider's own tick, ahead of the vehicle's.
@@ -320,7 +349,7 @@ const TO_RAD = Math.PI / 180
 function attributeResource (prop, versionData) {
   const mcData = versionData.protocolData || versionData
   if (prop.name !== undefined) return prop.name
-  const type = mcData.protocol.play.toClient.types.packet_entity_update_attributes
+  const type = mcData.protocol.play.toClient.types.packet_entity_update_attributes || mcData.protocol.play.toClient.types.packet_update_attributes || ''
   const mappings = JSON.stringify(type).match(/"mappings":({[^}]*})/)
   // (a plain string key before 1.16, e.g. generic.movementSpeed)
   if (!mappings) return prop.key
@@ -363,16 +392,17 @@ function handle (state, packet, ctx) {
         if (state.entities) state.entities.push({ id: state.vehicle.id, type: state.vehicle.type, pos: state.vehicle.pos.clone() })
         state.vehicle = undefined
       }
-      if (typeof p.flags === 'number') {
+      if (ctx.mcData.isOlderThan('1.21.2')) {
         // Before 1.21.2: bit flags (x, y, z, yaw, pitch relative); a relative axis keeps its velocity, an absolute one
         // stops it, and the reply reports onGround false.
-        const rel = bit => (p.flags & bit) !== 0
+        const bits = typeof p.flags === 'number' ? p.flags : p.flags._value
+        const rel = bit => (bits & bit) !== 0
         const v = state.vel
         state.pos = new Vec3(rel(1) ? state.pos.x + p.x : p.x, rel(2) ? state.pos.y + p.y : p.y, rel(4) ? state.pos.z + p.z : p.z)
         state.vel = new Vec3(rel(1) ? v.x : 0, rel(2) ? v.y : 0, rel(4) ? v.z : 0)
         state.yawDegrees = Math.fround(rel(8) ? state.yawDegrees + p.yaw : p.yaw)
         state.pitchDegrees = Math.fround(rel(16) ? state.pitchDegrees + p.pitch : p.pitch)
-        responses.push({ name: 'teleport_confirm', params: { teleportId: p.teleportId } })
+        if (p.teleportId !== undefined) responses.push({ name: 'teleport_confirm', params: { teleportId: p.teleportId } })
         responses.push({ name: 'position_look', params: { x: state.pos.x, y: state.pos.y, z: state.pos.z, yaw: state.yawDegrees, pitch: state.pitchDegrees, onGround: false } })
         break
       }
@@ -395,6 +425,8 @@ function handle (state, packet, ctx) {
       } else {
         responses.push({ name: 'teleport_confirm', params: { teleportId: p.teleportId } })
         responses.push({ name: 'position_look', params: { x: state.pos.x, y: state.pos.y, z: state.pos.z, yaw: state.yawDegrees, pitch: state.pitchDegrees, flags: flags(false, false) } })
+        // 1.21.2 and 1.21.3 report their new position before acknowledging.
+        if (ctx.mcData.isOlderThan('1.21.4')) responses.reverse()
       }
       break
     }
@@ -403,12 +435,16 @@ function handle (state, packet, ctx) {
       state.pitchDegrees = Math.fround(p.relativePitch ? state.pitchDegrees + p.pitch : p.pitch)
       responses.push({ name: 'look', params: { yaw: state.yawDegrees, pitch: state.pitchDegrees, flags: flags(false, false) } })
       break
+    case 'update_attributes':
     case 'entity_update_attributes':
       if (self(p.entityId)) {
         for (const prop of p.properties) {
           const key = ctx.mcData.attributesByName.movementSpeed.resource
           const bare = r => String(r).replace(/^minecraft:/, '')
           if (bare(attributeResource(prop, { protocolData: ctx.protocolData || ctx.mcData })) !== bare(key)) continue
+          // An authoritative attribute replacement can temporarily remove the
+          // sprint modifier while the shared sprint flag remains set.
+          state.sprintAttributeSuppressed = !!state.sprinting && !prop.modifiers.some(m => /sprinting$|^662a6b8d-da3e-4c1c-8813-96ea6097278d$/i.test(String(m.uuid)))
           state.attributes = { ...state.attributes, [key]: { value: prop.value, modifiers: prop.modifiers.filter(m => !String(m.uuid).endsWith('sprinting')).map(m => ({ uuid: m.uuid, amount: m.amount, operation: m.operation })) } }
         }
       }
@@ -419,6 +455,12 @@ function handle (state, packet, ctx) {
       if (self(p.entityId) && p.entityStatus === 9 && food && state.food !== undefined) state.food = Math.min(20, state.food + food.foodPoints)
       break
     }
+    case 'attach_entity':
+      if (self(p.entityId) && p.vehicleId === -1 && !p.leash) {
+        if (state.vehicle && state.entities) state.entities.push({ id: state.vehicle.id, type: state.vehicle.type, pos: state.vehicle.pos.clone() })
+        state.vehicle = undefined
+      }
+      break
     case 'set_passengers':
       // the player no longer among the vehicle's passengers: it rides no more, and the vehicle stays where it was
       if (state.vehicle && state.vehicle.id === p.entityId && !p.passengers.includes(ctx.entityId)) {
@@ -458,12 +500,22 @@ function handle (state, packet, ctx) {
       if (state.vehicle && p.entityId === state.vehicle.id) {
         // a horse's flags (the one byte past the living entity's own: 13 in 1.12, 17 in 1.17-1.21, 18 in 26.3): 32
         // standing (rearing)
-        const flags = p.metadata.find(m => m.key >= 13 && (m.type === 'byte' || m.type === 0))
-        if (flags) state.vehicle.standing = (flags.value & 32) !== 0
+        const legacy = ctx.mcData.isOlderThan('1.9')
+        const flags = p.metadata.find(m => legacy ? m.key === 16 && m.type === 2 : m.key >= (ctx.mcData.isOlderThan('1.11') ? 12 : 13) && (m.type === 'byte' || m.type === 0))
+        if (flags) state.vehicle.standing = (flags.value & (legacy ? 64 : 32)) !== 0
       }
       if (self(p.entityId)) {
         const shared = p.metadata.find(m => m.key === 0)
-        if (shared) state.elytraFlying = (shared.value & 0x80) !== 0
+        if (shared) {
+          state.elytraFlying = (shared.value & 0x80) !== 0
+          if (!ctx.mcData.isOlderThan('1.13')) state.swimming = (shared.value & 0x10) !== 0
+          state.sprinting = (shared.value & 0x08) !== 0
+        }
+        const pose = p.metadata.find(m => m.type === 'pose' || (m.key === 6 && !ctx.mcData.isOlderThan('1.14')))
+        if (pose) {
+          state.pose = typeof pose.value === 'string' ? pose.value : ['standing', 'fall_flying', 'sleeping', 'swimming', 'spin_attack', 'crouching', 'long_jumping', 'dying'][pose.value]
+          state.javaBox = null
+        }
       }
       break
     case 'block_action': {
@@ -480,6 +532,14 @@ function handle (state, packet, ctx) {
     }
     case 'block_change':
       ctx.world.setStateId([p.location.x, p.location.y, p.location.z], p.type)
+      // Replacing a moving piston also removes its block entity. A head update
+      // can arrive in the very same batch as the extension event, before it ticks.
+      if (state.pistons) {
+        const block = ctx.world.getBlock(new Vec3(p.location.x, p.location.y, p.location.z))
+        if (!block || !['moving_piston', 'piston_extension'].includes(block.name)) {
+          state.pistons = state.pistons.filter(e => e.x !== p.location.x || e.y !== p.location.y || e.z !== p.location.z)
+        }
+      }
       break
     case 'multi_block_change':
       if (p.chunkX !== undefined) {
@@ -511,7 +571,7 @@ function rotate (v, pitch, yaw) {
 }
 
 // The packets handle() reads.
-const HANDLED = new Set(['block_action', 'rel_entity_move', 'entity_move_look', 'sync_entity_position', 'entity_teleport', 'entity_destroy', 'set_passengers', 'entity_velocity', 'explosion', 'position', 'player_rotation', 'entity_update_attributes', 'entity_status', 'update_health', 'entity_effect', 'remove_entity_effect', 'entity_metadata', 'block_change', 'multi_block_change'])
+const HANDLED = new Set(['block_action', 'rel_entity_move', 'entity_move_look', 'sync_entity_position', 'entity_teleport', 'entity_destroy', 'attach_entity', 'set_passengers', 'entity_velocity', 'explosion', 'position', 'player_rotation', 'entity_update_attributes', 'update_attributes', 'entity_status', 'update_health', 'entity_effect', 'remove_entity_effect', 'entity_metadata', 'block_change', 'multi_block_change'])
 
 // A server packet decoded for handle(). A packet the handlers do not read may fail to decode where minecraft-data's
 // protocol lags (26.3 item components): it is passed on by name only. One they read must decode.

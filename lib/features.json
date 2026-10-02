@@ -169,7 +169,7 @@
   {
     "name": "autoJump",
     "description": "LocalPlayer.updateAutoJump: the auto-jump option",
-    "since": "1.11"
+    "since": "1.10"
   },
   {
     "name": "autoJumpJumpFactor",
@@ -345,7 +345,7 @@
   {
     "name": "elytraDoubleCos",
     "description": "The elytra lift takes cos(pitch) in double (Math.cos), not through Mth.cos as a float",
-    "since": "1.19"
+    "since": "22w19a"
   },
   {
     "name": "elytraSquareOnly",
@@ -365,7 +365,7 @@
   {
     "name": "swiftSneak",
     "description": "Swift sneak adds 0.15F per level to the 0.3F sneak factor (the sneaking_speed attribute from 1.21)",
-    "since": "1.19"
+    "since": "22w19a"
   },
   {
     "name": "insideBlocksInset1e7",

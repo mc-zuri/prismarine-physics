@@ -124,7 +124,7 @@ known-failure assertions remain in the normal test suite.
 | Storage-only binary conversion | 30 | 43 | 23,447 | 75,019,035 |
 | After importing all nine sessions | 31 | 96 | 24,484 | 81,934,511 |
 
-The final corpus has 31 version archives and 65 world revisions: 13 complete
+After the initial nine imports, the corpus had 31 version archives and 65 world revisions: 13 complete
 legacy world sets plus 52 shared case snapshots from the raw sessions. Imports
 added 1,037 fixtures and replaced 8,275. Three unsuccessful catalog cases were
 skipped; existing fixtures absent from successful imports were retained.
@@ -167,3 +167,64 @@ The original fixture directories, including retained logs, were moved to
 Detailed per-file replay results are in the sibling `pfix-validation` directory
 as `legacy-results.json` and `archive-results.json`. The recorder's external
 `tools/export.mjs` and `tools/gen-tests.mjs` were updated to use the archive API.
+
+### Additional sessions: 1.21.6, 1.21.5, 1.21.3 and 1.21.2
+
+The four subsequent sessions from the same directory added 1,036 fixtures and
+replaced 3,103. All 4,139 successful recordings passed session integrity and
+manifest SHA-256 checks, and their decoded fixtures and worlds matched the
+independent source exports. The flaky `v_camel_sprint` recording for 1.21.3 was
+skipped, preserving its previous fixture.
+
+| Version | Imported successful cases | New fixtures | Replaced fixtures |
+| --- | ---: | ---: | ---: |
+| 1.21.6 | 1,035 | 0 | 1,035 |
+| 1.21.5 | 1,035 | 0 | 1,035 |
+| 1.21.3 | 1,034 | 1 | 1,033 |
+| 1.21.2 | 1,035 | 1,035 | 0 |
+
+The resulting corpus contains 25,520 fixtures across 32 version archives and 65
+shared world files, totaling 86,887,768 bytes. Regeneration added 1,036
+scenario/version combinations: all 1,035 scenarios for 1.21.2 and
+`v_raft_forward` for 1.21.3. No existing version coverage was removed. Every
+successful imported case has generated JS coverage for its version. Generated
+test lint and whitespace checks passed.
+
+Immediately after import, replay checks completed for each selected archive without
+timeouts or storage errors. Physics/packet assertions failed: 49 for 1.21.6, 285 for 1.21.5,
+294 for 1.21.3, and 294 for 1.21.2. Across these runs, 30,739 checks passed and
+922 failed; checks for unselected versions were skipped. Detailed results and
+pre-import archive backups are in
+`C:\Users\Sandbox\AppData\Local\Temp\pfix-add-four-Cxi2M4`.
+
+### Completed parity fixes - 2026-10-03
+
+The final combined Java replay results across all 59 files and 32 versions are
+31,636 passing, zero failing, and 322 pending. This combines the complete per-file
+run with the final vehicle-file rerun after publishing three replacement captures.
+The non-replay suite also passed (548 Mocha tests plus the Node test checks), as
+did lint and type checking. Exact Java math was enabled with
+`PRISMARINE_JAVA_HOME=C:\Program Files\Java\jdk-21.0.11` and the built N-API/JNI
+addon; these results do not claim identical parity with the JavaScript math fallback.
+
+Packet checks now run for every eligible version in a group, even when another
+version lacks its initial network checkpoint. This adds 202 passing checks. The
+remaining 322 pending checks have no eligible capture with that checkpoint;
+their movement replays still run.
+
+Three old horse recordings lacked animation/rearing inputs needed for exact
+replay. The 1.18 and 1.19.2 recorder adapters now capture initial animation state
+and spontaneous client rearing events. Fresh native captures with two successful
+verification passes replaced only `v_horse_running_jump` and
+`v_horse_step_up_block` for 1.18, and `v_horse_step_up_block` for 1.19.2. Scenario
+steps were unchanged, and all other fixture payloads were checked for equality.
+The published captures had no spontaneous rearing event; separate regressions
+exercise that input, and an unpublished native recording with initial rearing
+also replayed exactly. Original archives and source recordings are retained under
+`D:\minecraft\java\physics-data-generator\build\rearing-capture-1790975419202`.
+
+Regeneration retains all 1,035 scenarios and 25,520 scenario/version combinations.
+Its grouping and generated milestone counts changed with the replacement captures;
+no scenario/version coverage was removed. The generator writes changed files
+atomically and preserves handwritten files. Detailed final results are in
+`C:\Users\Sandbox\AppData\Local\Temp\pfix-validation\final-combined-results.json`.

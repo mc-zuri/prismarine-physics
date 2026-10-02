@@ -213,6 +213,7 @@ function Physics (mcData, world) {
     blockSpeedFactor: supportFeature('blockSpeedFactor'),
     fluidHeights: supportFeature('proportionalLiquidGravity'),
     lavaFluidHeight: supportFeature('lavaFluidHeight'),
+    lavaBeforeTravel: !mcData.isOlderThan('1.16.2'),
     lavaInsideBlocks: supportFeature('modernMove'),
     minimumFluidPush: supportFeature('lavaFluidHeight'),
     eyeInWaterLag: supportFeature('lavaFluidHeight'),
@@ -350,6 +351,11 @@ function Physics (mcData, world) {
       // before 1.9 a ladder is 0.125 thick (0.1875 since)
       return block.shapes.map(shape => shape.map(v => v === 0.8125 ? 0.875 : v === 0.1875 ? 0.125 : v))
     }
+    // Legacy collision data sometimes shares the later selection box. Farmland's
+    // collision was a full cube before 1.10; the old lily pad was 1/64 high.
+    if (block.name === 'farmland' && mcData.isOlderThan('1.10')) return FULL_BLOCK
+    if ((block.name === 'waterlily' || block.name === 'water_lily' || block.name === 'lily_pad') && mcData.isOlderThan('1.9')) return [[0, 0, 0, 1, 0.015625, 1]]
+    if (block.name === 'magma' || block.name === 'magma_block' || (block.type === 213 && !mcData.isOlderThan('1.10') && mcData.isOlderThan('1.13'))) return FULL_BLOCK
     return block.shapes
   }
 
@@ -367,6 +373,7 @@ function Physics (mcData, world) {
             const grid = blockShapes.length > 1 ? { x: [], y: [], z: [] } : null
             for (const shape of blockShapes) {
               const blockBB = new AABB(shape[0], shape[1], shape[2], shape[3], shape[4], shape[5])
+              blockBB.fullCube = blockShapes.length === 1 && shape.every((v, i) => v === (i < 3 ? 0 : 1))
               blockBB.offset(blockPos.x, blockPos.y, blockPos.z)
               if (grid) {
                 grid.x.push(blockBB.minX, blockBB.maxX)
@@ -482,7 +489,7 @@ function Physics (mcData, world) {
 
   // The entities a player collides with as if they were blocks (canBeCollidedWith): boats and rafts, shulkers. The
   // caller lists the entities around the player as entity.entities ([{ type, pos }]).
-  const isSolidEntity = type => /boat$|raft$/.test(type) || type === 'shulker'
+  const isSolidEntity = type => /boat$|raft$|^shulker$/i.test(type)
   // The box the player collides with: where the entity was when the player moved (entity.solidBox when the caller
   // knows it differs from its box after its own tick)
   const solidBox = other => other.solidBox ? new AABB(...other.solidBox) : otherEntityBox(other)
@@ -511,10 +518,10 @@ function Physics (mcData, world) {
   // AbstractBoat.tick (after the player's): a boat pushes the entities in its box grown by 0.2 sideways (0.01 lower)
   // whose feet are no higher than its bottom, away from its center (Entity.push).
   function pushedByBoats (entity) {
-    if (!entity.entities) return
+    if (!entity.entities || mcData.isOlderThan('1.9')) return
     const box = getPlayerBB(entity.pos)
     for (const other of entity.entities) {
-      if (other.tickEnabled === false || !/boat$|raft$/.test(other.type)) continue
+      if (other.tickEnabled === false || !/boat$|raft$/i.test(other.type)) continue
       const boat = otherEntityBox(other)
       const reach = new AABB(boat.minX - 0.20000000298023224, boat.minY + 0.009999999776482582, boat.minZ - 0.20000000298023224,
         boat.maxX + 0.20000000298023224, boat.maxY - 0.009999999776482582, boat.maxZ + 0.20000000298023224)
@@ -550,6 +557,8 @@ function Physics (mcData, world) {
   // touches
   const PUSHING_KINDS = new Set(['animal', 'mob', 'hostile', 'passive', 'ambient', 'water_creature'])
   function pushedByMobs (entity, box) {
+    // EntityLivingBase.onLivingUpdate before 1.9 pushes nearby mobs only on the server.
+    if (mcData.isOlderThan('1.9')) return
     for (const other of entity.entities) {
       const data = mcData.entitiesByName[other.type]
       if (!data || !PUSHING_KINDS.has(data.type) || other.type === 'shulker') continue
@@ -615,13 +624,21 @@ function Physics (mcData, world) {
 
   const horizontalSqr = v => v.x * v.x + v.z * v.z
 
-  function legacyShapes (world, queryBB) {
+  function legacyShapes (world, queryBB, original) {
     const shapes = getSurroundingBBs(world, queryBB)
     if (vanilla.legacyWorldBorder) shapes.push(...legacyBorderShapes(queryBB))
     // (World.getCollisionBoxes: the solid entities' boxes too)
     const entities = collisionContext && collisionContext.entities
     if (entities) shapes.push(...entities.filter(other => isSolidEntity(other.type)).map(solidBox).filter(box => box.intersects(queryBB)))
-    return vanilla.voxelCollision ? shapes.filter(shape => shape.intersects(queryBB)) : shapes
+    if (!vanilla.voxelCollision) return shapes
+    // 1.13's IWorldReaderBase excludes shapes already intersecting the entity,
+    // and searches a sweep expanded by the voxel comparison epsilon.
+    const query = queryBB.clone().expand(EPSILON, EPSILON, EPSILON)
+    const inside = original && original.clone().contract(EPSILON, EPSILON, EPSILON)
+    // IWorldReaderBase streams partial block shapes first, then the full-cube
+    // voxel grid. The order matters when an earlier face leaves an epsilon move.
+    return shapes.filter(shape => shape.intersects(query) && (!inside || !shape.intersects(inside)))
+      .sort((a, b) => Number(!!a.fullCube) - Number(!!b.fullCube))
   }
 
   // Entity.collide (1.14+), with the step up onto blocks up to stepHeight.
@@ -690,7 +707,8 @@ function Physics (mcData, world) {
 
   // Whether any block collision shape overlaps the box (Level.noCollision, negated)
   function collidesWithBlocks (world, box) {
-    return getSurroundingBBs(world, box).some(shape => shape.intersects(box))
+    const query = vanilla.voxelCollision ? box.clone().contract(EPSILON, EPSILON, EPSILON) : box
+    return getSurroundingBBs(world, box).some(shape => shape.intersects(query))
   }
 
   // Player.maybeBackOffFromEdge: a sneaking player on the ground (1.16+: or just above it) does not walk off an
@@ -981,7 +999,7 @@ function Physics (mcData, world) {
 
     const queryBB = playerBB.clone().extend(dx, dy, dz)
     // 1.13: only the shapes inside the swept box (VoxelShapes drop a move under 1e-7 only against one)
-    const surroundingBBs = legacyShapes(world, queryBB)
+    const surroundingBBs = legacyShapes(world, queryBB, playerBB)
     const oldBB = playerBB.clone()
 
     dy = collideAxis('y', playerBB, surroundingBBs, dy)
@@ -1004,7 +1022,7 @@ function Physics (mcData, world) {
 
       dy = stepHeightOf(entity)
       const queryBB = oldBB.clone().extend(oldVelX, dy, oldVelZ)
-      const surroundingBBs = legacyShapes(world, queryBB)
+      const surroundingBBs = legacyShapes(world, queryBB, oldBB)
 
       const BB1 = oldBB.clone()
       const BB2 = oldBB.clone()
@@ -1567,7 +1585,7 @@ function Physics (mcData, world) {
     // Client-side sprinting (don't rely on server-side sprinting)
     // setSprinting in LivingEntity.java
     playerSpeedAttribute = attribute.deleteAttributeModifier(playerSpeedAttribute, physics.sprintingUUID) // always delete sprinting (if it exists)
-    if (isSprinting(entity)) {
+    if (isSprinting(entity) && !entity.sprintAttributeSuppressed) {
       if (!attribute.checkAttributeModifier(playerSpeedAttribute, physics.sprintingUUID)) {
         playerSpeedAttribute = attribute.addAttributeModifier(playerSpeedAttribute, {
           uuid: physics.sprintingUUID,
@@ -1930,7 +1948,8 @@ function Physics (mcData, world) {
         for (cursor.z = Math.floor(box.minZ); cursor.z < Math.ceil(box.maxZ); cursor.z++) {
           const fluid = fluidOf(world.getBlock(cursor), kind)
           if (!fluid) continue
-          const top = unified ? cursor.y + fluidHeight(world, cursor, fluid, kind) : f32(cursor.y + fluidHeight(world, cursor, fluid, kind))
+          const surface = mcData.isOlderThan('1.14') ? ownHeight(fluid) : fluidHeight(world, cursor, fluid, kind)
+          const top = unified ? cursor.y + surface : f32(cursor.y + surface)
           if (top < box.minY) continue
           found = true
           height = Math.max(top - (unified ? bottom : box.minY), height)
@@ -2096,6 +2115,7 @@ function Physics (mcData, world) {
         }
       }
     }
+    if (sprinting !== !!entity.sprinting) entity.sprintAttributeSuppressed = false
     entity.sprinting = sprinting
     entity.sprintTriggerTime = trigger
   }
@@ -2349,10 +2369,10 @@ function Physics (mcData, world) {
     if (vanilla.fluidHeights) {
       // 1.13+: the fluid heights in the box deflated by 0.001 (Entity.updateFluidHeightAndDoFluidPushing)
       const box = entityBox(entity)
-      if (vanilla.lavaFluidHeight) {
+      if (vanilla.lavaBeforeTravel) {
         updateFluids(entity, world)
       } else {
-        const water = updateFluid(entity, world, box, 'water', 0.014)
+        const water = inBoatAboveWater(entity) ? { found: false, height: 0 } : updateFluid(entity, world, box, 'water', 0.014)
         entity.isInWater = water.found
         entity.waterHeight = water.height
       }
@@ -2497,7 +2517,11 @@ function Physics (mcData, world) {
       insideBlocksAlongMovements(entity, world, startPos)
     }
 
-    if (!vanilla.lavaFluidHeight) {
+    if (vanilla.lavaFluidHeight && !vanilla.lavaBeforeTravel) {
+      const lava = updateFluid(entity, world, entityBox(entity), 'lava', 0.0023333333333333335)
+      entity.isInLava = lava.height > 0
+      entity.lavaHeight = lava.height
+    } else if (!vanilla.lavaFluidHeight) {
       // Before 1.16 the lava state is that of where the tick ended: checked on demand (shrunk box) before 1.14, set by
       // the blocks inside the box after the move on 1.14-1.15.
       const box = entityBox(entity).clone()
@@ -2853,6 +2877,13 @@ function Physics (mcData, world) {
   // stands on the ground, and travels like any living entity at its own speed (half sideways, a quarter backwards).
   function tickHorse (horse, world) {
     const dims = HORSES[horse.type]
+    // Spontaneous rearing (for example a native ambient-sound event) is an
+    // external input. Its random trigger cannot be derived from movement keys.
+    if (horse.rearingRequested) {
+      horse.rearingRequested = false
+      horse.standing = true
+      horse.standCounter = 20
+    }
     const saved = { boxHalfWidth, boxHeight, boxScale }
     boxHalfWidth = dims.width / 2
     boxHeight = dims.height
@@ -2872,10 +2903,14 @@ function Physics (mcData, world) {
         const base = 0.17499999701976776
         const attr = warm ? base : base + base * -0.3400000035762787
         speed = f32(attr * (warm ? f32(0.55) : f32(0.35)) * (horse.boostFactor || 1))
+        if (mcData.isOlderThan('1.19.4')) {
+          speed = f32(f32(horse.movementSpeed) * f32(warm ? 0.55 : 0.23))
+          horse.legacyAirSpeed = f32(f32(f32(horse.movementSpeed) * f32(warm ? 1 : 0.66)) * f32(0.1))
+        }
       }
       if (dims.dash && horse.riderSprinting && !(horse.dashCooldown > 0)) speed = f32(speed + f32(0.1))
       horse.attributes[speedKey] = { value: speed, modifiers: [] }
-      horse.airSpeed = f32(speed * f32(0.1))
+      horse.airSpeed = horse.legacyAirSpeed ?? f32(speed * f32(0.1))
       // Entity.baseTick: the fluids around it
       const water = updateFluid(horse, world, getPlayerBB(horse.pos), 'water', 0.014)
       horse.isInWater = water.found
@@ -2961,19 +2996,23 @@ function Physics (mcData, world) {
       if (horse.dashCooldown > 0) horse.dashCooldown--
       // AbstractHorse.tick: the rearing ends when its count runs out; its animation (the value of the tick before places
       // the rider)
-      if (horse.standCounter > 0 && --horse.standCounter <= 0) horse.standing = false
-      const anim = f32(horse.standAnim || 0)
-      horse.standAnimO = anim
-      if (horse.standing) {
-        horse.standAnim = Math.min(1, f32(anim + f32(f32(f32(1 - anim) * f32(0.4)) + f32(0.05))))
-      } else {
-        horse.allowStandSliding = false
-        horse.standAnim = Math.max(0, f32(anim + f32(f32(f32(f32(f32(f32(f32(0.8) * anim) * anim) * anim) - anim) * f32(0.6)) - f32(0.05))))
-      }
+      tickHorseRearing(horse)
     } finally {
       boxHalfWidth = saved.boxHalfWidth
       boxHeight = saved.boxHeight
       boxScale = saved.boxScale
+    }
+  }
+
+  function tickHorseRearing (horse) {
+    if (horse.standCounter > 0 && --horse.standCounter <= 0) horse.standing = false
+    const anim = f32(horse.standAnim || 0)
+    horse.standAnimO = anim
+    if (horse.standing) {
+      horse.standAnim = Math.min(1, f32(anim + f32(f32(f32(1 - anim) * f32(0.4)) + f32(0.05))))
+    } else {
+      horse.allowStandSliding = false
+      horse.standAnim = Math.max(0, f32(anim + f32(f32(f32(f32(f32(f32(f32(0.8) * anim) * anim) * anim) - anim) * f32(0.6)) - f32(0.05))))
     }
   }
 
@@ -3008,7 +3047,7 @@ function Physics (mcData, world) {
       entity.pos.y = (horse.pos.y + (dims.seat + 0.15 * anim + bob)) - 0.6
     } else {
       // before 1.20.5: float offsets, the seat 0.15625 under the top
-      const seat = f32(f32(dims.height - dims.below) + f32(f32(0.15) * anim))
+      const seat = f32(f32(f32(dims.height - dims.below) + f32(f32(0.15) * anim)) + bob)
       entity.pos.y = (seat + horse.pos.y) + f32(-0.6)
     }
   }
@@ -3025,7 +3064,9 @@ function Physics (mcData, world) {
       entity.pos.z = mount.pos.z + dims.forward * mthCos(angle)
       return
     }
-    const y = mount.pos.y + dims.height * 0.75 + -0.35
+    const bob = dims.onLava ? f32(f32(f32(f32(0.12) * mthCos(f32((mount.walkPosition || 0) * f32(1.5)))) * f32(2)) * Math.min(f32(0.25), mount.walkSpeed || 0)) : 0
+    const ridingOffset = dims.onLava ? dims.height - 0.19 + bob : dims.height * 0.75
+    const y = mount.pos.y + ridingOffset + -0.35
     const anim = f32(mount.standAnimO || 0)
     if (anim > 0) {
       const sin = mthSin(f32(yaw * DEG_TO_RAD_F))
@@ -3086,6 +3127,22 @@ function Physics (mcData, world) {
     if (!entity.pistons || !entity.pistons.length) return
     const pushed = [0, 0, 0]
     entity.pistons = entity.pistons.filter(piston => {
+      if (mcData.isOlderThan('1.9')) {
+        // TileEntityPiston used a truncated block box and a fixed displacement
+        // before MoverType.PISTON and its per-axis movement limit existed.
+        const complete = piston.progress >= 1
+        const next = Math.min(1, piston.progress + 0.5)
+        const offset = piston.extending ? 1 - next : next - 1
+        const bounds = [piston.x, piston.y, piston.z, piston.x + 1, piston.y + 1, piston.z + 1]
+        for (let i = 0; i < 3; i++) bounds[i + (piston.dir[i] < 0 ? 0 : 3)] -= piston.dir[i] * offset
+        if ((complete || piston.extending) && new AABB(...bounds).intersects(getPlayerBB(entity.pos))) {
+          if (!entity.beforePistons) entity.beforePistons = { pos: entity.pos.clone(), onGround: entity.onGround, isCollidedHorizontally: entity.isCollidedHorizontally }
+          const amount = complete ? 0.25 : next - piston.progress + 0.0625
+          moveEntity(entity, world, ...piston.dir.map(v => amount * v))
+        }
+        piston.progress = next
+        return !complete
+      }
       if (piston.progress >= 1) return false
       const next = Math.min(1, f32(piston.progress + f32(0.5)))
       const moveDir = piston.extending ? piston.dir : piston.dir.map(v => -v)
@@ -3134,7 +3191,27 @@ function Physics (mcData, world) {
 
   const simulateWithVehicle = (entity, world) => {
     const vehicle = entity.vehicle
-    if (vanilla.javaBoats && vehicle && HORSES[vehicle.type] && vehicle.steered === false) {
+    if (vehicle && mcData.isOlderThan('1.9')) {
+      // Before client-authoritative vehicles, the server supplies the mount's
+      // interpolated position. Entity.updateRidden still ticks the player at rest.
+      entity.vel.x = entity.vel.y = entity.vel.z = 0
+      simulateOwn(entity, world)
+      if (HORSES[vehicle.type]) {
+        tickHorseRearing(vehicle)
+        positionHorseRider(entity, vehicle)
+      } else {
+        entity.pos.x = vehicle.pos.x
+        entity.pos.y = vehicle.pos.y + (isBoatType(vehicle.type) ? -0.3 : 0) + -0.35
+        entity.pos.z = vehicle.pos.z
+        if (isBoatType(vehicle.type)) {
+          const radians = vehicle.yaw * Math.PI / 180
+          entity.pos.x += javaMath.cos(radians) * 0.4
+          entity.pos.z += javaMath.sin(radians) * 0.4
+        }
+      }
+      return entity
+    }
+    if (vanilla.javaBoats && vehicle && HORSES[vehicle.type]?.steered && vehicle.steered === false) {
       // Entity.rideTick still ticks the passenger of a server-controlled living vehicle.
       // It clears the passenger's velocity before that tick, then positions its seat.
       entity.vel.x = 0
@@ -3295,6 +3372,7 @@ class PlayerState {
     this.bedrock = bot.bedrockPhysicsState
     // The Java engine's kept bounding box (before 1.17 vanilla moves the box and centers the position on it).
     this.javaBox = bot.javaPhysicsBox
+    this.sprintAttributeSuppressed = !!bot.sprintAttributeSuppressed
     // Bedrock-only inputs (ignored by the Java engine): creative flight (the server-granted ability, mineflayer's
     // bot.abilities from UpdateAbilities, or bot.flying), the client's own fly toggle when tracked separately,
     // the ability fly speeds, and the item-use movement slowdown.
@@ -3436,6 +3514,7 @@ class PlayerState {
     }
     if (this.bedrock !== undefined) bot.bedrockPhysicsState = this.bedrock
     if (this.javaBox !== undefined) bot.javaPhysicsBox = this.javaBox
+    bot.sprintAttributeSuppressed = this.sprintAttributeSuppressed
   }
 }
 
