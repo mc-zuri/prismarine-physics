@@ -4,6 +4,7 @@
 //
 // Bytes are the protocol id + payload, as minecraft-protocol reads and writes them.
 'use strict'
+require('../../lib/session-data')()
 const { createSerializer, createDeserializer } = require('minecraft-protocol')
 const { Vec3 } = require('vec3')
 
@@ -75,9 +76,9 @@ function protocolVersion (version) {
   const md = require('minecraft-data')
   const info = md.versionsByMinecraftVersion.pc[version]
   const data = md(version)
-  if (!info || !data || data.version.version === info.version) return version
-  const same = md.versions.pc.find(v => v.version === info.version && v.minecraftVersion !== version && md(v.minecraftVersion) && md(v.minecraftVersion).version.version === info.version)
-  return same ? same.minecraftVersion : version
+  if (!info || !data) throw new Error(`missing authoritative protocol data for ${version}`)
+  if (data.version.version !== info.version) throw new Error(`protocol mismatch for ${version}: declared ${info.version}, resolved ${data.version.version}`)
+  return version
 }
 
 function codec (version) {

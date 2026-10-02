@@ -215,25 +215,7 @@ describe('vanilla recordings: attribute', () => {
         }
       },
       {
-        versions: ['1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1'],
-        milestones: {
-          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
-          'leaves the ground (1)': { tick: 1, pos: [0.5, 111, 38.5], vel: [0, -0.0784000015258789, 0], onGround: false },
-          'lands (1)': { tick: 14, pos: [0.5, 101, 38.5], onGround: true },
-          'final state': { tick: 60, pos: [0.5, 101, 38.5], vel: [0, -0.1568000030517578, 0], onGround: true }
-        }
-      },
-      {
-        versions: ['26.2'],
-        milestones: {
-          'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
-          'leaves the ground (1)': { tick: 1, pos: [0.5, 111, 38.5], vel: [0, -0.0784000015258789, 0], onGround: false },
-          'lands (1)': { tick: 15, pos: [0.5, 101, 38.5], onGround: true },
-          'final state': { tick: 60, pos: [0.5, 101, 38.5], vel: [0, -0.1568000030517578, 0], onGround: true }
-        }
-      },
-      {
-        versions: ['26.3'],
+        versions: ['1.21.3', '1.21.5', '1.21.6', '1.21.7', '1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
           'leaves the ground (1)': { tick: 1, pos: [0.5, 111, 38.5], vel: [0, -0.0784000015258789, 0], onGround: false },

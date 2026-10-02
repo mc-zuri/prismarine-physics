@@ -178,7 +178,7 @@ describe('vanilla recordings: piston', () => {
         }
       },
       {
-        versions: ['26.1', '26.2'],
+        versions: ['1.21.11', '26.1', '26.2'],
         packetKnownFailure: 'pistons push the player after its own tick: vanilla sends the position from before the push',
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0] },
@@ -333,27 +333,6 @@ describe('vanilla recordings: piston', () => {
           'peak height 1.001': { tick: 3, pos: [0.810000011920929, 102.00133597911214, 2707.5] },
           'top speed 10 b/s': { tick: 4, pos: [1.310000011920929, 101.41999998688698, 2707.5], vel: [0, -0.0784000015258789, 0] },
           'lands (1)': { tick: 7, pos: [1.310000011920929, 101, 2707.5], onGround: true },
-          'final state': { tick: 41, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
-        }
-      },
-      {
-        versions: ['1.21.11'],
-        milestones: {
-          'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
-          'leaves the ground (1)': { tick: 1, pos: [0.5, 101.41999998688698, 2707.5], vel: [0, 0.33319999363422365, 0], onGround: false },
-          'peak height 1.252': { tick: 6, pos: [0.5, 102.25220334025373, 2707.5] },
-          'lands (1)': { tick: 9, pos: [0.5, 102, 2707.5], onGround: true },
-          'final state': { tick: 41, pos: [0.5, 102, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
-        }
-      },
-      {
-        versions: ['26.2'],
-        milestones: {
-          'first tick': { tick: 1, vel: [0, 0.33319999363422365, 0] },
-          'leaves the ground (1)': { tick: 1, pos: [0.5, 101.41999998688698, 2707.5], vel: [0, 0.33319999363422365, 0], onGround: false },
-          'peak height 0.753': { tick: 2, pos: [0.810000011920929, 101.7531999805212, 2707.5] },
-          'top speed 10 b/s': { tick: 3, pos: [1.310000011920929, 101.41999998688698, 2707.5], vel: [0, -0.0784000015258789, 0] },
-          'lands (1)': { tick: 6, pos: [1.310000011920929, 101, 2707.5], onGround: true },
           'final state': { tick: 41, pos: [1.310000011920929, 101, 2707.5], vel: [0, -0.0784000015258789, 0], onGround: true }
         }
       },

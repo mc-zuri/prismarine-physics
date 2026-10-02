@@ -96,6 +96,8 @@
     "usingItem": false,
     "useItemRemainingTicks": 0,
     "food": 20,
+    "isInPowderSnow": false,
+    "entities": [],
     "gameMode": "creative",
     "netState": {
       "entityId": 1,

@@ -112,7 +112,7 @@
     "isInPowderSnow": false,
     "entities": [
       {
-        "id": 165,
+        "id": 34,
         "type": "oak_boat",
         "pos": [
           2.5,
@@ -150,7 +150,7 @@
       "lastOnGround": true,
       "lastHorizontalCollision": false,
       "wasSprinting": false,
-      "positionReminder": 11,
+      "positionReminder": 13,
       "lastSentInput": [
         false,
         false,

@@ -3226,7 +3226,7 @@
         "elytra"
       ],
       "status": "ok",
-      "reason": "server-timed: tick 20: vel, fireworks",
+      "reason": "server-timed: tick 21: vel, fireworks",
       "serverTimed": true
     },
     {
@@ -8772,7 +8772,7 @@
         "boat"
       ],
       "status": "ok",
-      "reason": "server-timed: tick 1: vehicleServer",
+      "reason": "server-timed: tick 32: vehicleServer",
       "serverTimed": true
     },
     {
@@ -8827,7 +8827,7 @@
         "boat"
       ],
       "status": "ok",
-      "reason": "server-timed: tick 6: vehicleServer",
+      "reason": "server-timed: tick 10: vehicleServer",
       "serverTimed": true
     },
     {

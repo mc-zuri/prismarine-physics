@@ -155,7 +155,7 @@
       "lastOnGround": true,
       "lastHorizontalCollision": false,
       "wasSprinting": false,
-      "positionReminder": 5,
+      "positionReminder": 15,
       "lastSentInput": [
         false,
         false,

@@ -120,6 +120,8 @@
     "usingItem": false,
     "useItemRemainingTicks": 0,
     "food": 20,
+    "isInPowderSnow": false,
+    "entities": [],
     "gameMode": "survival",
     "netState": {
       "entityId": 1,
@@ -133,7 +135,7 @@
       "lastOnGround": true,
       "lastHorizontalCollision": false,
       "wasSprinting": false,
-      "positionReminder": 14,
+      "positionReminder": 15,
       "lastSentInput": [
         false,
         false,

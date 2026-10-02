@@ -8,38 +8,7 @@
 'use strict'
 const fs = require('fs')
 const path = require('path')
-// PHYSREC_MCDATA names a node-minecraft-data package with versions the installed one lacks (26.2+). Every
-// require('minecraft-data') from here on resolves to the installed package with those versions added, so
-// prismarine-block, prismarine-chat and minecraft-protocol see the same data as the engine; versions the installed
-// package has keep its data (the other package's protocols differ, e.g. unmapped entity_action ids).
-if (process.env.PHYSREC_MCDATA) {
-  const Module = require('module')
-  const installed = require(require.resolve('minecraft-data'))
-  const extra = require(require.resolve(path.resolve(process.env.PHYSREC_MCDATA)))
-  const merged = (version, ...rest) => installed(version, ...rest) || extra(version, ...rest)
-  for (const key of new Set([...Object.keys(extra), ...Object.keys(installed)])) {
-    const a = extra[key]
-    const b = installed[key]
-    if (b && a && typeof b === 'object' && !Array.isArray(b) && typeof a === 'object') {
-      merged[key] = {}
-      for (const edition of new Set([...Object.keys(a), ...Object.keys(b)])) {
-        const x = a[edition]
-        const y = b[edition]
-        merged[key][edition] = Array.isArray(y) && Array.isArray(x) ? [...new Set([...x, ...y])] : (y && x && typeof y === 'object' ? { ...x, ...y } : (y !== undefined ? y : x))
-      }
-    } else merged[key] = b !== undefined ? b : a
-  }
-  const id = path.join(__dirname, '<minecraft-data merged>')
-  const mod = new Module(id)
-  mod.filename = id
-  mod.loaded = true
-  mod.exports = merged
-  require.cache[id] = mod
-  const resolve = Module._resolveFilename
-  Module._resolveFilename = function (request, ...rest) {
-    return request === 'minecraft-data' ? id : resolve.call(this, request, ...rest)
-  }
-}
+require('../../lib/session-data')()
 const assert = require('assert')
 const { Vec3 } = require('vec3')
 const { Physics } = require('../..')
@@ -48,6 +17,7 @@ const attribute = require('../../lib/attribute')
 
 const FIXTURES = path.join(__dirname, '..', 'fixtures', 'java')
 const SUFFIX = '-recorded'
+const BINARY_FIXTURES = process.env.PHYSREC_FIXTURE_DIR && path.resolve(process.env.PHYSREC_FIXTURE_DIR)
 
 // PlayerState fields the Java engine writes, compared on every tick.
 const FIELDS = ['pos', 'vel', 'onGround', 'isCollidedHorizontally', 'isCollidedVertically', 'isInWater', 'isInLava',
@@ -114,13 +84,14 @@ function packetsSupported (version) {
 const cache = new Map()
 
 function recordedVersions () {
+  if (BINARY_FIXTURES) return [JSON.parse(fs.readFileSync(path.join(BINARY_FIXTURES, 'index.json'), 'utf8')).version]
   if (!fs.existsSync(FIXTURES)) return []
   return fs.readdirSync(FIXTURES).filter(d => d.endsWith(SUFFIX)).map(d => d.slice(0, -SUFFIX.length))
 }
 
 function load (version) {
   if (!cache.has(version)) {
-    const dir = path.join(FIXTURES, version + SUFFIX)
+    const dir = BINARY_FIXTURES || path.join(FIXTURES, version + SUFFIX)
     cache.set(version, {
       dir,
       index: JSON.parse(fs.readFileSync(path.join(dir, 'index.json'), 'utf8')),

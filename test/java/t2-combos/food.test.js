@@ -263,7 +263,7 @@ describe('vanilla recordings: food', () => {
         }
       },
       {
-        versions: ['26.1'],
+        versions: ['26.1', '26.2'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.0695604148553142] },
           'top speed 5.612 b/s': { tick: 40, pos: [0.5, 101, 49.128159732726175], vel: [0, -0.0784000015258789, 0.15321661559259347] },
@@ -271,7 +271,7 @@ describe('vanilla recordings: food', () => {
         }
       },
       {
-        versions: ['26.2', '26.3'],
+        versions: ['26.3'],
         milestones: {
           'first tick': { tick: 1, vel: [0, -0.0784000015258789, 0.0695604148553142] },
           'top speed 5.612 b/s': { tick: 40, pos: [0.5, 101, 48.86913320667827], vel: [0, -0.0784000015258789, 0.15321460582295549] },

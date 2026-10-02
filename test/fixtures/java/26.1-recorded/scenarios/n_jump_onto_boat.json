@@ -132,6 +132,34 @@
     "usingItem": false,
     "useItemRemainingTicks": 0,
     "food": 20,
+    "isInPowderSnow": false,
+    "entities": [
+      {
+        "id": 5,
+        "type": "oak_boat",
+        "pos": [
+          2.5,
+          101.0,
+          38.5
+        ],
+        "vel": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "yaw": 0.0,
+        "pitch": 0.0,
+        "onGround": true,
+        "box": [
+          1.8125,
+          101.0,
+          37.8125,
+          3.1875,
+          101.5625,
+          39.1875
+        ]
+      }
+    ],
     "gameMode": "survival",
     "netState": {
       "entityId": 1,
@@ -145,7 +173,7 @@
       "lastOnGround": true,
       "lastHorizontalCollision": false,
       "wasSprinting": false,
-      "positionReminder": 7,
+      "positionReminder": 16,
       "lastSentInput": [
         false,
         false,
