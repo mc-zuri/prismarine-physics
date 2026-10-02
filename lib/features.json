@@ -277,6 +277,11 @@
     "before": "1.21.5"
   },
   {
+    "name": "powderSnowClimbPreviousTick",
+    "description": "Powder-snow climbing uses the previous tick's contact flag instead of the block at the feet after moving",
+    "since": "1.21.5"
+  },
+  {
     "name": "insideBlocksAlongPath",
     "description": "Blocks act along the move: the cells of the start and end boxes, walked in the direction of travel (the end box alone before)",
     "since": "1.21.9"

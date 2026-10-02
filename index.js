@@ -207,6 +207,7 @@ function Physics (mcData, world) {
     eyeFluidLegacy: supportFeature('proportionalLiquidGravity') && !supportFeature('lavaFluidHeight'),
     playerAttributes: supportFeature('playerPhysicsAttributes'),
     skipClientControlledFallCheck: supportFeature('skipClientControlledFallCheck'),
+    powderSnowClimbPreviousTick: supportFeature('powderSnowClimbPreviousTick'),
     sneakingSpeedAttribute: supportFeature('waterMovementEfficiency'),
     blockSpeedFactor: supportFeature('blockSpeedFactor'),
     fluidHeights: supportFeature('proportionalLiquidGravity'),
@@ -1722,7 +1723,9 @@ function Physics (mcData, world) {
 
       moveEntity(entity, world, vel.x, vel.y, vel.z)
 
-      const climbsOutOfPowderSnow = entity.wasInPowderSnow && entity.leatherBoots
+      const climbsOutOfPowderSnow = entity.leatherBoots && (vanilla.powderSnowClimbPreviousTick
+        ? entity.wasInPowderSnow
+        : world.getBlock(pos)?.type === powderSnowId)
       if ((isOnLadder(world, pos) || climbsOutOfPowderSnow) && (entity.isCollidedHorizontally ||
         (supportFeature('climbUsingJump') && entity.control.jump))) {
         vel.y = physics.ladderClimbSpeed // climb ladder
