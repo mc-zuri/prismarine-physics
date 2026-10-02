@@ -10,6 +10,12 @@
 
 Provide the physics engine for minecraft entities
 
+## Recorded Java fixtures
+
+Java replay data uses one indexed binary archive per Minecraft version and separate,
+shared world revision files. See [fixture archives](docs/fixture-archives.md) for the
+format and the import, add/merge, inspect, diff, and verification commands.
+
 ## Usage
 
 ```js

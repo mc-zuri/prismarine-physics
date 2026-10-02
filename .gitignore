@@ -3,3 +3,4 @@ package-lock.json
 .vscode
 coverage/
 build-java-math/
+.pfix-*/

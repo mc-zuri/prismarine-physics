@@ -14,7 +14,9 @@
     "typecheck": "tsc -p .",
     "test:unit": "mocha --no-config --require ./lib/ts-hooks.js --extension ts --exit \"test/bedrock/unit/**/*.test.ts\" test/bedrock/session.test.js",
     "coverage": "c8 npm run test:unit",
-    "docs": "node scripts/bedrock-reference.js"
+    "docs": "node scripts/bedrock-reference.js",
+    "fixtures": "node scripts/fixtures.js",
+    "test:fixtures": "node --test test/fixture-archive.test.js test/session-format.test.js"
   },
   "repository": {
     "type": "git",

@@ -113,8 +113,8 @@ function supported (version) {
   }
 }
 
-const decode = (version, direction, hex) => codec(version)[direction].de.parsePacketBuffer(Buffer.from(hex, 'hex')).data
-const encode = (version, direction, name, params) => codec(version)[direction].ser.createPacketBuffer({ name, params }).toString('hex')
+const decode = (version, direction, bytes) => codec(version)[direction].de.parsePacketBuffer(Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes, 'hex')).data
+const encode = (version, direction, name, params) => codec(version)[direction].ser.createPacketBuffer({ name, params })
 
 // ---- outgoing: vanilla LocalPlayer.tick ----
 

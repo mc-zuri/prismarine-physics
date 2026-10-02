@@ -1,7 +1,7 @@
-// Replays vanilla Java recordings (test/fixtures/java/<version>-recorded, written by physics-data-generator) through
+// Replays vanilla Java recordings (test/fixtures/java/<version>.pfix, written by physics-data-generator) through
 // the engine and compares every tick. Generated test files (test/java/**) call recorded(); they hold no logic.
 //
-// A recording is: the world (world.json, block states as the server held them), the player state before the first
+// A recording is: a referenced binary world revision, the player state before the first
 // tick, and per tick the input (keys, yaw, pitch in vanilla degrees) and the full state after it. Rarely-changing
 // fields (effects, attributes, ...) appear only on ticks where they changed.
 /* eslint-env mocha */
@@ -18,6 +18,12 @@ const attribute = require('../../lib/attribute')
 const FIXTURES = path.join(__dirname, '..', 'fixtures', 'java')
 const SUFFIX = '-recorded'
 const BINARY_FIXTURES = process.env.PHYSREC_FIXTURE_DIR && path.resolve(process.env.PHYSREC_FIXTURE_DIR)
+const FIXTURE_ARCHIVE = process.env.PHYSREC_FIXTURE_ARCHIVE && path.resolve(process.env.PHYSREC_FIXTURE_ARCHIVE)
+if (BINARY_FIXTURES && FIXTURE_ARCHIVE) throw new Error('set only one of PHYSREC_FIXTURE_DIR and PHYSREC_FIXTURE_ARCHIVE')
+const { createFixtureStore } = require('../../lib/fixture-store')
+const fixtureStore = createFixtureStore(FIXTURE_ARCHIVE ? path.resolve(path.dirname(FIXTURE_ARCHIVE), '..') : path.dirname(FIXTURES), { archive: FIXTURE_ARCHIVE })
+process.once('exit', () => fixtureStore.close())
+const archived = version => !BINARY_FIXTURES && (FIXTURE_ARCHIVE || fs.existsSync(path.join(FIXTURES, version + '.pfix')))
 
 // PlayerState fields the Java engine writes, compared on every tick.
 const FIELDS = ['pos', 'vel', 'onGround', 'isCollidedHorizontally', 'isCollidedVertically', 'isInWater', 'isInLava',
@@ -85,12 +91,17 @@ const cache = new Map()
 
 function recordedVersions () {
   if (BINARY_FIXTURES) return [JSON.parse(fs.readFileSync(path.join(BINARY_FIXTURES, 'index.json'), 'utf8')).version]
+  if (FIXTURE_ARCHIVE) return fixtureStore.versions()
   if (!fs.existsSync(FIXTURES)) return []
-  return fs.readdirSync(FIXTURES).filter(d => d.endsWith(SUFFIX)).map(d => d.slice(0, -SUFFIX.length))
+  return [...new Set([...fixtureStore.versions(), ...fs.readdirSync(FIXTURES).filter(d => d.endsWith(SUFFIX)).map(d => d.slice(0, -SUFFIX.length))])]
 }
 
 function load (version) {
   if (!cache.has(version)) {
+    if (archived(version)) {
+      cache.set(version, { index: fixtureStore.manifest(version), worlds: new Map() })
+      return cache.get(version)
+    }
     const dir = BINARY_FIXTURES || path.join(FIXTURES, version + SUFFIX)
     cache.set(version, {
       dir,
@@ -103,6 +114,7 @@ function load (version) {
 }
 
 function scenario (version, name) {
+  if (archived(version)) return fixtureStore.fixture(version, name)
   const file = path.join(load(version).dir, 'scenarios', name + '.json')
   return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null
 }
@@ -142,11 +154,12 @@ function parseStateId (text, mcData, Block, version) {
 }
 
 // The recorded world of one area as a prismarine world: getBlock(pos) -> prismarine-block with its position.
-function world (version, areaName) {
+function world (version, areaName, fixture) {
   const loaded = load(version)
-  if (!loaded.worlds.has(areaName)) {
-    const area = loaded.world.areas.find(a => a.name === areaName)
-    if (!area) throw new Error(`world.json of ${version} has no area ${areaName}`)
+  const key = fixture?.worldHash ? fixture.worldHash + '/' + areaName : areaName
+  if (!loaded.worlds.has(key)) {
+    const area = fixture?.worldHash ? fixtureStore.area(fixture) : loaded.world?.areas.find(a => a.name === areaName)
+    if (!area) throw new Error(`world of ${version} has no area ${areaName}; archive worlds require a fixture reference`)
     const Block = require('prismarine-block')(registry(version))
     const mcData = registry(version)
     const states = new Map()
@@ -164,11 +177,11 @@ function world (version, areaName) {
       }
     }
     const air = mcData.blocksByName.air.defaultState
-    loaded.worlds.set(areaName, { cells, stateId, air, Block })
+    loaded.worlds.set(key, { cells, stateId, air, Block })
   }
   // Each replay gets its own overlay, so block changes the server sent (frost walker ice, trampled farmland) stay
   // inside that replay.
-  const { cells, stateId, air, Block } = loaded.worlds.get(areaName)
+  const { cells, stateId, air, Block } = loaded.worlds.get(key)
   const changed = new Map()
   return {
     getBlock (pos) {
@@ -467,7 +480,7 @@ function differences (actual, expected, fields, epsilon) {
  */
 function replay (version, rec, { mode = 'trajectory', fields = FIELDS, epsilon = 0, beforePistons } = {}) {
   const mcData = registry(version)
-  const w = world(version, rec.area)
+  const w = world(version, rec.area, rec)
   const physics = Physics(mcData, w)
   const rows = expand(rec)
   const divergences = []
@@ -553,16 +566,16 @@ function checkServerPackets (version, rec) {
   expand(rec).forEach(row => {
     for (const entry of row.events.serverPackets || []) {
       const state = stateFrom(entry.before, mcData, rec)
-      const w = world(version, rec.area)
+      const w = world(version, rec.area, rec)
       const replies = []
       for (const part of entry.packets || [entry]) replies.push(...packets.handle(state, packets.decodeServer(version, part.bytes), { ...ctx, world: w }))
       const snapshot = { ...entry.before, ...entry.after }
       const diffs = differences(state, snapshot, PACKET_FIELDS, 0)
       diffs.push(...stateDifferences(state, snapshot, mcData))
       // The client's replies, byte for byte (vanilla's only when the harness knows the reply: teleports, rotations).
-      const sent = (entry.responses || []).map(r => r.bytes).join(' ')
-      const built = replies.map(r => packets.encode(version, 'toServer', r.name, r.params)).join(' ')
-      if (replies.length && sent !== built) diffs.push({ field: 'responses', expected: sent, actual: built })
+      const sent = (entry.responses || []).map(r => Buffer.from(r.bytes, 'hex'))
+      const built = replies.map(r => packets.encode(version, 'toServer', r.name, r.params))
+      if (replies.length && !equalPackets(sent, built)) diffs.push({ field: 'responses', expected: packetHex(sent), actual: packetHex(built) })
       if (diffs.length) out.push({ t: row.t, type: entry.type, diffs })
     }
   })
@@ -590,6 +603,9 @@ function stateDifferences (state, snapshot, mcData) {
  * and compared byte for byte with what vanilla sent. Ticks spent riding are skipped (vehicle packets are not built).
  * Returns [{ t, expected: [hex], actual: [hex] }].
  */
+const equalPackets = (a, b) => a.length === b.length && a.every((bytes, i) => bytes.equals(b[i]))
+const packetHex = packets => packets.map(bytes => bytes.toString('hex'))
+
 function checkClientPackets (version, rec) {
   const out = []
   let before = rec.start
@@ -606,7 +622,7 @@ function checkClientPackets (version, rec) {
         const d = packets.decode(version, 'toServer', p.bytes)
         if (d.name === 'use_item') usedItem = true
         return packets.MOVEMENT.has(d.name) && (d.name !== 'entity_action' || /sprinting|sneaking|fall_flying|elytra_flying|riding_jump|horse_jump/.test(d.params.actionId))
-      }).map(p => p.bytes)
+      }).map(p => Buffer.from(p.bytes, 'hex'))
       // The keys as vanilla's Input held them after the tick (auto-jump presses jump inside the input).
       const held = row.netState && row.netState.lastSentInput
       const input = held ? { ...row.in, forward: held[0], back: held[1], left: held[2], right: held[3], jump: held[4], sneak: held[5], sprint: held[6] } : row.in
@@ -624,7 +640,7 @@ function checkClientPackets (version, rec) {
       }
       const built = packets.movementPackets(row, input, before.netState, version, extra).packets
       const actual = built.map(p => packets.encode(version, 'toServer', p.name, p.params))
-      if (expected.join() !== actual.join()) out.push({ t: row.t, expected, actual })
+      if (!equalPackets(expected, actual)) out.push({ t: row.t, expected: packetHex(expected), actual: packetHex(actual) })
     }
     before = recorded
   }
@@ -727,7 +743,7 @@ function recorded (name, spec) {
 
 function replayUntil (version, rec, tick, options) {
   const mcData = registry(version)
-  const w = world(version, rec.area)
+  const w = world(version, rec.area, rec)
   const physics = Physics(mcData, w)
   const state = makeState(rec, mcData)
   const rows = expand(rec)
