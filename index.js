@@ -3118,6 +3118,16 @@ function Physics (mcData, world) {
 
   const simulateWithVehicle = (entity, world) => {
     const vehicle = entity.vehicle
+    if (vanilla.javaBoats && vehicle && HORSES[vehicle.type] && vehicle.steered === false) {
+      // Entity.rideTick still ticks the passenger of a server-controlled living vehicle.
+      // It clears the passenger's velocity before that tick, then positions its seat.
+      entity.vel.x = 0
+      entity.vel.y = 0
+      entity.vel.z = 0
+      simulateOwn(entity, world)
+      positionHorseRider(entity, vehicle)
+      return entity
+    }
     if (vanilla.javaBoats && vehicle && HORSES[vehicle.type] && (!HORSES[vehicle.type].steered || vehicle.steered)) {
       // the horse faces where its rider looks now, half its pitch (the keys are those of the rider's last tick)
       vehicle.riderYaw = yawDegrees(entity)
