@@ -206,6 +206,7 @@ function Physics (mcData, world) {
     eyeFluidOffset: supportFeature('eyeFluidOffset'),
     eyeFluidLegacy: supportFeature('proportionalLiquidGravity') && !supportFeature('lavaFluidHeight'),
     playerAttributes: supportFeature('playerPhysicsAttributes'),
+    skipClientControlledFallCheck: supportFeature('skipClientControlledFallCheck'),
     sneakingSpeedAttribute: supportFeature('waterMovementEfficiency'),
     blockSpeedFactor: supportFeature('blockSpeedFactor'),
     fluidHeights: supportFeature('proportionalLiquidGravity'),
@@ -944,8 +945,10 @@ function Physics (mcData, world) {
       entity.isCollidedVertically = dy !== moved.y
       entity.onGround = entity.isCollidedVertically && dy < 0
       if (vanilla.supportingBlock) checkSupportingBlock(entity, world, playerBB, moved)
-      waterAfterMove(entity, world)
-      updateFallDistance(entity, moved.y)
+      if (!vanilla.skipClientControlledFallCheck) {
+        waterAfterMove(entity, world)
+        updateFallDistance(entity, moved.y)
+      }
       if (vanilla.restitution) {
         // 26.2: Entity.restituteMovementAfterCollisions replaces the velocity reset and the blocks' fall-on bounce
         if ((dy !== 0 && entity.isCollidedVertically) || entity.isCollidedHorizontally) restitute(entity, world, collidedX, collidedZ, moved)
