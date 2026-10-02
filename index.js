@@ -1124,7 +1124,8 @@ function Physics (mcData, world) {
       // beds bounce a falling player back up at 0.66F of its speed (1.12+)
       if (vel.y < 0) vel.y = -vel.y * f32(0.66)
     } else {
-      vel.y = 0
+      // Modern Block.updateEntityAfterFallOn multiplies Y by zero, preserving -0.
+      vel.y = vanilla.playerAttributes ? vel.y * 0 : 0
     }
   }
 
