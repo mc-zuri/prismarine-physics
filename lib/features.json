@@ -129,12 +129,12 @@
   {
     "name": "passengerNoCrouch",
     "description": "LocalPlayer.aiStep excludes passengers when computing the crouching state",
-    "since": "26.3"
+    "since": "1.20.5"
   },
   {
     "name": "shiftKeyWhileGliding",
     "description": "LocalPlayer.isShiftKeyDown reads the held input even while fall flying",
-    "since": "26.3"
+    "since": "1.20.5"
   },
   {
     "name": "clientRearingLegacy",
