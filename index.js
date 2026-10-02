@@ -2389,7 +2389,11 @@ function Physics (mcData, world) {
 
     // Creative flight: a double press of jump toggles flying (LocalPlayer.aiStep), a take-off from the ground jumping
     let toggledFlight = false
-    if (entity.mayFly && entity.control.jump && !entity.jumpHeld) {
+    if (entity.mayFly && entity.gameMode === 'spectator') {
+      // A server abilities update can temporarily clear flight. Spectators restore it in aiStep.
+      toggledFlight = !entity.flying
+      entity.flying = true
+    } else if (entity.mayFly && entity.control.jump && !entity.jumpHeld) {
       if (!(entity.jumpTriggerTime > 0)) {
         entity.jumpTriggerTime = 7
       } else if (!entity.swimming) {
