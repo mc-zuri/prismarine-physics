@@ -170,6 +170,7 @@ function Physics (mcData, world) {
     passengerSprintVehicle: supportFeature('passengerSprintVehicle'),
     passengerNoPushOut: supportFeature('passengerNoPushOut'),
     passengerNoCrouch: supportFeature('passengerNoCrouch'),
+    passengerClearsGround: supportFeature('passengerClearsGround'),
     shiftKeyWhileGliding: supportFeature('shiftKeyWhileGliding'),
     entityAttachments: supportFeature('entityAttachments'),
     attachmentPoints: supportFeature('passengerAttachmentPoints'),
@@ -2324,6 +2325,8 @@ function Physics (mcData, world) {
   const simulateOwn = (entity, world) => {
     const vel = entity.vel
     const pos = entity.pos
+    // Player.tick clears the previous walking contact before a passenger's own tick.
+    if (vanilla.passengerClearsGround && entity.vehicle) entity.onGround = false
     if (entity.riptideLaunch) riptide(entity, world)
     // (before 1.19.4 the air speed is set after the travel, from the sprint the tick before ended with)
     entity.sprintedLastTick = vanilla.sprintState ? !!entity.sprinting : !!entity.control.sprint

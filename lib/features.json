@@ -132,6 +132,11 @@
     "since": "1.20.5"
   },
   {
+    "name": "passengerClearsGround",
+    "description": "Player.tick clears ground contact before ticking a passenger",
+    "since": "1.21.4"
+  },
+  {
     "name": "shiftKeyWhileGliding",
     "description": "LocalPlayer.isShiftKeyDown reads the held input even while fall flying",
     "since": "1.20.5"
