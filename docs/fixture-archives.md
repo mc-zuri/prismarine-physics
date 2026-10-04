@@ -228,3 +228,177 @@ Its grouping and generated milestone counts changed with the replacement capture
 no scenario/version coverage was removed. The generator writes changed files
 atomically and preserves handwritten files. Detailed final results are in
 `C:\Users\Sandbox\AppData\Local\Temp\pfix-validation\final-combined-results.json`.
+
+### Expanded sessions and recorder audit - 2026-10-03
+
+The next import processed 18 full sessions from
+`D:\projects\mc-zuri\mc-data2\java\data\sessions`: 1.16.5, 1.17, 1.17.1,
+1.18, 1.18.1, 1.18.2, 1.19, 1.19.1, 1.19.2, 1.20, 1.20.1, 1.20.2,
+1.20.3, 1.20.4, 1.20.5, 1.20.6, 1.21 and 1.21.1.
+It imported 17,882 successful cases: 11,731 added and 6,151 replaced.
+The 748 flaky or unsupported cases were skipped; 48 pre-existing fixtures for
+excluded or absent cases were retained unchanged. Every original fixture name
+remains. All imported payloads and worlds matched the independent source exports.
+Generated coverage contains exactly 37,251 scenario/version combinations across
+42 versions, 1,035 scenario names and 59 test files, with no missing or duplicate
+combinations. The archive's `physics-fixture-import-20261003.json` records this
+import; its packet-validation fields describe the status before revalidation.
+
+The expanded Java replay suite has **36,876 passing, 1,337 failing and 212 pending**
+checks with the JNI Java math addon enabled. The earlier zero-failure result above
+applies to the smaller corpus. No assertion tolerances or case exclusions were
+changed to accommodate the new failures. Detailed per-file results are retained
+in `C:\Users\Sandbox\AppData\Local\Temp\pfix-validation\new-session-import-results.json`.
+
+All seven sessions that previously failed packet decoding now pass whole-file
+validation: 5,024,485 packets round-trip byte-for-byte. Corrections in the external
+Minecraft data source cover namespaced vibration destinations, the 1.20.3/1.20.4
+particle registry and payloads, and the direct explosion sound event. Native
+packet bytes and session hashes are unchanged. The archive contains
+`recorder-schema-revalidation-20261003.json` and individual validation receipts;
+the manifest points to these receipts and preserves previous failure reports.
+`test/session-schema-regressions.test.js` exercises the affected native packets.
+
+The recorder audit inspected all 39 flaky case/version pairs from the original
+31-session catalog. Confirmed fixes capture exact initial player bounds on
+1.16.5, capture horse rearing inputs on the older adapters, wait for mounted
+velocity to settle, and recognize captured piston block-event timing at the
+first differing tick. Recorder build outputs are also copied into each new
+recording so a concurrent build cannot replace a JAR while Minecraft loads it.
+Fresh recordings passed three-run native verification for 14 selected cases,
+and every packet replay check passed. Six trajectories replayed exactly; eight
+1.16.5 sneak trajectories still have floating-point differences at zero tolerance.
+These diagnostic captures have not replaced the imported full-session fixtures.
+
+Camel initial-state differences, the 1.20.5 boat-off-ledge initial-state difference,
+and some horse-dismount/entity-push variations remain unresolved and excluded.
+Original failed catalogs were not relabeled successful. The archive's
+`failed-case-details-20261003.json` preserves the first differing values;
+`recorder-failure-audit-20261003.json` links the fixes, fresh captures and remaining
+limitations.
+
+### Physics corrections for the expanded corpus - 2026-10-03
+
+The engine now enables the 1.18.2 sprint-air float sum, collision epsilon and
+double-precision elytra cosine at their actual release boundary. The outgoing
+movement-packet threshold also changes in 1.18.2. Jump boost still adds in float
+on 1.17; double addition starts in 1.17.1. These boundaries were checked against
+the exact mapped native JARs, with source branches in
+`D:\projects\mc-zuri\mc-data\extracted_minecraft_data` used for context.
+
+Player pose changes on 1.14-1.16.5 preserve the lower bounding-box corner instead
+of rebuilding around its center. Incoming pose metadata refreshes dimensions
+even when it repeats the current pose. This fixes the tiny sneak/pose trajectory
+differences without introducing a tolerance. The engine also handles the local
+dismount used in 1.16.x; the packet builder retains the boat's paddle packet before
+the player's ordinary movement. A delayed finish-using-item notification no
+longer consumes food again after item use has ended.
+
+The engine accepts `fireworkRocketsBeforePlayer` alongside `fireworkRockets`, and
+`tickBeforePlayer` on surrounding entities. These inputs place rocket boosts and
+entity pushes on the correct side of the player's tick. On 1.16.5 the native
+client uses hash-map iteration, so entity IDs and insertion history can change
+that order. The recorder observes the actual traversal before entity ticking and
+stores it as `entityTickOrder`; it separately counts attached rockets that tick
+before the player. The replay reads those inputs rather than deriving order from
+the expected player trajectory. Other versions retain their existing default
+ordering when these optional inputs are absent.
+
+Nine fixtures lacked inputs necessary for exact replay and were replaced with
+fresh native captures of the same scenarios and steps:
+
+| Version | Replaced fixtures |
+| --- | --- |
+| 1.16.5 | `f_elytra_rocket_level`, `f_elytra_rocket_straight_down`, `f_elytra_wall_hit_rocket`, `n_walk_through_cow` |
+| 1.17 | `v_horse_back_strafe` |
+| 1.18 | `v_horse_dismount`, `v_horse_turn` |
+| 1.19.1 | `v_horse_step_up_block`, `v_horse_walk` |
+
+Horse captures now include spontaneous rearing inputs and initial animation state;
+the 1.19.1 adapter gained the same instrumentation as 1.19.2. All 25 retained native
+runs replay exactly, including both rocket orders, with no server/client packet
+differences. Eight cases ran three times; the cow scenario keeps its existing
+single-run catalog policy. Captures and their immutable recorder runtimes are in
+`D:\minecraft\java\physics-data-generator\recordings\physics-parity-20261003`.
+The four original version archives are backed up in
+`C:\Users\Sandbox\AppData\Local\Temp\pfix-physics-20261003\before\java`.
+Every other fixture in those archives was checked for exact payload equality.
+
+Coverage remains 1,035 scenarios and 37,251 fixture/version combinations across
+42 versions and 59 files. A separate audit of the generated test definitions found
+no missing or duplicate combinations. Scenario steps and assertion tolerances
+were unchanged; no known failures were added.
+
+Final validation: **38,174 passing, zero failing and 212 pending Java checks**
+across all 59 files and 42 fixture versions. This combines the complete suite run
+with the complete item-use-file rerun after its final packet-state initialization
+fix. All 548 non-replay Mocha tests, 73 Node regression tests and two recorder
+regressions passed, along with lint, type checking and whitespace checks.
+JNI Java math was enabled with
+`PRISMARINE_JAVA_HOME=C:\Program Files\Java\jdk-21.0.11`.
+The 212 pending checks lack an eligible recorded network checkpoint; their
+movement trajectories still run. No new pending checks were introduced.
+
+The sessions archive contains `physics-parity-verification-20261003.json` with
+coverage, archive hashes, loaded data revisions and replacement-capture receipts,
+plus `physics-all-version-results-20261003.json` with per-file test results.
+
+### Additional recordings - 2026-10-04
+
+Imported ten newly archived full sessions from
+`D:\projects\mc-zuri\mc-data2\java\data\sessions`: 1.8.8, 1.9.4, 1.10.2,
+1.11.2, 1.12.2, 1.13.2, 1.14.4, 1.15.2, 1.19.3 and 1.19.4. Each source was
+checked against the archive index's version and SHA-256 and required a complete
+footer. All ten source packet validations passed.
+
+The import accepted **8,208 successful cases**: **4,358 added combinations** and
+3,850 replacements. It excluded 2,142 failed, flaky or unsupported case entries,
+and retained 106 existing fixtures without a successful new replacement. The
+previous nine repaired fixtures in other versions were preserved. Coverage is
+now **1,035 scenarios, 41,609 fixture/version combinations, 46 versions and 59
+generated test files**, with no missing or duplicate combinations.
+
+Native source and exact mapped JAR checks identified these physics corrections:
+
+- 1.14 input slows for either the new sneak key or the crouching state computed
+  before reading that key, including a forced crouch under a ceiling.
+- Farmland and soul sand gain their unconditional suffocation rule in 1.16;
+  applying it earlier incorrectly pushes players out while landing on them.
+- 1.15 permits local elytra deployment with levitation. The levitation check
+  starts in 1.16.
+- Passenger sprint restrictions start in 1.19.4. The experimental bamboo raft's
+  seat offset is 0.3 in 1.19.3/1.19.4, changing to 0.25 in 1.20.
+- Boats are excluded from living-entity pushes even when an older registry
+  classifies them as `mob`; this prevents a second collision impulse.
+- Replay accumulates surrounding-entity pushes in recorded traversal order,
+  preserving Java double rounding when several mobs push in one tick.
+
+The recorder now captures horse rearing on 1.13.2 and entity traversal/rocket
+timing on 1.14.4 and 1.15.2. Repeat comparison normalizes recorded entity IDs and
+recognizes changes in traversal order at the first differing tick. Regression
+checks reject differences explained only by renamed IDs or a later order change.
+
+Twelve fixtures were replaced with successful instrumented captures of the same
+steps, setup and world: one horse case on 1.13.2, seven rocket/entity/dismount
+cases on 1.14.4, and four rocket/entity/dismount cases on 1.15.2. Every other
+fixture in those archives was verified unchanged. Captures are under
+`D:\minecraft\java\physics-data-generator\recordings\physics-parity-20261004`
+and `physics-parity-20261004-order`. Earlier failed capture attempts remain
+excluded. Backups and import/coverage receipts are in
+`C:\Users\Sandbox\AppData\Local\Temp\pfix-physics-20261004`.
+
+Final validation: **41,296 passing, zero failing and 270 pending Java checks**
+in a complete run of all 59 generated files, using the N-API/JNI Java 21 math
+backend. All 548 non-replay Mocha tests, 76 Node regressions, two recorder
+regressions, archive integrity checks, lint and type checking passed. All 31
+retained runs of the successful repair captures replay exactly.
+
+The 270 pending checks belong exclusively to retained 1.7.10, 1.15 and 1.16
+captures without network state. Their movement tests execute and pass. Refreshing
+the other versions split some previously shared groups, exposing more of these
+packet-only pending checks; no skip rules, known failures or tolerances were
+added. Every successfully imported recording is covered by generated tests.
+
+Full results, archive hashes, data revisions, import counts and capture receipts
+are saved as `physics-all-version-results-20261004.json` and
+`physics-parity-verification-20261004.json` in the sessions archive.

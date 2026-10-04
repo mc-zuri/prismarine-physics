@@ -4,6 +4,7 @@ const math = require('./lib/math')
 const javaMath = require('./lib/java-math')
 const features = require('./lib/features')
 const attribute = require('./lib/attribute')
+const { POSE_HEIGHT, setPose } = require('./lib/java-player-box')
 
 // The Bedrock engine is TypeScript, loaded as it is through lib/ts-hooks.js.
 function bedrock () {
@@ -196,7 +197,7 @@ function Physics (mcData, world) {
     bedBounce: supportFeature('bedBounce'),
     elytraDoubleCos: supportFeature('elytraDoubleCos'),
     elytraSquareOnly: supportFeature('elytraSquareOnly'),
-    clientStartsGliding: supportFeature('crouchLag'),
+    clientStartsGliding: !mcData.isOlderThan('1.15'),
     crouchPose: supportFeature('modernMove'),
     sprintState: supportFeature('sprintState'),
     sprintState13: !supportFeature('modernMove'),
@@ -275,7 +276,6 @@ function Physics (mcData, world) {
   const mthCos = radians => math.mthCos(radians, vanilla.mthSinDouble)
 
   // The player's pose (1.14+) sets its height: 1.8F standing, 1.5F crouching, 0.6F swimming, crawling or gliding.
-  const POSE_HEIGHT = { standing: Math.fround(1.8), crouching: Math.fround(1.5), swimming: Math.fround(0.6), fall_flying: Math.fround(0.6), spin_attack: Math.fround(0.6) }
   const POSE_EYE_HEIGHT = { standing: Math.fround(1.62), crouching: Math.fround(1.27), swimming: Math.fround(0.4), fall_flying: Math.fround(0.4), spin_attack: Math.fround(0.4) }
   let boxHeight = physics.playerHeight
   let boxHalfWidth = physics.playerHalfWidth
@@ -517,10 +517,11 @@ function Physics (mcData, world) {
 
   // AbstractBoat.tick (after the player's): a boat pushes the entities in its box grown by 0.2 sideways (0.01 lower)
   // whose feet are no higher than its bottom, away from its center (Entity.push).
-  function pushedByBoats (entity) {
+  function pushedByBoats (entity, beforePlayer = false) {
     if (!entity.entities || mcData.isOlderThan('1.9')) return
     const box = getPlayerBB(entity.pos)
     for (const other of entity.entities) {
+      if (!!other.tickBeforePlayer !== beforePlayer) continue
       if (other.tickEnabled === false || !/boat$|raft$/i.test(other.type)) continue
       const boat = otherEntityBox(other)
       const reach = new AABB(boat.minX - 0.20000000298023224, boat.minY + 0.009999999776482582, boat.minZ - 0.20000000298023224,
@@ -528,7 +529,7 @@ function Physics (mcData, world) {
       if (!reach.intersects(box) || !(box.minY <= boat.minY)) continue
       pushAway(entity, other)
     }
-    pushedByMobs(entity, box)
+    pushedByMobs(entity, box, beforePlayer)
   }
 
   // Entity.push(Entity): 0.05 away from the other's center, by the square root of the larger distance (no more than 1)
@@ -556,10 +557,13 @@ function Physics (mcData, world) {
   // LivingEntity.pushEntities on the client: each mob (after the player's tick) pushes the player whose box its own
   // touches
   const PUSHING_KINDS = new Set(['animal', 'mob', 'hostile', 'passive', 'ambient', 'water_creature'])
-  function pushedByMobs (entity, box) {
+  function pushedByMobs (entity, box, beforePlayer) {
     // EntityLivingBase.onLivingUpdate before 1.9 pushes nearby mobs only on the server.
     if (mcData.isOlderThan('1.9')) return
     for (const other of entity.entities) {
+      if (!!other.tickBeforePlayer !== beforePlayer) continue
+      // Older registries label boats and minecarts as "mob", but they do not run LivingEntity.pushEntities.
+      if (/boat$|raft$|minecart$/.test(other.type)) continue
       const data = mcData.entitiesByName[other.type]
       if (!data || !PUSHING_KINDS.has(data.type) || other.type === 'shulker') continue
       if (!otherEntityBox(other).intersects(box)) continue
@@ -2144,7 +2148,7 @@ function Physics (mcData, world) {
     const fullCube = block.shapes.length === 1 && block.shapes[0].every((v, i) => v === (i < 3 ? 0 : 1))
     if (!vanilla.modernMove) return !block.transparent && fullCube
     if (NEVER_SUFFOCATES.test(block.name)) return false
-    if (ALWAYS_SUFFOCATES.has(block.name)) return true
+    if (!mcData.isOlderThan('1.16') && ALWAYS_SUFFOCATES.has(block.name)) return true
     return fullCube && block.name !== 'cobweb'
   }
 
@@ -2224,10 +2228,12 @@ function Physics (mcData, world) {
 
   // ---- pose (1.14+) ----
 
-  // LocalPlayer.isMovingSlowly: crouching (1.15+ the flag set at the tick start; the key before), or crawling
+  // LocalPlayer.isMovingSlowly: crouching (1.14+ computed before input.tick), or crawling
   function isMovingSlowly (entity) {
     const crawling = vanilla.crouchPose && entity.pose === 'swimming' && !entity.isInWater
     if (!vanilla.crouchLag) return !!entity.control.sneak || crawling
+    // 1.14's KeyboardInput also checks the newly read sneak key.
+    if (mcData.isOlderThan('1.15') && entity.control.sneak) return true
     return !!entity.crouching || crawling
   }
 
@@ -2255,11 +2261,10 @@ function Physics (mcData, world) {
     if (!fitsPose(entity, world, 'swimming')) return
     const desired = entity.swimming ? 'swimming' : entity.elytraFlying ? 'fall_flying' : entity.autoSpinAttack ? 'spin_attack' : (entity.control.sneak && !entity.flying) ? 'crouching' : 'standing'
     const pose = fitsPose(entity, world, desired) ? desired : fitsPose(entity, world, 'crouching') ? 'crouching' : 'swimming'
-    if (pose !== entity.pose) entity.javaBox = null // the box is rebuilt for the new size
-    entity.pose = pose
+    setPose(entity, pose, vanilla.positionFromBoxCenter)
   }
 
-  function fireworkBoost (entity) {
+  function fireworkBoost (entity, count) {
     if (!(entity.fireworkRocketDuration > 0)) return
     if (!entity.elytraFlying) {
       entity.fireworkRocketDuration = 0
@@ -2268,13 +2273,13 @@ function Physics (mcData, world) {
     const vel = entity.vel
     const look = viewVector(entity)
     // each rocket attached to the player boosts it in its own tick (entity.fireworkRockets: how many fly now)
-    const rockets = entity.fireworkRockets > 0 ? entity.fireworkRockets : 1
+    const rockets = count === undefined ? (entity.fireworkRockets > 0 ? entity.fireworkRockets : 1) : count
     for (let i = 0; i < rockets; i++) {
       vel.x += look.x * 0.1 + (look.x * 1.5 - vel.x) * 0.5
       vel.y += look.y * 0.1 + (look.y * 1.5 - vel.y) * 0.5
       vel.z += look.z * 0.1 + (look.z * 1.5 - vel.z) * 0.5
     }
-    --entity.fireworkRocketDuration
+    if (count === undefined) --entity.fireworkRocketDuration
   }
 
   // LivingEntity.jumpFromGround
@@ -2443,7 +2448,7 @@ function Physics (mcData, world) {
     // 1.15+: pressing jump in the air with an elytra starts gliding at once (LocalPlayer.aiStep, tryToStartFallFlying);
     // before, the server starts it
     if (vanilla.clientStartsGliding && !toggledFlight && !entity.flying && entity.control.jump && !entity.jumpHeld && !entity.elytraFlying && entity.elytraEquipped &&
-      !entity.onGround && !entity.isInWater && !entity.levitation && !isOnLadder(world, entity.pos)) {
+      !entity.onGround && !entity.isInWater && (mcData.isOlderThan('1.16') || !entity.levitation) && !isOnLadder(world, entity.pos)) {
       entity.elytraFlying = true
     }
 
@@ -2498,7 +2503,7 @@ function Physics (mcData, world) {
       if (lookY <= 0 || entity.control.jump || fluidOf(above, 'water') || fluidOf(above, 'lava')) vel.y += (lookY - vel.y) * pull
     }
 
-    if (!vanilla.clientStartsGliding) fireworkBoost(entity)
+    if (!vanilla.clientStartsGliding && entity.fireworkRocketsBeforePlayer === undefined) fireworkBoost(entity)
 
     const flyingY = vel.y
     moveEntityWithHeading(entity, world, strafe, forward)
@@ -2510,7 +2515,7 @@ function Physics (mcData, world) {
 
     // A firework rocket the player glides with (FireworkRocketEntity.tick, after the player's own tick; checked on
     // 1.21.11, older versions keep boosting before the move)
-    if (vanilla.clientStartsGliding) fireworkBoost(entity)
+    if (vanilla.clientStartsGliding && entity.fireworkRocketsBeforePlayer === undefined) fireworkBoost(entity)
 
     if (vanilla.effectsAfterTravel) {
       stepOn(entity, world)
@@ -2787,7 +2792,7 @@ function Physics (mcData, world) {
     entity.pos.x = boat.pos.x
     // (before 1.20.5 the passenger's own riding offset, -0.6F, is a float; before 1.20.2 the boat's riding offset,
     // -0.1 or a raft's 0.25, plus the player's -0.35, in float)
-    if (!vanilla.attachmentPoints) entity.pos.y = boat.pos.y + f32((/raft$/.test(boat.type) ? 0.25 : -0.1) + -0.35)
+    if (!vanilla.attachmentPoints) entity.pos.y = boat.pos.y + f32((/raft$/.test(boat.type) ? (mcData.isOlderThan('1.20') ? 0.3 : 0.25) : -0.1) + -0.35)
     else entity.pos.y = vanilla.entityAttachments ? (boat.pos.y + rideHeight) - 0.6 : (rideHeight + boat.pos.y) + f32(-0.6)
     entity.pos.z = boat.pos.z
     const yaw = clampBoatYaw(f32(yawDegrees(entity) + boat.deltaRotation), boat.yaw)
@@ -3184,13 +3189,29 @@ function Physics (mcData, world) {
 
   physics.simulatePlayer = (entity, world) => {
     entity.beforePistons = undefined
+    const timedRockets = entity.fireworkRocketsBeforePlayer !== undefined
+    if (timedRockets && entity.fireworkRocketsBeforePlayer > 0) fireworkBoost(entity, entity.fireworkRocketsBeforePlayer)
     simulateWithVehicle(entity, world)
+    if (timedRockets) {
+      const after = (entity.fireworkRockets || 0) - entity.fireworkRocketsBeforePlayer
+      if (after > 0) fireworkBoost(entity, after)
+      if (entity.fireworkRocketDuration > 0) --entity.fireworkRocketDuration
+    }
     tickPistons(entity, world)
     return entity
   }
 
   const simulateWithVehicle = (entity, world) => {
     const vehicle = entity.vehicle
+    // Player.rideTick could detach locally before 1.17. If the vehicle's tick
+    // precedes the player in ClientLevel's map, the player also gets its normal
+    // tick after detaching, with the velocity left by the preceding rideTick.
+    if (vehicle && !mcData.isOlderThan('1.16') && mcData.isOlderThan('1.17') && entity.isCrouching) {
+      if (isBoatType(vehicle.type) && vehicle.tickEnabled !== false) tickBoat(vehicle, world)
+      entity.vehicle = undefined
+      simulateOwn(entity, world)
+      return entity
+    }
     if (vehicle && mcData.isOlderThan('1.9')) {
       // Before client-authoritative vehicles, the server supplies the mount's
       // interpolated position. Entity.updateRidden still ticks the player at rest.
@@ -3251,6 +3272,7 @@ function Physics (mcData, world) {
     }
     const boat = entity.vehicle
     if (!vanilla.javaBoats || !boat || !isBoatType(boat.type)) {
+      if (!boat) pushedByBoats(entity, true)
       simulateOwn(entity, world)
       if (!boat) pushedByBoats(entity)
       return entity
@@ -3364,6 +3386,8 @@ class PlayerState {
     this.jumpTicks = bot.jumpTicks
     this.jumpQueued = bot.jumpQueued
     this.fireworkRocketDuration = bot.fireworkRocketDuration
+    this.fireworkRockets = bot.fireworkRockets
+    this.fireworkRocketsBeforePlayer = bot.fireworkRocketsBeforePlayer
     // the auto-jump option and the jump it queued for the next tick
     this.autoJump = !!bot.autoJump
     this.autoJumpTime = bot.autoJumpTime || 0
@@ -3421,7 +3445,7 @@ class PlayerState {
     // and boats that push it
     if (bot.entities && mcData.type !== 'bedrock') {
       this.entities = Object.values(bot.entities).filter(e => e && e !== bot.entity && e.position && e.name && e.id !== (bot.entity.vehicle && bot.entity.vehicle.id))
-        .map(e => ({ id: e.id, type: e.name, pos: e.position.clone() }))
+        .map(e => ({ id: e.id, type: e.name, pos: e.position.clone(), tickBeforePlayer: e.tickBeforePlayer }))
     }
     this.yaw = bot.entity.yaw
     this.pitch = bot.entity.pitch

@@ -7,6 +7,7 @@
 require('../../lib/session-data')()
 const { createSerializer, createDeserializer } = require('minecraft-protocol')
 const { Vec3 } = require('vec3')
+const { setPose } = require('../../lib/java-player-box')
 
 // 26.3's entity moves carry a VecDelta that minecraft-protocol does not know yet: properties (onGround | steps << 1),
 // then either one delta (three shorts) or each step's ticks (varint) and delta. Read as { onGround, x, y, z } or
@@ -170,6 +171,12 @@ function movementPackets (after, input, net, version, extra = {}) {
     : extra.chest === 'elytra' && input.jump && !(extra.prevKeys && extra.prevKeys.jump) && !before.onGround && before.vel && before.vel[1] < 0 && !before.elytraFlying && !after.flying
   if (asksToGlide) packets.push({ name: 'entity_action', params: { entityId: net.entityId, actionId: actionName(version, 'start_fall_flying', 'start_elytra_flying'), jumpBoost: 0 } })
   const beforeVehicle = before.vehicle
+  // The boat ticks and sends its paddles before Player.rideTick detaches locally
+  // (before 1.17); the player then sends its ordinary movement packets.
+  if (beforeVehicle && !after.vehicle && /boat$|raft$/.test(beforeVehicle.type) && version && !isOlder(version, '1.16') && isOlder(version, '1.17') && extra.prevKeys?.sneak) {
+    const k = extra.prevKeys
+    packets.push({ name: 'steer_boat', params: { leftPaddle: (!!k.right && !k.left) || !!k.forward, rightPaddle: (!!k.left && !k.right) || !!k.forward } })
+  }
   if (beforeVehicle && after.vehicle && JUMPABLE.has(beforeVehicle.type) && extra.prevKeys && extra.prevKeys.jump && !input.jump) {
     packets.push({ name: 'entity_action', params: { entityId: net.entityId, actionId: actionName(version, 'start_riding_jump', 'start_horse_jump'), jumpBoost: Math.floor(Math.fround(beforeVehicle.jumpRidingScale * 100)) } })
   }
@@ -239,7 +246,7 @@ function legacyMovementPackets (packets, next, after, input, net, extra, version
   const dz = z - net.lastPos[2]
   const reminder = net.positionReminder + 1
   // a move counts past 0.03 blocks before 1.19, past 2e-4 since
-  const threshold = version && isOlder(version, '22w19a') ? 9.0e-4 : 2.0e-4 * 2.0e-4
+  const threshold = version && isOlder(version, '1.18.2') ? 9.0e-4 : 2.0e-4 * 2.0e-4
   // 1.8 increments the reminder after deciding whether to send a position.
   const moved = dx * dx + dy * dy + dz * dz > threshold || (version && isOlder(version, '1.9') ? net.positionReminder : reminder) >= 20
   const yaw = Math.fround(input.yaw)
@@ -452,7 +459,10 @@ function handle (state, packet, ctx) {
     case 'entity_status': {
       // 9: the item in use is done; the client finishes it too, and a food eats into its own food level
       const food = ctx.mainhand && ctx.mcData.foodsByName && ctx.mcData.foodsByName[ctx.mainhand]
-      if (self(p.entityId) && p.entityStatus === 9 && food && state.food !== undefined) state.food = Math.min(20, state.food + food.foodPoints)
+      if (self(p.entityId) && p.entityStatus === 9 && state.usingItem) {
+        if (food && state.food !== undefined) state.food = Math.min(20, state.food + food.foodPoints)
+        state.usingItem = false
+      }
       break
     }
     case 'attach_entity':
@@ -513,8 +523,10 @@ function handle (state, packet, ctx) {
         }
         const pose = p.metadata.find(m => m.type === 'pose' || (m.key === 6 && !ctx.mcData.isOlderThan('1.14')))
         if (pose) {
-          state.pose = typeof pose.value === 'string' ? pose.value : ['standing', 'fall_flying', 'sleeping', 'swimming', 'spin_attack', 'crouching', 'long_jumping', 'dying'][pose.value]
-          state.javaBox = null
+          const name = typeof pose.value === 'string' ? pose.value : ['standing', 'fall_flying', 'sleeping', 'swimming', 'spin_attack', 'crouching', 'long_jumping', 'dying'][pose.value]
+          // SynchedEntityData.assignValues notifies even when a packet repeats
+          // the current pose; Entity.onSyncedDataUpdated refreshes its dimensions.
+          setPose(state, name, ctx.mcData.isOlderThan('1.17'), true)
         }
       }
       break
