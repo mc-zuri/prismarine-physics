@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict')
 const { test } = require('node:test')
-const { data } = require('../lib/session-data')()
+const data = require('minecraft-data')
 const { Physics, PlayerState } = require('../index')
 const { Vec3 } = require('vec3')
 
