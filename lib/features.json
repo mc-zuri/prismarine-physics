@@ -72,14 +72,14 @@
   {
     "name": "airSprintSpeedFloatSum",
     "description": "Sprinting air speed is 0.02F + 0.006F in float",
-    "since": "22w19a",
+    "since": "1.18.2",
     "before": "1.19.4"
   },
   {
     "name": "jumpBoostFloatSum",
     "description": "The jump boost is added to the jump power in float",
     "since": "1.14",
-    "before": "1.17"
+    "before": "1.17.1"
   },
   {
     "name": "jumpBoostFloatSum",
@@ -149,7 +149,7 @@
   {
     "name": "passengerSprintVehicle",
     "description": "LocalPlayer.canStartSprinting: a passenger sprints only on a vehicle that can (vehicleCanSprint)",
-    "since": "1.20"
+    "since": "1.19.4"
   },
   {
     "name": "airSpeedLastTick",
@@ -223,7 +223,7 @@
   {
     "name": "collisionEpsilonVelocityReset",
     "description": "The velocity is reset on the axes that collided by more than 1e-5 (Mth.equal); before, on any difference, the z reset restoring x",
-    "since": "22w19a"
+    "since": "1.18.2"
   },
   {
     "name": "waterMovementEfficiency",
@@ -233,7 +233,7 @@
   {
     "name": "crouchLag",
     "description": "The sneak slowdown comes from the crouching state, taken from the sneak key of the tick before",
-    "since": "1.15"
+    "since": "1.14"
   },
   {
     "name": "blockSpeedFactor",
@@ -345,7 +345,7 @@
   {
     "name": "elytraDoubleCos",
     "description": "The elytra lift takes cos(pitch) in double (Math.cos), not through Mth.cos as a float",
-    "since": "22w19a"
+    "since": "1.18.2"
   },
   {
     "name": "elytraSquareOnly",

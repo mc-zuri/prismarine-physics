@@ -268,8 +268,11 @@ function attributesOf (row, mcData) {
 function makeState (rec, mcData) {
   const s = rec.start
   const setup = rec.setup || {}
+  const javaBox = s.box ? new AABB(...s.box) : undefined
+  if (javaBox) javaBox.at = [...s.pos]
   return {
     pos: new Vec3(...s.pos),
+    javaBox,
     vel: new Vec3(...s.vel),
     onGround: s.onGround,
     isInWater: s.isInWater,
@@ -281,6 +284,7 @@ function makeState (rec, mcData) {
     jumpTicks: s.jumpTicks,
     jumpQueued: s.jumpQueued,
     food: s.food,
+    usingItem: !!s.usingItem,
     sprinting: s.sprinting,
     isCrouching: s.shiftKeyDown,
     pose: s.pose,
@@ -395,6 +399,8 @@ function applyInput (state, row, mcData) {
   const unattached = state.entityId === 0 && mcData.isOlderThan('1.14')
   state.fireworkRocketDuration = unattached ? 0 : (row.fireworks || []).length
   state.fireworkRockets = state.fireworkRocketDuration
+  state.fireworkRocketsBeforePlayer = row.fireworkRocketsBeforePlayer
+  state.entityTickOrder = row.entityTickOrder
   state.riptideLaunch = row.riptideLaunch || 0
   for (const key of Object.keys(state.control)) state.control[key] = false
   for (const [key, down] of Object.entries(row.in)) if (KEYS[key] && down) state.control[KEYS[key]] = true
@@ -425,7 +431,15 @@ const SERVER_DRIVEN = /minecart$/
 function useEntities (state, entities, before) {
   const vehicleId = state.vehicle && state.vehicle.id
   const previous = new Map((before || []).map(e => [e.id, e]))
-  state.entities = entities.filter(e => e.id !== vehicleId).map(e => ({ id: e.id, type: e.type, pos: new Vec3(...e.pos), vel: new Vec3(...e.vel), box: e.box, solidBox: (previous.get(e.id) || e).box }))
+  const order = state.entityTickOrder
+  const playerOrder = order?.indexOf(state.entityId)
+  state.entities = entities.filter(e => e.id !== vehicleId).map(e => {
+    const at = order?.indexOf(e.id)
+    const tickBeforePlayer = at >= 0 && at < playerOrder
+    return { id: e.id, type: e.type, pos: new Vec3(...e.pos), vel: new Vec3(...e.vel), box: e.box, solidBox: (tickBeforePlayer ? e : previous.get(e.id) || e).box, tickBeforePlayer }
+  })
+  // Multiple pushes must accumulate in native traversal order, including their double rounding.
+  if (order) state.entities.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id))
   const ridden = entities.find(e => e.id === vehicleId)
   if (ridden && (SERVER_DRIVEN.test(state.vehicle.type) || state.vehicle.serverControlled)) {
     state.vehicle.pos = new Vec3(...ridden.pos)
@@ -541,7 +555,7 @@ function replay (version, rec, { mode = 'trajectory', fields = FIELDS, epsilon =
       state.flying = !!before.flying
     }
     // Inputs synced before this tick are those of the previous row (the state the tick started from).
-    applyInput(state, { ...(i > 0 ? rows[i - 1] : rec.start), ...(rec.start.netState && packetsSupported(version) ? {} : { attributes: row.attributes, attributeModifiers: row.attributeModifiers }), usingItem: row.usingItem, fireworks: row.fireworks, riptideLaunch: riptideLaunch(rec, rows, i), in: row.in }, mcData)
+    applyInput(state, { ...(i > 0 ? rows[i - 1] : rec.start), ...(rec.start.netState && packetsSupported(version) ? {} : { attributes: row.attributes, attributeModifiers: row.attributeModifiers }), usingItem: row.usingItem, fireworks: row.fireworks, fireworkRocketsBeforePlayer: row.fireworkRocketsBeforePlayer, entityTickOrder: row.entityTickOrder, riptideLaunch: riptideLaunch(rec, rows, i), in: row.in }, mcData)
     applyEvents(state, w, row.events, packetContext(version, mcData, rec))
     if (timeline) useEntities(state, timeline[i], i > 0 ? timeline[i - 1] : rec.start.entities)
     physics.simulatePlayer(state, w)
@@ -781,7 +795,7 @@ function replayUntil (version, rec, tick, options) {
   const rows = expand(rec)
   const timeline = entityTimeline(rec)
   for (let i = 0; i < tick; i++) {
-    applyInput(state, { ...(i > 0 ? rows[i - 1] : rec.start), ...(rec.start.netState && packetsSupported(version) ? {} : { attributes: rows[i].attributes, attributeModifiers: rows[i].attributeModifiers }), usingItem: rows[i].usingItem, fireworks: rows[i].fireworks, riptideLaunch: riptideLaunch(rec, rows, i), in: rows[i].in }, mcData)
+    applyInput(state, { ...(i > 0 ? rows[i - 1] : rec.start), ...(rec.start.netState && packetsSupported(version) ? {} : { attributes: rows[i].attributes, attributeModifiers: rows[i].attributeModifiers }), usingItem: rows[i].usingItem, fireworks: rows[i].fireworks, fireworkRocketsBeforePlayer: rows[i].fireworkRocketsBeforePlayer, entityTickOrder: rows[i].entityTickOrder, riptideLaunch: riptideLaunch(rec, rows, i), in: rows[i].in }, mcData)
     applyEvents(state, w, rows[i].events, packetContext(version, mcData, rec))
     if (timeline) useEntities(state, timeline[i], i > 0 ? timeline[i - 1] : rec.start.entities)
     physics.simulatePlayer(state, w)
