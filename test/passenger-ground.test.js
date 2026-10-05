@@ -1,11 +1,11 @@
+/* eslint-env mocha */
 const assert = require('node:assert/strict')
-const { test } = require('node:test')
 const data = require('minecraft-data')
 const { Physics, PlayerState } = require('../index.js')
 const { Vec3 } = require('vec3')
 
 for (const version of ['1.21.3', '1.21.4', '1.21.11', '26.1', '26.2', '26.3']) {
-  test(`${version}: the first passenger tick uses the native ground-contact rule`, () => {
+  it(`${version}: the first passenger tick uses the native ground-contact rule`, () => {
     const registry = data(version)
     const Block = require('prismarine-block')(registry)
     const world = {

@@ -1,11 +1,11 @@
+/* eslint-env mocha */
 const assert = require('node:assert/strict')
-const { test } = require('node:test')
 const data = require('minecraft-data')
 const { Physics, PlayerState } = require('../index')
 const { Vec3 } = require('vec3')
 
 for (const version of ['1.14.4', '1.15.2', '1.16.5']) {
-  test(`${version}: a boat classified as mob applies its collision push once`, () => {
+  it(`${version}: a boat classified as mob applies its collision push once`, () => {
     const registry = data(version)
     const state = new PlayerState({
       registry,

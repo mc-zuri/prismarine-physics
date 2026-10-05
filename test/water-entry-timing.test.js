@@ -1,10 +1,10 @@
+/* eslint-env mocha */
 const assert = require('node:assert/strict')
-const { test } = require('node:test')
 const { Physics, PlayerState } = require('../index.js')
 const { Vec3 } = require('vec3')
 
 for (const version of ['1.21.4', '1.21.5']) {
-  test(`${version}: client-controlled fall checks use native water-entry timing`, () => {
+  it(`${version}: client-controlled fall checks use native water-entry timing`, () => {
     const registry = require('minecraft-data')(version)
     const Block = require('prismarine-block')(version)
     const world = {

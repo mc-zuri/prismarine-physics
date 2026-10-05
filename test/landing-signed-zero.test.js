@@ -1,10 +1,10 @@
+/* eslint-env mocha */
 const assert = require('node:assert/strict')
-const { test } = require('node:test')
 const { Physics, PlayerState } = require('../index.js')
 const { Vec3 } = require('vec3')
 
 for (const version of ['1.21.11', '26.1']) {
-  test(`${version}: landing with zero gravity preserves negative vertical zero`, () => {
+  it(`${version}: landing with zero gravity preserves negative vertical zero`, () => {
     const registry = require('minecraft-data')(version)
     const Block = require('prismarine-block')(version)
     const world = {

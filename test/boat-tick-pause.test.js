@@ -1,5 +1,5 @@
+/* eslint-env mocha */
 const assert = require('node:assert/strict')
-const { test } = require('node:test')
 const data = require('minecraft-data')
 const { Physics, PlayerState } = require('../index.js')
 const { Vec3 } = require('vec3')
@@ -42,7 +42,7 @@ function boat () {
   }
 }
 
-test('a paused boat preserves its state while its passenger ticks, sits and supplies input', () => {
+it('a paused boat preserves its state while its passenger ticks, sits and supplies input', () => {
   const { state, world, physics } = setup()
   const vehicle = state.vehicle = boat()
   vehicle.tickEnabled = false
@@ -64,7 +64,7 @@ test('a paused boat preserves its state while its passenger ticks, sits and supp
   assert.equal(state.yawDegrees, 42)
 })
 
-test('resuming a boat uses the input supplied by its passenger while held', () => {
+it('resuming a boat uses the input supplied by its passenger while held', () => {
   const { state, world, physics } = setup()
   const vehicle = state.vehicle = boat()
   vehicle.tickEnabled = false
@@ -83,7 +83,7 @@ test('resuming a boat uses the input supplied by its passenger while held', () =
   assert.deepEqual(vehicle.input, { left: false, right: false, up: false, down: false })
 })
 
-test('nearby paused boats suppress push impulses but keep solid collision boxes', () => {
+it('nearby paused boats suppress push impulses but keep solid collision boxes', () => {
   for (const tickEnabled of [undefined, false]) {
     const { state, world, physics } = setup()
     const nearby = { ...boat(), tickEnabled, pos: new Vec3(1, 101, 0.5) }
