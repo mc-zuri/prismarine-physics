@@ -1,5 +1,7 @@
 import assert from 'node:assert'
-import { exact, loadCrt, makePaired, makeScalar, makeSineTable, paired, scalar, sineTable } from '../../../../lib/bedrock/math/crt.ts'
+import { execFileSync } from 'node:child_process'
+import path from 'node:path'
+import { exact, loadCrt, loadCrtAsync, makePaired, makeScalar, makeSineTable, nodeFs, paired, scalar, sineTable, useCrt, WASM_URL } from '../../../../lib/bedrock/math/crt.ts'
 
 const f = Math.fround
 
@@ -7,6 +9,51 @@ describe('bedrock math/crt', () => {
   it('loads the exact routines, and reports a file it cannot load', () => {
     assert.strictEqual(exact, true)
     assert.strictEqual(loadCrt('no-such-file.wasm'), null)
+  })
+
+  it('reads the module with the process\'s fs, and reads nothing without one', () => {
+    assert.strictEqual(typeof nodeFs()?.readFileSync, 'function')
+    assert.strictEqual(nodeFs(null), null)
+    assert.strictEqual(nodeFs({}), null)
+    assert.strictEqual(loadCrt(WASM_URL, null), null)
+    assert.notStrictEqual(loadCrt(WASM_URL), null)
+  })
+
+  it('puts loaded routines in the objects already in use', async () => {
+    const before = { scalar, paired, sineTable, sin: scalar.sinDeg(33), entry: sineTable[1067] }
+    useCrt(loadCrt()!)
+    assert.strictEqual(scalar, before.scalar)
+    assert.strictEqual(paired, before.paired)
+    assert.strictEqual(sineTable, before.sineTable)
+    assert.strictEqual(scalar.sinDeg(33), before.sin)
+    assert.strictEqual(sineTable[1067], before.entry)
+    // already exact: nothing is fetched
+    assert.strictEqual(await loadCrtAsync(WASM_URL, () => { throw new Error('fetched') }), true)
+  })
+
+  it('fetches the routines where there is no fs to read them with, as in a browser', () => {
+    const script = [
+      'process.getBuiltinModule = undefined',
+      "require('./lib/ts-hooks')",
+      "const fs = require('fs')",
+      "const crt = require('./lib/bedrock/math/crt.ts')",
+      'const reference = crt.makeSineTable(crt.loadCrt(crt.WASM_URL, fs).exports)',
+      'const differing = () => reference.filter((value, i) => value !== crt.sineTable[i]).length',
+      'const { scalar, sineTable } = crt',
+      'const bytes = url => { const b = fs.readFileSync(url); return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) }',
+      ';(async () => {',
+      '  const out = { before: crt.exact, differing: differing() }',
+      // Node's fetch takes no file: URL
+      '  out.unfetchable = await crt.loadCrtAsync()',
+      '  out.notFound = await crt.loadCrtAsync(crt.WASM_URL, async () => ({ ok: false }))',
+      '  out.fetched = await crt.loadCrtAsync(crt.WASM_URL, async url => ({ ok: true, arrayBuffer: async () => bytes(url) }))',
+      '  Object.assign(out, { after: crt.exact, differingAfter: differing(), same: crt.scalar === scalar && crt.sineTable === sineTable })',
+      '  console.log(JSON.stringify(out))',
+      '})()'
+    ].join('\n')
+    const root = path.join(import.meta.dirname, '..', '..', '..', '..')
+    const out = JSON.parse(execFileSync(process.execPath, ['-e', script], { cwd: root, encoding: 'utf8' }))
+    assert.deepStrictEqual(out, { before: false, differing: 85, unfetchable: false, notFound: false, fetched: true, after: true, differingAfter: 0, same: true })
   })
 
   it('computes the runtime sine and cosine of degrees', () => {

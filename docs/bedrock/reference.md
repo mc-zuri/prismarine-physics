@@ -23,6 +23,7 @@ The player is mineflayer's PlayerState shape (feet position, radian yaw/pitch, t
 - `function Physics (registry: Registry, world: World): BedrockPhysics` -- The physics of a Bedrock registry (prismarine-registry / minecraft-data) and world. The tunables are the object's own fields; the methods simulate a tick and apply the server's movement packets.
 - re-exports { BedrockSession }
 - re-exports { BedrockRewind }
+- re-exports { exact, loadCrtAsync }
 
 ### `types.ts`
 
@@ -505,16 +506,25 @@ table  - the 65536-entry sine table: the scalar sinf of i / 10430.378 (65536 / 2
 
 Without WebAssembly, Math.sin / Math.cos rounded to float32 stand in for all three: the correctly rounded value, one float32 step from the scalar routine on about 0.13% of angles (85 of the table's entries).
 
+Node reads the module when this file loads. A browser has no file to read: the stand-ins hold until loadCrtAsync() has fetched and compiled it (asynchronously, as a page's main thread must compile a module of this size), and then give way to the exact routines in the same objects.
+
 - `interface SinCos` -- A sine and a cosine.
 - `interface Trig` -- Sine and cosine of an angle in degrees, both from one routine.
-- `function loadCrt (file = WASM_FILE): { exports: CrtExports, out: Float32Array } | null` -- The compiled routines and their output buffer, or null when they cannot be loaded.
+- `interface Crt` -- The compiled routines and the buffer x_sincosf writes its pair into.
+- `interface FileReader` -- What loadCrt reads the module with: Node's fs.
+- `type Fetch` -- What loadCrtAsync fetches the module with: the global fetch.
+- `const WASM_URL` -- The module beside this file: a file: URL in Node; in a bundle, the URL of the asset the bundler made of it.
+- `function nodeFs (proc: unknown = (globalThis as { process?: unknown }).process): FileReader | null` -- Node's fs, taken from the process rather than imported (a bundle for a browser would have to resolve the import); null where there is none.
+- `function loadCrt (file: string | URL = WASM_URL, fs: FileReader | null = nodeFs()): Crt | null` -- The compiled routines and their output buffer, or null when they cannot be loaded (no file, or no fs to read it with).
 - `function makeScalar (crt: CrtExports | null): Trig` -- The scalar routines of a loaded module, or the Math.sin / Math.cos stand-ins without one.
 - `function makePaired (crt: CrtExports | null, out: Float32Array | null): Trig` -- The paired routine of a loaded module, or the Math.sin / Math.cos stand-ins without one.
 - `function makeSineTable (crt: CrtExports | null): Float32Array` -- The sine table of a loaded module, or Math.sin of the same angles without one.
-- `const exact` -- Whether the exact routines loaded.
+- `let exact` -- Whether the exact routines are in use.
 - `const scalar` -- The scalar sine and cosine (the builds from 1.26.20).
 - `const paired` -- The paired sine and cosine (the builds up to 1.26.10).
 - `const sineTable` -- The sine table.
+- `function useCrt (crt: Crt): void` -- Puts the routines of a loaded module in place of what is in use, in the same objects: the engine holds scalar, paired and the table from when it loaded.
+- `function loadCrtAsync (url: string | URL = WASM_URL, fetchFile: Fetch = (globalThis as unknown as { fetch: Fetch }).fetch): Promise<boolean>` -- Fetches, compiles and uses the exact routines where they could not be read when this file loaded (a browser). Resolves whether they are in use; on a failure the stand-ins stay.
 
 ### `math/float.ts`
 

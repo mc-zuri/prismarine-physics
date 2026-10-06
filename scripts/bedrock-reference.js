@@ -74,7 +74,7 @@ function describeModule (file) {
   if (header) parts.push(header, '')
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
-    const m = /^export\s+(?:async\s+)?(function|const|class|interface|type)\s+([A-Za-z0-9_$]+)/.exec(line)
+    const m = /^export\s+(?:async\s+)?(function|const|let|class|interface|type)\s+([A-Za-z0-9_$]+)/.exec(line)
     if (!m) continue
     const [, kind, name] = m
     const comment = commentAbove(lines, i)

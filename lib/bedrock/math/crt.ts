@@ -13,8 +13,10 @@
 //
 // Without WebAssembly, Math.sin / Math.cos rounded to float32 stand in for all three: the correctly rounded value, one
 // float32 step from the scalar routine on about 0.13% of angles (85 of the table's entries).
-import fs from 'node:fs'
-import path from 'node:path'
+//
+// Node reads the module when this file loads. A browser has no file to read: the stand-ins hold until loadCrtAsync()
+// has fetched and compiled it (asynchronously, as a page's main thread must compile a module of this size), and then
+// give way to the exact routines in the same objects.
 import { f } from './float.ts'
 
 // A sine and a cosine.
@@ -31,6 +33,7 @@ export interface Trig {
 interface Wasm {
   Module: new (bytes: Uint8Array) => object
   Instance: new (module: object, imports: object) => { exports: unknown }
+  instantiate (bytes: ArrayBuffer, imports: object): Promise<{ instance: { exports: unknown } }>
 }
 const WebAssemblyApi = (globalThis as unknown as { WebAssembly: Wasm }).WebAssembly
 
@@ -43,14 +46,37 @@ interface CrtExports {
   x_sin_table (): number
 }
 
-const WASM_FILE = path.join(import.meta.dirname, '..', 'data', 'crt-math.wasm')
+// The compiled routines and the buffer x_sincosf writes its pair into.
+export interface Crt { exports: CrtExports, out: Float32Array }
 
-// The compiled routines and their output buffer, or null when they cannot be loaded.
-export function loadCrt (file = WASM_FILE): { exports: CrtExports, out: Float32Array } | null {
+// What loadCrt reads the module with: Node's fs.
+export interface FileReader { readFileSync (file: string | URL): Uint8Array }
+
+// What loadCrtAsync fetches the module with: the global fetch.
+export type Fetch = (url: string | URL) => Promise<{ ok: boolean, arrayBuffer (): Promise<ArrayBuffer> }>
+
+// The module beside this file: a file: URL in Node; in a bundle, the URL of the asset the bundler made of it.
+export const WASM_URL = new URL('../data/crt-math.wasm', import.meta.url)
+
+// Node's fs, taken from the process rather than imported (a bundle for a browser would have to resolve the import);
+// null where there is none.
+export function nodeFs (proc: unknown = (globalThis as { process?: unknown }).process): FileReader | null {
+  const node = proc as { getBuiltinModule?: (id: string) => unknown } | null | undefined
+  if (!node || typeof node.getBuiltinModule !== 'function') return null
+  return node.getBuiltinModule('node:fs') as FileReader
+}
+
+function crtOf (exports: CrtExports): Crt {
+  return { exports, out: new Float32Array(exports.memory.buffer, exports.x_out(), 4) }
+}
+
+// The compiled routines and their output buffer, or null when they cannot be loaded (no file, or no fs to read it
+// with).
+export function loadCrt (file: string | URL = WASM_URL, fs: FileReader | null = nodeFs()): Crt | null {
+  if (!fs) return null
   try {
     const bytes = fs.readFileSync(file)
-    const exports = new WebAssemblyApi.Instance(new WebAssemblyApi.Module(bytes), {}).exports as unknown as CrtExports
-    return { exports, out: new Float32Array(exports.memory.buffer, exports.x_out(), 4) }
+    return crtOf(new WebAssemblyApi.Instance(new WebAssemblyApi.Module(bytes), {}).exports as unknown as CrtExports)
   } catch {
     return null
   }
@@ -86,11 +112,35 @@ export function makeSineTable (crt: CrtExports | null): Float32Array {
   return table
 }
 
-// Whether the exact routines loaded.
-export const exact = wasm !== null
+// Whether the exact routines are in use.
+export let exact = wasm !== null
 // The scalar sine and cosine (the builds from 1.26.20).
 export const scalar = makeScalar(wasm && wasm.exports)
 // The paired sine and cosine (the builds up to 1.26.10).
 export const paired = makePaired(wasm && wasm.exports, wasm && wasm.out)
 // The sine table.
 export const sineTable = makeSineTable(wasm && wasm.exports)
+
+// Puts the routines of a loaded module in place of what is in use, in the same objects: the engine holds scalar,
+// paired and the table from when it loaded.
+export function useCrt (crt: Crt): void {
+  Object.assign(scalar, makeScalar(crt.exports))
+  Object.assign(paired, makePaired(crt.exports, crt.out))
+  sineTable.set(makeSineTable(crt.exports))
+  exact = true
+}
+
+// Fetches, compiles and uses the exact routines where they could not be read when this file loaded (a browser).
+// Resolves whether they are in use; on a failure the stand-ins stay.
+export async function loadCrtAsync (url: string | URL = WASM_URL, fetchFile: Fetch = (globalThis as unknown as { fetch: Fetch }).fetch): Promise<boolean> {
+  if (exact) return true
+  try {
+    const response = await fetchFile(url)
+    if (!response.ok) return false
+    const { instance } = await WebAssemblyApi.instantiate(await response.arrayBuffer(), {})
+    useCrt(crtOf(instance.exports as unknown as CrtExports))
+    return true
+  } catch {
+    return false
+  }
+}

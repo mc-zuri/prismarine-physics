@@ -6,8 +6,7 @@
 // The player is mineflayer's PlayerState shape (feet position, radian yaw/pitch, the control booleans as key levels).
 // Optional extensions: `bedrockYaw` / `bedrockPitch` (degrees) override the radian angles; `control.raw` carries the
 // other raw key bits and `control.analogMoveVector` a stick; `control.moveVector` an already cooked move.
-import fs from 'node:fs'
-import path from 'node:path'
+import FEATURES_JSON from './features.json' with { type: 'json' }
 import { Box } from './math/box.ts'
 import { paired, scalar } from './math/crt.ts'
 import { f, VELOCITY_EPSILON } from './math/float.ts'
@@ -24,6 +23,7 @@ import { senseLiquids, type LiquidSense } from './world/liquids.ts'
 
 export { BedrockSession } from './network/session.ts'
 export { BedrockRewind } from './network/rewind.ts'
+export { exact, loadCrtAsync } from './math/crt.ts'
 
 interface Registry { version?: { minecraftVersion?: string, majorVersion?: string } }
 
@@ -47,7 +47,7 @@ export interface Feature { name: string, description: string, since: string }
 const LEVITATION_REWIND_REACH = 4
 
 // The Bedrock features (features.json beside this file).
-export const FEATURES: readonly Feature[] = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, 'features.json'), 'utf8'))
+export const FEATURES: readonly Feature[] = FEATURES_JSON
 
 // Whether the registry's version has the named feature (an unknown name: never).
 export function supportFeature (registry: Registry, name: string): boolean {
