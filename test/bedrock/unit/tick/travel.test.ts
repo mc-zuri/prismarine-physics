@@ -78,10 +78,10 @@ describe('bedrock tick/travel', () => {
       assert.strictEqual(s.entity.vel.y, f(0.42))
     })
 
-    it('does not jump from powder snow, but restarts the cooldown', () => {
-      const s = start(worldOf({ '0,0,0': 'powder_snow' }, null), player([0.5, 0, 0.5], { control: { jump: true } }))
+    it('jumps from inside powder snow, and restarts the cooldown', () => {
+      const s = start(worldOf({ '0,0,0': 'powder_snow' }, null), player([0.5, f(0.9), 0.5], { control: { jump: true } }))
       jumpFromGround(s.c, s.entity, s.tick)
-      assert.deepStrictEqual([s.entity.vel.y, s.entity.jumpTicks], [0, 10])
+      assert.deepStrictEqual([s.entity.vel.y, s.entity.jumpTicks], [f(0.42), 10])
     })
 
     it('jumps lower from honey, higher with Jump Boost, and never lowers a rising velocity', () => {
@@ -116,11 +116,12 @@ describe('bedrock tick/travel', () => {
       assert.strictEqual(s.entity.vel.y, f(0.04))
     })
 
-    it('climbs a ladder or vine at 0.2 while jump is held, before any liquid rise', () => {
+    it('climbs a ladder or vine at 0.2 while jump is held, restarting the jump cooldown, before any liquid rise', () => {
       const s = start(FLAT, player(undefined, { control: { jump: true } }))
       s.entity.bedrock.climbable = 'vine'
       jump(s.c, s.entity, s.tick)
       assert.strictEqual(s.entity.vel.y, f(0.2))
+      assert.strictEqual(s.entity.jumpTicks, 10, 'the climb restarts the jump cooldown')
       s.entity.vel.y = 0
       jump(s.c, s.entity, s.tick)
       assert.strictEqual(s.entity.vel.y, f(0.2), 'held')
@@ -166,6 +167,17 @@ describe('bedrock tick/travel', () => {
       assert.strictEqual(travelSpeed(fast.c, fast.entity, fast.tick), travelSpeed(ground.c, ground.entity, ground.tick))
     })
 
+    it("moves at water's movement attribute in water and lava's in lava", () => {
+      const attributes = { 'minecraft:underwater_movement': { base: 0.03, current: 0.03 }, 'minecraft:lava_movement': { base: 0.01, current: 0.01 } }
+      const water = start(FLAT, player(undefined, { attributes }))
+      water.entity.isInWater = true
+      water.entity.isInLava = true
+      assert.strictEqual(travelSpeed(water.c, water.entity, water.tick), f(0.03))
+      const lava = start(FLAT, player(undefined, { attributes }))
+      lava.entity.isInLava = true
+      assert.strictEqual(travelSpeed(lava.c, lava.entity, lava.tick), f(0.01))
+    })
+
     it('swims at 0.02, lerped toward the walking speed by Depth Strider', () => {
       const s = start(FLAT, player(undefined, { depthStrider: 3 }))
       s.entity.isInWater = true
@@ -194,10 +206,12 @@ describe('bedrock tick/travel', () => {
     swimSteering(s.entity)
     assert.strictEqual(s.entity.vel.y, f(f(-0.1 * f(0.06))))
     s.entity.bedrock.view = { x: 0, y: 0.5, z: 0.86 }
+    // looking up it rises only with a liquid block at the eye, even one whose surface is below the eye
     s.entity.bedrock.headInWater = false
+    s.entity.bedrock.breathingInLiquid = false
     swimSteering(s.entity)
     assert.strictEqual(s.entity.vel.y, 0)
-    s.entity.bedrock.headInWater = true
+    s.entity.bedrock.breathingInLiquid = true
     swimSteering(s.entity)
     assert.strictEqual(s.entity.vel.y, f(f(0.5 * f(0.06))))
   })

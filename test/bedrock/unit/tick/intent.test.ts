@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 import { Vec3 } from 'vec3'
 import { beginTick } from '../../../../lib/bedrock/tick/begin.ts'
-import { decideFlight, decidePose, decideSprint, poseRoom, readInput } from '../../../../lib/bedrock/tick/intent.ts'
+import { decideFlight, decidePose, decideSprint, poseRoom, readInput, scaffoldingHold } from '../../../../lib/bedrock/tick/intent.ts'
 import type { Player, World } from '../../../../lib/bedrock/types.ts'
 import { ctx, FLAT, player, worldFrom, worldOf } from '../helpers.ts'
 
@@ -47,6 +47,14 @@ describe('bedrock tick/intent', () => {
     assert.deepStrictEqual([entity.bedrock.actions!.has('startUsingItem'), entity.itemUseStarted], [true, false])
     decideSprint(c, entity, tick)
     assert.strictEqual(entity.bedrock.actions!.has('startUsingItem'), false)
+  })
+
+  it('raises a swing at nothing on its tick, once', () => {
+    const { c, tick, entity } = start(FLAT, player(undefined, { missedSwing: true }))
+    decideSprint(c, entity, tick)
+    assert.deepStrictEqual([entity.bedrock.actions!.has('missedSwing'), entity.missedSwing], [true, false])
+    decideSprint(c, entity, tick)
+    assert.strictEqual(entity.bedrock.actions!.has('missedSwing'), false)
   })
 
   it('stops a sprint and takes the boost off', () => {
@@ -120,6 +128,22 @@ describe('bedrock tick/intent', () => {
     assert.ok(s.entity.bedrock.view)
   })
 
+  it('eases the eye half-way toward the pose each tick, the checks reading it from before the last easing', () => {
+    const lying = f(f(1.62001) - f(0.40000001))
+    const swim = start(FLAT, player(undefined, { bedrock: { swimming: true } }))
+    decidePose(swim.c, swim.entity, swim.tick, decideSprint(swim.c, swim.entity, swim.tick))
+    assert.strictEqual(swim.entity.bedrock.eyeOffsetPrev, lying, 'a first tick starts at its pose (then eases: out of water the swim stops)')
+    // surfaced after swimming: the eye still sits low for the checks, and eases up
+    const surfaced = player([0.5, 0, 0.5], { bedrock: { eyeOffset: lying, eyeOffsetPrev: lying } })
+    const s = start(worldOf({ '0,0,0': 'water' }), surfaced)
+    decidePose(s.c, s.entity, s.tick, decideSprint(s.c, s.entity, s.tick))
+    assert.strictEqual(s.entity.bedrock.headInWater, true, 'the eye read 0.4 up, in the water')
+    assert.deepStrictEqual([s.entity.bedrock.eyeOffsetPrev, s.entity.bedrock.eyeOffset], [lying, f(f(f(0 - lying) * 0.5) + lying)])
+    const sneak = start(FLAT, player(undefined, { control: { sneak: true } }))
+    decidePose(sneak.c, sneak.entity, sneak.tick, decideSprint(sneak.c, sneak.entity, sneak.tick))
+    assert.strictEqual(sneak.entity.bedrock.eyeOffset, f(f(f(f(0.35) - 0) * 0.5) + 0), 'sneaking drops it 0.35')
+  })
+
   it('steps a kept pose amount from the swimming and crawling flags', () => {
     const swim = start(FLAT, player(undefined, { bedrock: { poseAmount: 0.5, crawling: true } }))
     decidePose(swim.c, swim.entity, swim.tick, decideSprint(swim.c, swim.entity, swim.tick))
@@ -139,11 +163,56 @@ describe('bedrock tick/intent', () => {
     const beached = start(FLAT, player(undefined, { bedrock: { swimming: true, sprinting: true } }))
     decidePose(beached.c, beached.entity, beached.tick, decideSprint(beached.c, beached.entity, beached.tick))
     assert.ok(beached.entity.bedrock.actions!.has('stopSwimming'))
+
+    // teleported out of the water: the teleport tick makes no move, so it weighs no new water and keeps the swim
+    const landed = start(FLAT, player(undefined, { isInWater: true, bedrock: { swimming: true, sprinting: true, teleported: true } }))
+    decidePose(landed.c, landed.entity, landed.tick, decideSprint(landed.c, landed.entity, landed.tick))
+    assert.ok(!landed.entity.bedrock.actions!.has('stopSwimming'))
+    assert.ok(!landed.entity.bedrock.actions!.has('stopSprinting'))
+  })
+
+  it('stops no crawl on a teleport tick', () => {
+    const crawler = start(FLAT, player(undefined, { bedrock: { crawling: true } }))
+    decidePose(crawler.c, crawler.entity, crawler.tick, decideSprint(crawler.c, crawler.entity, crawler.tick))
+    assert.ok(crawler.entity.bedrock.actions!.has('stopCrawling'), 'with room to stand, a crawl stops')
+    const teleported = start(FLAT, player(undefined, { bedrock: { crawling: true, teleported: true } }))
+    decidePose(teleported.c, teleported.entity, teleported.tick, decideSprint(teleported.c, teleported.entity, teleported.tick))
+    assert.ok(!teleported.entity.bedrock.actions!.has('stopCrawling'))
+    assert.strictEqual(teleported.entity.bedrock.crawling, true)
   })
 
   it('stands a spectator up', () => {
     const s = start(worldOf({ '0,1,0': 'stone' }), player(undefined, { gameMode: 'spectator', bedrock: { crawling: true } }))
     decidePose(s.c, s.entity, s.tick, decideSprint(s.c, s.entity, s.tick))
     assert.strictEqual(s.entity.bedrock.crawling, false)
+  })
+
+  it('turns the sneak toggle of a gamepad held over scaffolding into a sneak from the sixth tick, cleared after six', () => {
+    const s = start(FLAT, player(undefined, { control: { inputMode: 'game_pad', raw: { sneakToggleDown: true } }, bedrock: { overDescendable: true } as any }))
+    const st = s.entity.bedrock
+    const state = () => [st.scaffoldDropHeld, st.input!.sneaking, st.input!.keys.sneakDown]
+    for (let i = 0; i < 5; i++) scaffoldingHold(s.entity)
+    assert.deepStrictEqual(state(), [5, false, false])
+    scaffoldingHold(s.entity)
+    assert.deepStrictEqual(state(), [6, true, true])
+    st.input!.keys.sneakToggleDown = false
+    scaffoldingHold(s.entity)
+    assert.deepStrictEqual(state(), [0, false, false])
+    // let go after five ticks: it was never set, so it is not cleared
+    st.scaffoldDropHeld = 5
+    st.input!.sneaking = true
+    scaffoldingHold(s.entity)
+    assert.deepStrictEqual(state(), [0, true, false])
+    const keyboard = start(FLAT, player(undefined, { control: { raw: { sneakToggleDown: true } }, bedrock: { overDescendable: true } as any }))
+    scaffoldingHold(keyboard.entity)
+    assert.strictEqual(keyboard.entity.bedrock.scaffoldDropHeld, undefined)
+  })
+
+  it('cancels a sprint started from the input on touch when the sprint key lets go', () => {
+    const cancel = (inputMode: string) => {
+      const s = start(FLAT, player(undefined, { control: { inputMode, forward: true }, bedrock: { sprinting: true, sprintingOnInput: true } as any }))
+      return decideSprint(s.c, s.entity, s.tick).sprintCanceled
+    }
+    assert.deepStrictEqual([cancel('touch'), cancel('game_pad')], [true, false])
   })
 })

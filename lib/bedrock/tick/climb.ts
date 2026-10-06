@@ -3,11 +3,19 @@
 import { Box } from '../math/box.ts'
 import { f } from '../math/float.ts'
 import { climbSpeed, SCAFFOLDING_CLIMB_SPEED } from '../movement/jump.ts'
-import type { Ctx, Simulated } from '../types.ts'
+import type { CookedInput, Ctx, Simulated } from '../types.ts'
 import { collisionBoxes } from '../world/blocks.ts'
 import { climbableAt, exitingScaffolding } from '../world/climbables.ts'
 import { containsLiquid } from '../world/liquids.ts'
 import type { TickState } from './state.ts'
+
+// Whether the input asks to descend scaffolding: sneaking with a keyboard and mouse; the descend key on touch; on a
+// gamepad, sneaking with both the sneak key and the sneak toggle held.
+function wantsDescend (input: CookedInput): boolean {
+  if (input.inputMode === 'touch') return input.keys.descendBlock
+  if (input.inputMode === 'game_pad') return input.keys.sneakToggleDown && input.keys.sneakDown && input.sneaking
+  return input.sneaking
+}
 
 // Before the move. On a ladder or vine the fall is clamped to the climb speed (and held when sneaking); on scaffolding
 // sneaking descends at 0.15. A held jump climbs at the climb speed (0.2, scaffolding 0.15), unless it is leaving the
@@ -18,18 +26,46 @@ export function climbBeforeMove (ctx: Ctx, entity: Simulated, tick: TickState): 
   const kind = climbableAt(ctx.world, entity.pos, st.aabb!, !!entity.leatherBoots)
   st.scaffoldDescend = false
   st.climbable = kind
-  if (!kind) return
-  if (kind === 'scaffolding' && st.input!.sneaking) {
+  // over powder snow in leather boots, the sneak of the tick before (the flag the client reads was set then) descends
+  // through it at 0.15; the snow does not hold the player this tick
+  st.descendingSnow = !!st.wasSneaking && !!st.overDescendable && kind !== 'scaffolding'
+  if (st.descendingSnow) {
+    vel.y = f(-SCAFFOLDING_CLIMB_SPEED)
+    st.fallDistance = 0
+    // the descent is the whole of the climb: no hold, no clamp, no rise
+    st.ascendRestated = undefined
+    return
+  }
+  if (!kind) {
+    // the server restated the climbable-block flag set: a jump rises at the scaffolding climb speed, and waits 10
+    const restated = st.ascendRestated === true
+    st.ascendRestated = undefined
+    if (restated && (st.input!.jumping || entity.jumpQueued) && !st.input!.sneaking) {
+      vel.y = SCAFFOLDING_CLIMB_SPEED
+      entity.jumpTicks = 10
+      tick.ascendJumped = true
+    }
+    return
+  }
+  const scaffoldCleared = st.scaffoldRestated === false
+  st.scaffoldRestated = undefined
+  if (kind === 'scaffolding' && wantsDescend(st.input!) && !scaffoldCleared) {
     vel.y = f(-SCAFFOLDING_CLIMB_SPEED)
     st.scaffoldDescend = true
   }
   const speed = climbSpeed(kind)
   if (kind !== 'scaffolding') {
-    if (tick.sneaking && vel.y < 0) vel.y = 0
+    // (not on the tick a crawl ends: the player is not yet in the sneaking pose that holds)
+    if (tick.sneaking && !st.actions?.has('stopCrawling') && vel.y < 0) vel.y = 0
     if (vel.y < -speed) vel.y = f(-speed)
   }
-  const exiting = kind === 'scaffolding' && exitingScaffolding(ctx.world, entity.pos, vel, !!entity.isCollidedVertically)
-  if (!exiting && (st.input!.jumping || entity.jumpQueued)) vel.y = speed
+  // (from 1.26.20 the flag the last move left says whether it still climbs; before, a move about to cross into a cell
+  // without scaffolding stops it)
+  const exiting = kind === 'scaffolding' && (ctx.scaffoldingClimbFlag ? st.ascendable === false : exitingScaffolding(ctx.world, entity.pos, vel, !!entity.isCollidedVertically))
+  // the scaffolding climb reads the flag its last check set, which a server restatement since can have cleared
+  const cleared = kind === 'scaffolding' && st.ascendRestated === false
+  st.ascendRestated = undefined
+  if (!exiting && !cleared && (st.input!.jumping || entity.jumpQueued)) vel.y = speed
 }
 
 // After the move: a ladder or vine at the feet while pushing against a block climbs at the climb speed, and the tick

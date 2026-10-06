@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 import { Box } from '../../../../lib/bedrock/math/box.ts'
 import {
-  applyCorrection, applyMotion, applySpatialCorrection, applyVelocityCorrection, handleTeleport, MoveMode, setActorFlags
+  applyCorrection, applyMotion, applySpatialCorrection, applyVelocityCorrection, changeDimensionTo, handleTeleport, MoveMode, respawnAt, setActorFlags
 } from '../../../../lib/bedrock/network/corrections.ts'
 import { player } from '../helpers.ts'
 
@@ -9,12 +9,36 @@ const f = Math.fround
 const EYE = 1.6200100183486938
 
 describe('bedrock network/corrections', () => {
+  it('respawns a new player at rest and standing at the eye position less the eye height', () => {
+    const p = player([0, 0, 0], { vel: player().vel.set(1, 1, 1), isCollidedVertically: true, elytraFlying: true, bedrock: { aabb: new Box(0, 0, 0, 0.2, 0.2, 0.2), poseHeight: 0.2, sneaking: true, fallDistance: 3 } })
+    respawnAt(p, { x: 6.5, y: EYE, z: 6.5 }, EYE)
+    assert.deepStrictEqual([p.pos.x, p.pos.y, p.pos.z, p.vel.y], [6.5, f(f(EYE) - f(EYE)), 6.5, 0])
+    assert.deepStrictEqual([p.isCollidedVertically, p.elytraFlying, p.bedrock!.sneaking, p.bedrock!.poseHeight, p.bedrock!.aabb, p.bedrock!.fallDistance], [false, false, false, undefined, undefined, 0])
+    assert.deepStrictEqual([p.bedrock!.teleported, p.bedrock!.respawned], [true, true])
+  })
+
+  it('moves to the feet position of a dimension change at rest, its box rebuilt and its collision flags kept', () => {
+    const p = player([0, 0, 0], { vel: player().vel.set(1, 1, 1), isCollidedVertically: true, bedrock: { aabb: new Box(0, 0, 0, 1, 1, 1), fallDistance: 3 } })
+    changeDimensionTo(p, { x: 100.25, y: 50, z: -0.1 })
+    assert.deepStrictEqual([p.pos.x, p.pos.y, p.pos.z, p.vel.x, p.vel.y, p.vel.z], [100.25, 50, f(-0.1), 0, 0, 0])
+    assert.deepStrictEqual([p.bedrock!.aabb, p.bedrock!.fallDistance, p.isCollidedVertically, p.bedrock!.teleported], [undefined, 0, true, undefined])
+  })
+
   it('teleports to the eye position less the eye height, zeroing the velocity and marking the next tick', () => {
     const p = player([0, 0, 0], { vel: player().vel.set(1, 1, 1), bedrock: { aabb: new Box(0, 0, 0, 1, 1, 1) } })
     handleTeleport(p, { x: 10.5, y: 64 + EYE, z: -3.5, onGround: true }, EYE)
     assert.deepStrictEqual([p.pos.x, p.pos.y, p.pos.z], [f(10.5), f(f(64 + EYE) - f(EYE)), f(-3.5)])
     assert.deepStrictEqual([p.vel.x, p.vel.y, p.vel.z], [0, 0, 0])
     assert.deepStrictEqual([p.bedrock!.teleported, p.bedrock!.aabb, p.onGround], [true, undefined, true])
+  })
+
+  it('zeroes the fall distance on a teleport, and turns only the head (the pitch) for a head rotation', () => {
+    const falling = player([0, 0, 0], { bedrock: { fallDistance: 12 } })
+    handleTeleport(falling, { x: 0, y: EYE, z: 0 }, EYE)
+    assert.strictEqual(falling.bedrock!.fallDistance, 0)
+    const head = player([1, 2, 3], { bedrockYaw: 10, bedrockPitch: 0, vel: player().vel.set(1, 0, 0) })
+    handleTeleport(head, { x: 50, y: 50, z: 50, yaw: 90, pitch: 30, mode: MoveMode.rotation }, EYE)
+    assert.deepStrictEqual([head.pos.x, head.pos.y, head.pos.z, head.vel.x, head.bedrockYaw, head.bedrockPitch, head.bedrock?.teleported], [1, 2, 3, 1, 10, 30, undefined])
   })
 
   it('moves without the teleport marks in another mode, keeping the ground flag when not given', () => {

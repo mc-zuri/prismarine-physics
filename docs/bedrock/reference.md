@@ -15,6 +15,9 @@ The player is mineflayer's PlayerState shape (feet position, radian yaw/pitch, t
 
 - `function versionOf (registry: Registry): number[]` -- The registry's version as [major, minor, patch].
 - `function versionAtLeast (registry: Registry, major: number, minor: number, patch: number): boolean` -- Whether the registry is at least the given version.
+- `interface Feature` -- A rule that depends on the client's version: its name, what it does, and the first version it holds for. Bedrock's rules change within a major version (1.26.10 and 1.26.20 differ), so a feature is keyed on the full version.
+- `const FEATURES` -- The Bedrock features (features.json beside this file).
+- `function supportFeature (registry: Registry, name: string): boolean` -- Whether the registry's version has the named feature (an unknown name: never).
 - `function defaultSettings (): Settings` -- The default tunables of a Bedrock player.
 - `interface BedrockPhysics` -- The physics object: the tunables, and the methods that simulate a tick and apply the server's packets.
 - `function Physics (registry: Registry, world: World): BedrockPhysics` -- The physics of a Bedrock registry (prismarine-registry / minecraft-data) and world. The tunables are the object's own fields; the methods simulate a tick and apply the server's movement packets.
@@ -83,7 +86,7 @@ The start of a tick: the state it begins from, the box in the pose the player is
 - `function startingPoseHeight (entity: Player, standHeight: number): number` -- The box height the tick starts with: the pose's kept height, else the pose the controls and flags say.
 - `function syncGlideFlag (entity: Simulated): void` -- The glide flag: the engine's own, unless the caller changed entity.elytraFlying since the engine last wrote it.
 - `function clientFlying (st: BedrockState, serverFlying: boolean): boolean` -- The flying ability as the client holds it: its own toggle (the double tap sets it at once), until the server's flag changes and restates it.
-- `function beginTick (ctx: Ctx, entity: Player): { tick: TickState, entity: Simulated }` -- Begins a tick: float32 velocity, the jump cooldown, the box, the ground block and its friction, the flying ability and fly intent (the caller's own toggle when it tracks one, else the ability), and the liquids on the box -- with the flowing water's push.
+- `function beginTick (ctx: Ctx, entity: Player): { tick: TickState, entity: Simulated }` -- Begins a tick: float32 velocity, the jump cooldown, the box, the ground block and its friction, the flying ability and fly intent (the caller's own toggle when it tracks one, else the ability), and the liquids on the box -- with the flowing water's push. A teleport tick makes no move, and keeps the liquids the last move sensed.
 
 ### `tick/climb.ts`
 
@@ -106,6 +109,7 @@ What the player wants this tick: the input, the sprint, and the pose (swimming, 
 
 - `function readInput (entity: Simulated, tick: TickState): void` -- Cooks the control state into the tick's input.
 - `function decideSprint (ctx: Ctx, entity: Simulated, tick: TickState): SprintRequest` -- The sprint decision, the sprint boost on the movement attribute, and the jumping flag the next tick's sprint decision reads. Starts the tick's action set.
+- `function scaffoldingHold (entity: Simulated): void`
 - `function poseRoom (ctx: Ctx, entity: Simulated): Room` -- The room the box has to stand, sneak and crawl.
 - `function decideFlight (ctx: Ctx, entity: Simulated, tick: TickState): { flyIntent: boolean, glideIntent: boolean }` -- The fly toggle, the glide start / stop and the creative glide lift; returns the intents the sneak decision reads.
 - `function decidePose (ctx: Ctx, entity: Simulated, tick: TickState, sprint: SprintRequest): void` -- The pose of the tick, in order: the swim pose amount steps from the previous tick's flags; the swim starts or stops; the fly and glide triggers run; the sneak / crawl / swim intent is decided and applied to the flags.
@@ -121,7 +125,7 @@ The move: the velocity becomes a requested move (slowed down inside cobweb, powd
 - `function moveDepenetrationLimit (world: World, aabb: BoxLike, bits: number): Vec3Like` -- The depenetration limit of a move: from the state the previous moves left, raised to 0.1 with a solid entity (a boat) near; a solid entity the player is inside makes it a one-way collider, which engages the push at 0.1.
 - `function sweepMove (ctx: Ctx, entity: Simulated, tick: TickState): void` -- Sweeps the box by the requested move and moves the player with it, with the move's depenetration limit; this move's penetration updates the state it comes from. With no-clip the box moves the whole way.
 - `function landingBounce (ctx: Ctx, entity: Simulated, tick: TickState): number` -- The vertical velocity a landing (not sneaking) leaves: the fall speed times the landed-on block's restitution. From 1.26.20 the block is the one landedOnCell picks from the move's collision boxes (slime 1, a bed 0.75, honey none), only a fall of at least 0.08 bounces, and the bounce is remembered for the gravity correction; before, only slime under the centre of the feet bounced, at any speed.
-- `function settleCollisions (ctx: Ctx, entity: Simulated, tick: TickState): void` -- The collisions of the move: a blocked axis stops, a vertical collision lands (or bounces); the ground flag is set by a landing and kept by a move with no vertical part; a slowed move drops the velocity.
+- `function settleCollisions (ctx: Ctx, entity: Simulated, tick: TickState): void` -- The collisions of the move: a blocked axis stops, a vertical collision lands (or bounces); the ground flag is set by a landing and kept by a move with no vertical part, except with the feet in powder snow; a slowed move drops the velocity.
 
 ### `tick/spin.ts`
 
@@ -150,15 +154,15 @@ The travel of the tick: gliding, or the fly controls, the jump and the input's p
 - `function useFirework (entity: Simulated): void` -- A firework rocket used this tick (consumed) while gliding gives the glide boost its client length.
 - `function glideTick (entity: Simulated): void` -- One glide tick; a firework rocket boosts along the look while its duration lasts (-1: without end), which counts down two a tick.
 - `function flightControls (ctx: Ctx, entity: Simulated): void` -- The vertical fly controls on the fly intent: up is the jump / ascend key, down the sneak / descend key. The hover is creative's in creative (and in an unknown game mode).
-- `function jumpFromGround (ctx: Ctx, entity: Simulated, tick: TickState): void` -- A jump from the ground, when the cooldown allows: the cooldown restarts, then -- unless the player stands on powder snow -- the impulse (only ever raising the vertical velocity), the start-jumping action, and, while sprinting, the push along the facing.
-- `function jump (ctx: Ctx, entity: Simulated, tick: TickState): void` -- The jump of the tick, in the client's order: a held jump in the swim pose holds still; on a ladder or vine it climbs at 0.2 (in water too: the sink on the sneak key runs first and the climb replaces it), and a fresh press in scaffolding climbs; in a liquid it rises (and the sneak key sinks in water); on the ground it jumps.
-- `function travelSpeed (ctx: Ctx, entity: Simulated, tick: TickState): number` -- The travel speed for the travel type: flying, or on foot (the ground's friction -- soul sand's only without Soul Speed --, the air, a liquid), with Depth Strider in water, or a dolphin's boost swimming.
+- `function jumpFromGround (ctx: Ctx, entity: Simulated, tick: TickState): void` -- A jump from the ground, when the cooldown allows: the cooldown restarts, then the impulse (only ever raising the vertical velocity), the start-jumping action, and, while sprinting, the push along the facing. Powder snow does not stop it: a player on top of it in leather boots jumps, and so does one on the box it lands on after a long fall.
+- `function jump (ctx: Ctx, entity: Simulated, tick: TickState): void` -- The jump of the tick, in the client's order: a held jump in the swim pose holds still; on a ladder or vine it climbs at 0.2 (in water too: the sink on the sneak key runs first and the climb replaces it), and a fresh press in scaffolding climbs, each climb restarting the jump cooldown; in a liquid it rises (and the sneak key sinks in water); on the ground it jumps.
+- `function travelSpeed (ctx: Ctx, entity: Simulated, tick: TickState): number` -- The travel speed for the travel type: flying, or on foot (the ground's friction -- soul sand's only without Soul Speed --, the air, a liquid: water's movement attribute, else lava's), with Depth Strider in water, or a dolphin's boost swimming.
 - `function swimSteering (entity: Simulated): void` -- A swimmer's vertical velocity follows the look (faster when looking steeply down), unless jump is held; with the head out of the water and looking up it stops.
 - `function travel (ctx: Ctx, entity: Simulated, tick: TickState): void` -- The input pushed along the yaw at the travel speed, then the swim steering.
 
 ### `tick/vehicle.ts`
 
-One tick of a vehicle the player rides. A boat the player steers is simulated as the client predicts it: the paddles, the friction, the turn and thrust, the move through the blocks and the buoyancy. Any other vehicle is the server's; the player sits in it.
+One tick of a vehicle the player rides. A boat the player steers is simulated as the client predicts it: the paddles, the friction, the turn and thrust, the move through the blocks and the buoyancy; so is a horse it steers: the charged jump, the turn, the walk and the fall. Any other vehicle is the server's; the player sits in it.
 
 - `interface Vehicle` -- A vehicle the player rides: the server's entity, and when the player steers a boat, the boat's own state.
 - `interface BoatState` -- A predicted boat's state between ticks.
@@ -166,10 +170,13 @@ One tick of a vehicle the player rides. A boat the player steers is simulated as
 - `interface PaddleInput` -- The rider's paddling this tick: the move vector and the up key (the force the paddles are given), or the two paddle buttons of a touch or classic control scheme.
 - `function vehicleBox (vehicle: Vehicle): Box` -- The vehicle's box around its position.
 - `function paddle (boat: BoatState, input: PaddleInput): void` -- The paddles take the rider's input: a force from the move vector, or the rowing buttons.
-- `function moveVehicle (ctx: Ctx, vehicle: Vehicle): void` -- The move through the blocks: capped, clamped to 16, swept without stepping up; a blocked axis stops.
+- `function moveVehicle (ctx: Ctx, vehicle: Vehicle, stepHeight = 0): void` -- The move through the blocks: capped, clamped to 16, swept (stepping up `stepHeight`: a boat none); a blocked axis stops.
 - `function simulateBoat (ctx: Ctx, vehicle: Vehicle, input: PaddleInput, roll: () => number = Math.random): void` -- One tick of a boat the player steers. `roll` draws the big-wave chance (uniform in [0, 1)).
+- `interface HorseInput` -- The rider's input to a horse it steers: its move vector, its jump key now and last tick, and its look.
+- `function simulateHorse (ctx: Ctx, vehicle: Vehicle, input: HorseInput): void` -- One tick of a horse the player steers: the jump the rider charged, the turn toward its look, the walk (at the horse's speed on the ground, a tenth of it in the air), the move, and the fall and friction.
 - `function boatBubbleColumns (ctx: Ctx, vehicle: Vehicle, box: Box): void` -- Bubble columns the moved boat is in (the cells of `box`), each with water (not air) above it: a downward one pulls it down 0.03 (to -0.3 at most), an upward one lifts it 0.06 (to 0.7 at most).
-- `function dismount (ctx: Ctx, entity: Player, byRider = true): void` -- The rider leaves the vehicle (the dismount button, or the server taking it off: `byRider` false): it stands at the dismount spot, at rest and on the ground there (so a jump held to leave jumps on the same tick), with its box rebuilt; with no spot it stays where it sat.
+- `function leavesOnJump (vehicle: Vehicle): boolean` -- Whether a jumping rider leaves the vehicle: any the client does not predict, but a boat or one that takes the jump.
+- `function dismount (ctx: Ctx, entity: Player, byRider = true, alpha?: number, unlinked = false): void` -- The rider leaves the vehicle (the dismount button, or the server taking it off: `byRider` false): it stands at the dismount spot, keeping the velocity it had riding, its ground flag as riding left it, with its box rebuilt; with no spot it stays where it sat. `alpha`: the frame's progress into the next tick when the rider left; given, the rider is first seated where the vehicle is shown then (between its last two positions). `unlinked`: the server's link removal took it off, after the tick's input was read in the seat.
 - `function seatPosition (vehicle: Vehicle): Vec3` -- Where the rider sits: the vehicle's position plus the seat, turned by the vehicle's yaw.
 
 ## movement/: The movement rules
@@ -276,7 +283,7 @@ mineflayer's booleans (forward/back/left/right/jump/sneak/sprint) are the key le
 - `interface SneakPose` -- What the sneak scale depends on.
 - `function sneakFactor (pose: SneakPose): number` -- The sneak scale: 0.3, raised by 0.15 per Swift Sneak level up to 1.
 - `function scaleMove (move: XZ, keys: RawKeys, pose: SneakPose): XZ` -- The move scaled for sneaking: when the sneak key or descend is down, or the player already sneaks or crawls (so it holds for the tick the key is released), and never while flying, swimming or on the tick after being in water.
-- `function cook (control: Control, previousKeys: RawKeys | undefined, pose: SneakPose): CookedInput` -- One tick of input: the keys, the move vector (the packet's move_vector), the raw direction (raw_move_vector), the stick, and the derived flags.
+- `function cook (control: Control, previousKeys: RawKeys | undefined, pose: SneakPose, previous?: CookedInput): CookedInput` -- One tick of input: the keys, the move vector (the packet's move_vector), the raw direction (raw_move_vector), the stick, and the derived flags. `previous` is the input of the tick before, which a screen's clear keeps flags from.
 - `const USING_ITEM_MOVE` -- Using an item (eating, drinking, drawing a bow) scales the move to 0.1225 (0.35 squared) -- the move the packet reports and the one the sprint decision reads.
 - `function usingItemMove (move: XZ): XZ`
 - `function travelInput (input: CookedInput): XZ` -- The move the travel uses: the cooked move damped by 0.98.
@@ -286,7 +293,7 @@ mineflayer's booleans (forward/back/left/right/jump/sneak/sprint) are the key le
 Jumping, and rising or sinking in a liquid with the jump and sneak keys.
 
 - `const LADDER_CLIMB_SPEED` -- The climb speed on ladders and vines.
-- `const SCAFFOLDING_CLIMB_SPEED` -- The climb and descend speed in scaffolding.
+- `const SCAFFOLDING_CLIMB_SPEED` -- The climb and descend speed in scaffolding, and the climb in powder snow in leather boots.
 - `function climbSpeed (kind: ClimbableKind): number` -- The climb speed of a climbable.
 - `function waterSink (y: number, { down, downSlow, flying }: { down?: boolean | undefined, downSlow?: boolean | undefined, flying?: boolean | undefined }): number` -- Sneaking in water sinks 0.04 per tick (the sneak key or the slow descend), unless flying.
 - `function jumpReduced (feet: Block | null | undefined, below: Block | null | undefined): boolean` -- Whether a jump from these blocks (the one at the feet and the one below) is reduced.
@@ -385,11 +392,14 @@ The travel: the speed the input moves the player at for its travel type, and the
 - `function walkSpeed (entity: Player, settings: Settings): number` -- The walking speed the travel reads (the sprint boost included).
 - `function walkSpeedBase (entity: Player, settings: Settings): number` -- The walking speed without the sprint boost.
 - `function walkSpeedParts (entity: Player, settings: Settings): { walk: number, boost: boolean }` -- The walking speed as the travel takes it: the value without the sprint boost and whether the boost is on, when the attribute holds exactly the boosted base; else the attribute's value as it is.
+- `const UNDERWATER_MOVEMENT_ATTRIBUTE` -- The attributes the speed in water and in lava reads: 0.02 each unless the server sets them.
+- `const LAVA_MOVEMENT_ATTRIBUTE`
+- `function liquidSpeed (entity: Player, name: string): number` -- The speed a liquid attribute gives: its current value, else the 0.02 every liquid travel moves at.
 - `function setSprintBoost (entity: Player & { bedrock: { sprintBoost?: boolean | undefined } }, settings: Settings, boost: boolean): void` -- Adds or removes the sprint boost on the movement attribute.
 - `function setMovementAttribute (entity: Player, settings: Settings, attribute: { base: number, current?: number, sprintStartedSince?: boolean }): void` -- Installs a server movement attribute: `base` the value without the boost, `current` the server's value (with the Speed and Slowness effects, and with the boost when the server thinks the player sprints). The travel applies the effects itself, so the attribute keeps the base, boosted or not: the server's value carries the boost when it is clearly above the base with the player's effects. With `sprintStartedSince` (the player started sprinting after the tick the packet is stamped for) a player still sprinting keeps its boost: the start re-applies it over the packet.
 - `function movementSpeed (value: number, speedLevel: number, slownessLevel: number): number` -- The walking speed with the speed and slowness effects: each multiplies the running value (x1.4 then x0.7 is not x1.1), speed first.
 - `interface SpeedFacts` -- The facts the travel speed on foot reads.
-- `function frictionInfluencedSpeed (facts: SpeedFacts): number` -- The travel speed on foot: 0.02 in a liquid; 0.02 in the air (0.026 sprinting); on the ground the walking speed scaled by (0.546 / friction)^3, where the friction is the block's slipperiness x 0.91 (soul sand's x1.225).
+- `function frictionInfluencedSpeed (facts: SpeedFacts): number` -- The travel speed on foot: the liquid's speed in a liquid (0.02); 0.02 in the air (0.026 sprinting); on the ground the walking speed scaled by (0.546 / friction)^3, where the friction is the block's slipperiness x 0.91 (soul sand's x1.225).
 - `function depthStriderLevel (level: number | undefined, onGround: boolean): number` -- The Depth Strider level the water travel uses: 0..3, halved off the ground.
 - `function depthStriderSpeed (speed: number, walk: number, level: number): number` -- Depth Strider lerps the underwater speed toward the walking speed by level / 3.
 - `function moveRelative (vel: Vec3Like, yawDeg: number, strafe: number, forward: number, speed: number, trig: Trig): void` -- Adds the input (strafe = left, forward), rotated by the yaw and scaled to the speed, to the velocity. An input shorter than 1 keeps its length; a negligible one does nothing.
@@ -410,7 +420,6 @@ Block lookups and collision shapes.
 - `function powderSnowShapes (mover: Mover, y: number): Shape[]`
 - `function worldShapes (world: World, block: Block | null | undefined, x: number, y: number, z: number): Shape[]` -- A block's collision boxes in the world: its own, and for a fence an arm toward each neighbouring fence or full cube (the connections are the neighbours', not the block's state, up to 1.26.4x; where the state carries them the arms repeat boxes it already has).
 - `function collisionBoxes (world: World, query: BoxLike, mover?: Mover): Box[]` -- The collision boxes intersecting the query box: the blocks' and the solid entities' the world knows. The search covers the cells the padded box touches, starting half a block lower (a fence's collision rises above its cell).
-- `function standingOnBlock (world: World, aabb: BoxLike, pos: { x: number, z: number }): Block | null | undefined` -- The block the box stands on: the one whose collision shape reaches highest in the thin slab under the feet, or the cell at the feet when nothing collides there.
 - `function blockBounds (block: Block | null | undefined, x: number, y: number, z: number): Box | null` -- The union of a block's collision boxes in world coordinates, or null when it has none.
 - `function standingOnCell (world: World, pos: Vec3Like, aabb: BoxLike): Vec3Like` -- The cell of the block the box stands on, as the stand-on effects (slime, honey) see it: of the blocks whose collision bounds cross the plane 0.2 below the feet, under the box's footprint, the one reaching highest (the one nearest the plane's centre on a tie), else the cell at the position. Each column is searched downward from a block above the plane, and stops below the top of the best block found so far.
 - `function restitutionOf (block: Block | null | undefined): number` -- How a block bounces a landing: slime fully, a bed three quarters; honey (-1) takes a bounce away.
@@ -431,6 +440,7 @@ Ladders, vines and scaffolding.
 
 - `function scaffoldingUnder (world: World, aabb: BoxLike, y: number): boolean` -- Whether any cell of layer `y` under the box's footprint (shrunk by 0.001) is scaffolding.
 - `function climbableAt (world: World, pos: Vec3Like, aabb: BoxLike, leatherBoots = false): ClimbableKind | null` -- What the player climbs: the block at the feet (a ladder, any vine, scaffolding, powder snow in leather boots), else scaffolding anywhere in the feet's layer under the box.
+- `function ascendableAt (world: World, aabb: BoxLike, leatherBoots = false, y = Math.floor(aabb.minY)): boolean` -- Whether the feet's layer under the box holds a block the player can go up by jumping: scaffolding with something other than air or water under it, or powder snow in leather boots (what the client's own check of the flag finds).
 - `function exitingScaffolding (world: World, pos: Vec3Like, vel: Vec3Like, collidedVertically: boolean): boolean` -- Whether a climb in scaffolding is leaving it sideways: the feet are in scaffolding, the move enters another cell, and that cell is not scaffolding. A vertical collision (a ceiling) never counts.
 
 ### `world/honey.ts`
@@ -574,6 +584,8 @@ What the server's movement packets write to the player: a teleport, a movement c
 
 - `interface Teleport` -- A move of the local player: the eye position, the rotation, the mode and the ground flag.
 - `function handleTeleport (entity: Player, teleport: Teleport, eyeHeight: number): void` -- A move of the local player. The position is the eye position. A teleport zeroes the velocity and makes the next tick report it handled and skip its travel and move. The ground flag and the rotation are installed; the box is rebuilt at the next tick; the collision flags of the previous move stand.
+- `function changeDimensionTo (entity: Player, at: Vec3Like): void` -- A dimension change to `at` (the feet position the server names): the player moves there at rest, its box rebuilt around it; the collision flags stay as its last move left them.
+- `function respawnAt (entity: Player, at: Vec3Like, eyeHeight: number): void` -- A respawn at `at` (the eye position): a new player there, at rest and standing (its pose, the box and the flags a death left dropped); its first tick makes no move, like a teleport's, but reports no handled teleport.
 - `interface MoveCorrection` -- A movement correction: the eye position, the velocity and the ground flag.
 - `function applyCorrection (entity: Player, correction: MoveCorrection, eyeHeight: number): void` -- A movement correction: the position (eye height included), velocity and ground flag installed, the collision flags cleared, and the box rebuilt at the next tick.
 - `function applyMotion (entity: Player, motion: Vec3Like): void` -- Restated actor flags, and the box height sent with a pose. A motion the server sets on the player (a knockback, an explosion): the velocity and nothing else.
@@ -615,9 +627,10 @@ The movement history the client keeps: the inputs of the last few ticks and the 
 
 const rewind = new BedrockRewind({ step: (state, frame) => { ...apply frame's inputs; physics.simulatePlayer(state, world) } })   // every tick: rewind.push(frame); step(state, frame); rewind.snapshot(frame.t, state)   // a correction stamped for tick T: rewind.rewindTo(T, state, () => physics.applyCorrection(state, correction))
 
-- `function cloneValue<T> (value: T): T` -- A deep copy: vectors, anything with clone(), sets, maps, arrays and plain objects.
+- `function cloneValue<T> (value: T): T` -- A deep copy: vectors, anything with clone(), sets, maps, typed arrays (the random state), arrays and plain objects.
 - `function cloneState<T> (state: T): T` -- A deep copy of a player state.
 - `interface Frame` -- One tick's inputs, by tick.
+- `interface Turns` -- The turns a tick's input made, where the caller knows them apart from the view's jitter: each [pitch, yaw] change the history kept (in degrees, as the view moved it), and the yaw the last of them set.
 - `type Step` -- Simulates one past tick again from its frame.
 - `class BedrockRewind` -- The history of the last ticks: their frames and the state after each, and the re-simulation from a corrected tick.
 
@@ -635,7 +648,8 @@ The actions (teleport, correct, movementAttribute, actorFlags) are callable dire
 - `interface TickFrame` -- One tick's inputs: the tick number, the control state, the rotation, and a riptide launch and the mobs the spin hit.
 - `interface StampedCorrection` -- A movement correction with the tick it is stamped for.
 - `interface StampedAttribute` -- A movement attribute with its tick: the value without the sprint boost, and the current one.
-- `type StampedFlags` -- Restated actor flags with their tick.
+- `interface StampedLiquidAttributes` -- The liquid movement attributes of an update_attributes packet (their values by name), with its tick.
+- `type StampedFlags` -- Restated actor flags with their tick. `inAscendable`: the climbable-block flag, where the raw word carries it
 - `const EFFECT_FIELDS` -- The effect levels the engine reads, by the effect's id on the wire.
 - `interface StampedEffect` -- A mob effect's level (0: removed) on the player field it sets, with the tick it is stamped for (0: not stamped) and its ticks (none, or a negative count: it lasts until removed).
 - `type EffectField` -- A level field a mob effect sets.
@@ -646,5 +660,7 @@ The actions (teleport, correct, movementAttribute, actorFlags) are callable dire
 - `interface StampedMotion` -- A motion with the tick it is stamped for (0: not stamped).
 - `class BedrockSession` -- A local player's session: its ticks, their history, and the server's movement packets applied on the tick they take effect.
 - `function movementAttribute (params: Record<string, any>): StampedAttribute | null` -- The movement attribute of an update_attributes packet: `walk` the value without the sprint boost (the default plus the additive modifiers, e.g. the powder snow freeze), `current` the server's value.
+- `function liquidAttributes (params: Record<string, any>): StampedLiquidAttributes | null` -- The liquid movement attributes of an update_attributes packet, by name: their current values (vanilla keeps 0.02).
+- `function gameTypeName (value: unknown): string | undefined` -- A game type's name, as a packet carries it (a name or its number; the fallback is the default).
 - `function flagValue (value: unknown, name: string): boolean | undefined` -- A named flag of a decoded flags word: an object of booleans or a list of set names.
 - `function restatedFlags (params: Record<string, any>): StampedFlags | null` -- The actor flags a set_entity_data packet restates, and the box height it sends with a pose; null when neither.

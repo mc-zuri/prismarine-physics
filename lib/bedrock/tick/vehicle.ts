@@ -1,6 +1,6 @@
 // One tick of a vehicle the player rides. A boat the player steers is simulated as the client predicts it: the paddles,
-// the friction, the turn and thrust, the move through the blocks and the buoyancy. Any other vehicle is the server's;
-// the player sits in it.
+// the friction, the turn and thrust, the move through the blocks and the buoyancy; so is a horse it steers: the charged
+// jump, the turn, the walk and the fall. Any other vehicle is the server's; the player sits in it.
 import { Vec3 } from 'vec3'
 import { Box } from '../math/box.ts'
 import { scalar } from '../math/crt.ts'
@@ -9,10 +9,12 @@ import { moveWithCollisions } from '../movement/auto-step.ts'
 import type { Ctx, Player, Vec3Like, XZ } from '../types.ts'
 import { dismountPosition } from '../vehicle/dismount.ts'
 import { applyBoatFriction, BOAT_HEIGHT, BOAT_HEIGHT_OFFSET, BOAT_WIDTH, boatControl, boatFriction, newPaddle, OUT_OF_CONTROL_LIMIT, paddleForces, paddleRowing, paddleWithForce, type Paddle } from '../vehicle/boat.ts'
+import { chargeJump, mountMove, newHorseState, powerJump, turnToward, type HorseState } from '../vehicle/horse.ts'
+import { frictionInfluencedSpeed, moveRelative } from '../movement/travel.ts'
 import { advanceTimer, boatBuoyancy, buoyancyFloat, buoyancyFromData, buoyancyGravity, floatRequest, type Buoyancy } from '../vehicle/buoyancy.ts'
 import { honeyCellsIn, honeySlide } from '../world/honey.ts'
 import { applyLiquidFlow } from '../world/liquids.ts'
-import { blockAt, blockName } from '../world/blocks.ts'
+import { blockAt, blockFriction, blockName } from '../world/blocks.ts'
 import { dragsDown } from '../world/bubble-columns.ts'
 import { capMoveSpeed, clampMoveLength } from './move.ts'
 
@@ -43,7 +45,16 @@ export interface Vehicle {
   isCollidedVertically?: boolean | undefined
   width?: number | undefined
   height?: number | undefined
+  // the height of the position above the box's floor (a boat's 0.375 when not given)
+  heightOffset?: number | undefined
   boat?: BoatState | undefined
+  // the vehicle takes the rider's jump (it jumps or dashes itself, or moves up and down), and the rider is in the seat
+  // that controls it: jumping does not take the rider off
+  jumpControlled?: boolean | undefined
+  // a steered horse's state, and the attributes it moves by: its movement speed and jump strength
+  horse?: HorseState | undefined
+  speed?: number | undefined
+  jumpStrength?: number | undefined
 }
 
 // A predicted boat's state between ticks.
@@ -68,7 +79,7 @@ export interface PaddleInput { move: XZ, up: boolean, rowing?: [boolean, boolean
 // The vehicle's box around its position.
 export function vehicleBox (vehicle: Vehicle): Box {
   const w = f(f(vehicle.width ?? BOAT_WIDTH) * f(0.5))
-  const floor = f(vehicle.pos.y - BOAT_HEIGHT_OFFSET)
+  const floor = f(vehicle.pos.y - f(vehicle.heightOffset ?? BOAT_HEIGHT_OFFSET))
   return new Box(f(vehicle.pos.x - w), floor, f(vehicle.pos.z - w), f(vehicle.pos.x + w), f(floor + f(vehicle.height ?? BOAT_HEIGHT)), f(vehicle.pos.z + w))
 }
 
@@ -87,17 +98,17 @@ export function paddle (boat: BoatState, input: PaddleInput): void {
   boat.localTick++
 }
 
-// The move through the blocks: capped, clamped to 16, swept without stepping up; a blocked axis stops.
-export function moveVehicle (ctx: Ctx, vehicle: Vehicle): void {
+// The move through the blocks: capped, clamped to 16, swept (stepping up `stepHeight`: a boat none); a blocked axis stops.
+export function moveVehicle (ctx: Ctx, vehicle: Vehicle, stepHeight = 0): void {
   const requested = clampMoveLength(capMoveSpeed(vehicle.vel))
   // the box is kept from tick to tick (float32 corners, as it moves); a position set from outside rebuilds it
   const box = vehicle.box ? vehicle.box.clone() : vehicleBox(vehicle)
   // the vehicle collides with the blocks only (not with itself as a solid entity)
   const blocks = { getBlock: ctx.world.getBlock.bind(ctx.world) }
-  const applied = moveWithCollisions(blocks, box, requested, !!vehicle.onGround, 0, false)
+  const applied = moveWithCollisions(blocks, box, requested, !!vehicle.onGround, stepHeight, false)
   const moved = new Box(f(box.minX + applied.x), f(box.minY + applied.y), f(box.minZ + applied.z), f(box.maxX + applied.x), f(box.maxY + applied.y), f(box.maxZ + applied.z))
   vehicle.box = moved
-  vehicle.pos.set(f(f(moved.minX + moved.maxX) * f(0.5)), f(moved.minY + BOAT_HEIGHT_OFFSET), f(f(moved.minZ + moved.maxZ) * f(0.5)))
+  vehicle.pos.set(f(f(moved.minX + moved.maxX) * f(0.5)), f(moved.minY + f(vehicle.heightOffset ?? BOAT_HEIGHT_OFFSET)), f(f(moved.minZ + moved.maxZ) * f(0.5)))
   const blocked = { x: applied.x !== f(requested.x), y: applied.y !== f(requested.y), z: applied.z !== f(requested.z) }
   vehicle.isCollidedHorizontally = blocked.x || blocked.z
   vehicle.isCollidedVertically = blocked.y
@@ -137,6 +148,48 @@ export function simulateBoat (ctx: Ctx, vehicle: Vehicle, input: PaddleInput, ro
   vehicle.vel.y = buoyancyFloat(boat.buoyancy, request, vehicle.pos, vehicle.vel.y)
 }
 
+// The rider's input to a horse it steers: its move vector, its jump key now and last tick, and its look.
+export interface HorseInput { move: XZ, jump: boolean, yaw: number, pitch: number, jumpBoost?: number | undefined }
+
+// A horse's step up.
+const HORSE_STEP = f(0.5625)
+
+// One tick of a horse the player steers: the jump the rider charged, the turn toward its look, the walk (at the horse's
+// speed on the ground, a tenth of it in the air), the move, and the fall and friction.
+export function simulateHorse (ctx: Ctx, vehicle: Vehicle, input: HorseInput): void {
+  const horse = vehicle.horse ?? (vehicle.horse = newHorseState())
+  vehicle.posPrev = { x: vehicle.pos.x, y: vehicle.pos.y, z: vehicle.pos.z }
+  chargeJump(horse, input.jump, !!horse.wasJumping)
+  horse.wasJumping = input.jump
+  vehicle.yaw = turnToward(vehicle.yaw, input.yaw)
+  vehicle.pitch = f(input.pitch * f(0.5))
+  const local = mountMove(input.move)
+  const onGround = !!vehicle.onGround
+  if (horse.pendingJump > 0 && onGround && !horse.jumping) {
+    powerJump(vehicle.vel, vehicle.yaw, vehicle.jumpStrength ?? 0, horse.pendingJump, input.jumpBoost ?? 0, local.z > 0, false)
+    horse.pendingJump = 0
+    horse.jumping = true
+  }
+  const box = vehicle.box ?? vehicleBox(vehicle)
+  const ground = blockAt(ctx.world, vehicle.pos.x, f(box.minY - 0.1), vehicle.pos.z)
+  const slip = blockFriction(ground, ctx.settings.defaultSlipperiness)
+  const walk = vehicle.speed ?? ctx.settings.playerSpeed
+  const speed = onGround ? frictionInfluencedSpeed({ walkSpeed: walk, slipperiness: slip, onGround: true }) : f(f(walk) * f(0.1))
+  moveRelative(vehicle.vel, vehicle.yaw, local.x, local.z, speed, ctx.trig)
+  moveVehicle(ctx, vehicle, HORSE_STEP)
+  if (vehicle.onGround && !onGround) {
+    horse.jumping = false
+    horse.pendingJump = 0
+  }
+  const friction = onGround ? f(f(slip) * f(0.91)) : f(0.91)
+  vehicle.vel.set(scaleAxis(vehicle.vel.x, friction), f(f(vehicle.vel.y - f(0.08)) * f(0.98)), scaleAxis(vehicle.vel.z, friction))
+}
+
+// A velocity component slowed by friction: one of at most 2^-23 stops.
+function scaleAxis (axis: number, scale: number): number {
+  return f(axis * (Math.abs(axis) <= f(1.1920929e-7) ? 0 : scale))
+}
+
 // Bubble columns the moved boat is in (the cells of `box`), each with water (not air) above it: a downward one pulls
 // it down 0.03 (to -0.3 at most), an upward one lifts it 0.06 (to 0.7 at most).
 export function boatBubbleColumns (ctx: Ctx, vehicle: Vehicle, box: Box): void {
@@ -157,10 +210,18 @@ function insideReach (box: Box): Box {
   return new Box(f(box.minX - 0.5), f(box.minY - 0.5), f(box.minZ - 0.5), f(box.maxX + 0.5), f(box.maxY + 0.5), f(box.maxZ + 0.5))
 }
 
+// Whether a jumping rider leaves the vehicle: any the client does not predict, but a boat or one that takes the jump.
+export function leavesOnJump (vehicle: Vehicle): boolean {
+  return !vehicle.predicted && !vehicle.kind.endsWith('boat') && !vehicle.jumpControlled
+}
+
 // The rider leaves the vehicle (the dismount button, or the server taking it off: `byRider` false): it stands at the
-// dismount spot, at rest and on the ground there (so a jump held to leave jumps on the same tick), with its box
-// rebuilt; with no spot it stays where it sat.
-export function dismount (ctx: Ctx, entity: Player, byRider = true): void {
+// dismount spot, keeping the velocity it had riding, its ground flag as riding left it, with its box rebuilt; with no
+// spot it stays where it sat.
+// `alpha`: the frame's progress into the next tick when the rider left; given, the rider is first seated where the
+// vehicle is shown then (between its last two positions). `unlinked`: the server's link removal took it off, after the
+// tick's input was read in the seat.
+export function dismount (ctx: Ctx, entity: Player, byRider = true, alpha?: number, unlinked = false): void {
   const vehicle = entity.vehicle
   if (!vehicle) return
   const seat = seatPosition(vehicle)
@@ -173,16 +234,28 @@ export function dismount (ctx: Ctx, entity: Player, byRider = true): void {
   else {
     // no spot: the centre of the rider's own box (built where it was at the start of the last tick), its eye 0.001
     // above the centre plus the eye height
-    const from = entity.bedrock?.seatedAt ?? entity.pos
+    const from = alpha !== undefined && vehicle.posPrev ? shownSeat(vehicle, f(alpha), eye) : entity.bedrock?.seatedAt ?? entity.pos
     const box = { minX: f(from.x - w), minY: from.y, minZ: f(from.z - w), maxX: f(from.x + w), maxY: f(from.y + f(ctx.settings.playerHeight)), maxZ: f(from.z + w) }
     const centre = (min: number, max: number): number => f(f(f(max - min) * 0.5) + min)
     const eyeY = f(f(centre(box.minY, box.maxY) + eye) + f(0.001))
     entity.pos.set(centre(box.minX, box.maxX), f(eyeY - eye), centre(box.minZ, box.maxZ))
   }
-  entity.vel.set(0, 0, 0)
-  if (at.standing) entity.onGround = true
   entity.vehicle = undefined
-  if (entity.bedrock) entity.bedrock.aabb = undefined
+  if (entity.bedrock) {
+    entity.bedrock.aabb = undefined
+    // the tick's input was read in the seat: it still reports the paddles
+    if (unlinked && vehicle.predicted) entity.bedrock.leftSteeredVehicle = true
+  }
+}
+
+// The rider's feet on the seat of the vehicle as shown at `alpha` of the way from its previous position to its
+// position.
+function shownSeat (vehicle: Vehicle, alpha: number, eye: number): Vec3Like {
+  const prev = vehicle.posPrev!
+  const lerp = (a: number, b: number): number => f(f(f(b - a) * alpha) + a)
+  const pos = new Vec3(lerp(prev.x, vehicle.pos.x), lerp(prev.y, vehicle.pos.y), lerp(prev.z, vehicle.pos.z))
+  const seat = seatPosition({ ...vehicle, pos })
+  return { x: seat.x, y: f(seat.y - eye), z: seat.z }
 }
 
 // Where the rider sits: the vehicle's position plus the seat, turned by the vehicle's yaw.

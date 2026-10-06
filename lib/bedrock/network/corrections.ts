@@ -44,12 +44,46 @@ function installRotation (entity: Player, yaw: number | undefined, pitch: number
 export function handleTeleport (entity: Player, teleport: Teleport, eyeHeight: number): void {
   const st = stateOf(entity)
   const mode = teleport.mode === undefined ? MoveMode.teleport : teleport.mode
+  // head rotation only: the pitch, nothing else
+  if (mode === MoveMode.rotation) {
+    installRotation(entity, undefined, teleport.pitch)
+    return
+  }
   entity.pos.set(f(teleport.x), f(f(teleport.y) - f(eyeHeight)), f(teleport.z))
   if (mode === MoveMode.teleport) entity.vel.set(0, 0, 0)
+  if (mode === MoveMode.teleport) st.fallDistance = 0
   installRotation(entity, teleport.yaw, teleport.pitch)
   if (typeof teleport.onGround === 'boolean') entity.onGround = teleport.onGround
   dropBox(st)
   if (mode === MoveMode.teleport) st.teleported = true
+}
+
+// A dimension change to `at` (the feet position the server names): the player moves there at rest, its box rebuilt
+// around it; the collision flags stay as its last move left them.
+export function changeDimensionTo (entity: Player, at: Vec3Like): void {
+  const st = stateOf(entity)
+  entity.pos.set(f(at.x), f(at.y), f(at.z))
+  entity.vel.set(0, 0, 0)
+  st.fallDistance = 0
+  dropBox(st)
+}
+
+// A respawn at `at` (the eye position): a new player there, at rest and standing (its pose, the box and the flags a
+// death left dropped); its first tick makes no move, like a teleport's, but reports no handled teleport.
+export function respawnAt (entity: Player, at: Vec3Like, eyeHeight: number): void {
+  const st = stateOf(entity)
+  entity.pos.set(f(at.x), f(f(at.y) - f(eyeHeight)), f(at.z))
+  entity.vel.set(0, 0, 0)
+  entity.onGround = false
+  entity.isCollidedHorizontally = false
+  entity.isCollidedVertically = false
+  entity.elytraFlying = false
+  for (const name of ACTOR_FLAG_NAMES) st[name] = false
+  st.fallDistance = 0
+  st.poseHeight = undefined
+  dropBox(st)
+  st.teleported = true
+  st.respawned = true
 }
 
 // A movement correction: the eye position, the velocity and the ground flag.

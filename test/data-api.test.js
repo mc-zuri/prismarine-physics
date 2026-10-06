@@ -85,6 +85,17 @@ describe('PlayerState from plain data', () => {
     PlayerState.toBot(state, player)
     assert.deepEqual(player.entity.position, new Vec3(1, 2, 3))
   })
+
+  it('carries a Bedrock swing at nothing through the data path and back to the bot', () => {
+    const player = { ...bot(new Vec3(0.5, 64, 0.5)), missedSwing: true }
+    const fromBot = PlayerState.fromBot(player, { ...NO_KEYS })
+    assert.equal(fromBot.missedSwing, true)
+    assert.deepEqual({ ...new PlayerState(dataOf(fromBot), { ...NO_KEYS }) }, { ...fromBot })
+    assert.equal(new PlayerState({ pos: new Vec3(0, 70, 0), vel: new Vec3(0, 0, 0) }).missedSwing, false)
+    fromBot.missedSwing = false
+    fromBot.apply(player)
+    assert.equal(player.missedSwing, false)
+  })
 })
 
 describe('Physics trig option', () => {

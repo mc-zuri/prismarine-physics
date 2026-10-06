@@ -1,21 +1,48 @@
 import assert from 'node:assert'
 import { Vec3 } from 'vec3'
 import { Physics } from '../../../../lib/bedrock/index.ts'
-import { agedDuration, BedrockSession, effectLevel, flagValue, movementAttribute, restatedFlags } from '../../../../lib/bedrock/network/session.ts'
+import { agedDuration, BedrockSession, effectLevel, flagValue, gameTypeName, liquidAttributes, movementAttribute, restatedFlags } from '../../../../lib/bedrock/network/session.ts'
 import { FLAT, player } from '../helpers.ts'
 
 const f = Math.fround
 const EYE = 1.6200100183486938
 
 // test/bedrock/session.test.js covers the packets end to end; these cover the decisions around them.
-function session () {
-  const physics = Physics({ version: { minecraftVersion: '1.26.20' } }, FLAT)
+function session (version = '1.26.51') {
+  const physics = Physics({ version: { minecraftVersion: version } }, FLAT)
   const s = new BedrockSession({ physics, world: FLAT })
   s.handlePacket('start_game', { runtime_entity_id: 7n, rewind_history_size: 40 })
   return s
 }
 
 describe('bedrock network/session', () => {
+  it('simulates with the game type the client holds: its own from start_game and set_player_game_type, else the world\'s', () => {
+    const s = session()
+    s.handlePacket('start_game', { runtime_entity_id: 7n, entity_id: -5n, rewind_history_size: 5, player_gamemode: 'fallback', world_gamemode: 'survival' })
+    const p = player(undefined, { gameMode: 'creative' })
+    s.tick(p, { t: 1 })
+    assert.strictEqual(p.gameMode, 'survival', 'its own is the default: the world\'s')
+    // a /gamemode's update changes nothing for the local player; another player's is not the session's
+    assert.strictEqual(s.handlePacket('update_player_game_type', { gamemode: 'creative', player_unique_id: -5n, tick: 0n }), true)
+    assert.strictEqual(s.handlePacket('update_player_game_type', { gamemode: 'creative', player_unique_id: -6n, tick: 0n }), false, 'another player')
+    s.tick(p, { t: 2 })
+    assert.strictEqual(p.gameMode, 'survival')
+    s.handlePacket('set_default_game_type', { gamemode: 1 })
+    s.tick(p, { t: 3 })
+    assert.strictEqual(p.gameMode, 'creative', 'the world\'s changed')
+    s.handlePacket('set_player_game_type', { gamemode: 'spectator' })
+    s.tick(p, { t: 4 })
+    assert.strictEqual(p.gameMode, 'spectator', 'its own set')
+    s.handlePacket('set_player_game_type', { gamemode: 'survival_spectator' })
+    p.gameMode = 'adventure'
+    s.tick(p, { t: 5 })
+    assert.strictEqual(p.gameMode, 'adventure', 'one the engine does not tell apart is left to the caller')
+    assert.deepStrictEqual([gameTypeName(0), gameTypeName(5), gameTypeName(3), gameTypeName('fallback'), gameTypeName(null)], ['survival', 'default', undefined, 'default', undefined])
+    const unknown = session()
+    assert.strictEqual(unknown.handlePacket('update_player_game_type', { gamemode: 'creative', player_unique_id: -5n, tick: 0n }), false, 'before start_game')
+    assert.strictEqual(unknown.gameMode, undefined, 'nothing known: the caller\'s')
+  })
+
   it('takes the history size from start_game', () => {
     assert.strictEqual(session().rewind.history, 40)
     const s = new BedrockSession({ physics: Physics({}, FLAT), world: FLAT })
@@ -44,6 +71,42 @@ describe('bedrock network/session', () => {
     s.handlePacket('move_player', { runtime_id: 7n, position: { x: 1, y: EYE, z: 1 }, mode: 'teleport' })
     s.runDue(p, 0)
     assert.strictEqual(p.bedrock!.teleported, true)
+  })
+
+  it('moves the player for a teleport stamped before the history but keeps it, so a correction behind it simulates through', () => {
+    const s = session()
+    s.rewind.history = 5
+    const p = player([0.5, 0, 0.5])
+    for (let t = 1; t <= 10; t++) s.tick(p, { t })
+    s.handlePacket('move_player', { runtime_id: 7n, position: { x: 50.5, y: 10 + EYE, z: 50.5 }, mode: 'teleport', tick: 4n })
+    s.handlePacket('correct_player_move_prediction', { prediction_type: 'player', position: { x: 50.5, y: 10 + EYE, z: 50.5 }, delta: { x: 0, y: 0, z: 0 }, on_ground: false, tick: 6n })
+    s.tick(p, { t: 11 })
+    assert.ok(s.rewind.oldest < 8, 'the history is kept')
+    assert.ok(p.bedrock!.actions!.has('handledTeleport'), 'the teleport is still reported')
+    assert.ok(p.pos.y < 10 && p.pos.x === 50.5, 'from the correction on, falling through the ticks since and this one')
+    // one stamped within the history starts it over
+    s.handlePacket('move_player', { runtime_id: 7n, position: { x: 0.5, y: EYE, z: 0.5 }, mode: 'teleport', tick: 9n })
+    s.tick(p, { t: 12 })
+    assert.strictEqual(s.rewind.oldest, 12)
+  })
+
+  it('leaves a player waiting for the chunks it was teleported to where the teleport put it, through a correction', () => {
+    const world = { ...FLAT, getBlock: FLAT.getBlock, loaded: (pos: { x: number }) => pos.x < 20 }
+    const s = new BedrockSession({ physics: Physics({ version: { minecraftVersion: '1.26.20' } }, world), world })
+    s.handlePacket('start_game', { runtime_entity_id: 7n, rewind_history_size: 40 })
+    s.rewind.history = 5
+    const p = player([0.5, 0, 0.5])
+    for (let t = 1; t <= 10; t++) s.tick(p, { t })
+    s.handlePacket('move_player', { runtime_id: 7n, position: { x: 50.5, y: 10 + EYE, z: 50.5 }, mode: 'teleport', tick: 4n })
+    s.handlePacket('correct_player_move_prediction', { prediction_type: 'player', position: { x: 50.5, y: 10 + EYE, z: 50.5 }, delta: { x: 0, y: 0, z: 0 }, on_ground: false, tick: 6n })
+    s.tick(p, { t: 11 })
+    assert.ok(p.bedrock!.actions!.has('handledTeleport'))
+    assert.deepStrictEqual([p.pos.x, p.pos.y, p.vel.y], [50.5, 10, 0], 'held where it landed')
+    // one to a loaded column is simulated through as before
+    s.handlePacket('move_player', { runtime_id: 7n, position: { x: 10.5, y: 10 + EYE, z: 0.5 }, mode: 'teleport', tick: 6n })
+    s.handlePacket('correct_player_move_prediction', { prediction_type: 'player', position: { x: 10.5, y: 10 + EYE, z: 0.5 }, delta: { x: 0, y: 0, z: 0 }, on_ground: false, tick: 7n })
+    s.tick(p, { t: 12 })
+    assert.ok(p.pos.y < 10)
   })
 
   describe('whether a correction is filed', () => {
@@ -100,10 +163,84 @@ describe('bedrock network/session', () => {
     assert.deepStrictEqual(restatedFlags({ tick: 2n, metadata: [{ key: 'flags_extended', value: ['push_towards_closest_space'] }] }), { tick: 2, crawling: false, pushTowardsClosestSpace: true })
     // a word with its raw value is read by bit (push 45, crawling 50), whatever its names say
     const pushWord = { _value: String(BigInt.asIntN(64, (1n << 63n) | (1n << 45n))), push_towards_closest_space: false, scenting: true }
-    assert.deepStrictEqual(restatedFlags({ tick: 3n, metadata: [{ key: 'flags_extended', value: pushWord }] }), { tick: 3, crawling: false, pushTowardsClosestSpace: true })
-    assert.deepStrictEqual(restatedFlags({ tick: 4n, metadata: [{ key: 'flags_extended', value: 1n << 50n }] }), { tick: 4, crawling: true, pushTowardsClosestSpace: false })
-    assert.deepStrictEqual(restatedFlags({ tick: 5n, metadata: [{ key: 'flags_extended', value: { _value: 0 } }] }), { tick: 5, crawling: false, pushTowardsClosestSpace: false })
+    assert.deepStrictEqual(restatedFlags({ tick: 3n, metadata: [{ key: 'flags_extended', value: pushWord }] }), { tick: 3, inAscendable: false, inScaffolding: false, crawling: false, pushTowardsClosestSpace: true })
+    assert.deepStrictEqual(restatedFlags({ tick: 4n, metadata: [{ key: 'flags_extended', value: (1n << 50n) | (1n << 35n) | (1n << 6n) }] }), { tick: 4, inAscendable: true, inScaffolding: true, crawling: true, pushTowardsClosestSpace: false })
+    assert.deepStrictEqual(restatedFlags({ tick: 5n, metadata: [{ key: 'flags_extended', value: { _value: 0 } }] }), { tick: 5, inAscendable: false, inScaffolding: false, crawling: false, pushTowardsClosestSpace: false })
     assert.deepStrictEqual(restatedFlags({ tick: 1n }), null)
+  })
+
+  it('drops what it has not run yet and starts the history over on a respawn', () => {
+    const s = session()
+    const p = player([0.5, 1, 0.5])
+    for (let t = 1; t <= 4; t++) s.tick(p, { t })
+    s.handlePacket('set_entity_motion', { runtime_entity_id: 7n, velocity: { x: 1, y: 0, z: 0 }, tick: 2n })
+    s.respawn()
+    assert.deepStrictEqual([s.scheduled.length, s.ringOldest, s.rewind.oldest], [0, 4, 4])
+    s.tick(p, { t: 5 })
+    assert.strictEqual(p.vel.x, 0, 'the knockback of the player that died does not reach the new one')
+  })
+
+  it('holds the player still at the target of a dimension change, with the history started over, until it loads', () => {
+    const s = session()
+    const p = player([0.5, 1, 0.5])
+    for (let t = 1; t <= 4; t++) s.tick(p, { t })
+    const collided = p.isCollidedVertically
+    assert.strictEqual(s.handlePacket('change_dimension', { dimension: 2, position: { x: 100, y: 50, z: 0 }, respawn: false }), true)
+    s.tick(p, { t: 5, control: { forward: true } })
+    assert.deepStrictEqual([p.pos.x, p.pos.y, p.pos.z, p.vel.x, p.vel.y, p.vel.z], [100, 50, 0, 0, 0, 0])
+    assert.deepStrictEqual([s.dimensionLoading, s.ringOldest, s.rewind.oldest, p.isCollidedVertically, p.immobile], [true, 5, 5, collided, undefined])
+    s.tick(p, { t: 6 })
+    assert.deepStrictEqual([p.pos.y, p.vel.y], [50, 0], 'still loading: no gravity')
+    s.dimensionLoaded()
+    s.tick(p, { t: 7 })
+    assert.ok(p.vel.y < 0, 'loaded: it falls')
+  })
+
+  it('takes the restated climbable-block flag as sent with no frame to weigh it against', () => {
+    const s = session()
+    const p = player(undefined, { bedrock: {} as any })
+    s.actorFlags(p, { tick: 1, inAscendable: false })
+    assert.strictEqual(p.bedrock!.ascendRestated, false)
+    const bare = player()
+    s.actorFlags(bare, { tick: 1, inAscendable: true })
+    assert.strictEqual(bare.bedrock, undefined)
+  })
+
+  it('writes the restated climbable-block flag only where it differs from the one a frame\'s next climb reads', () => {
+    const s = session()
+    const p = player(undefined, { bedrock: {} as any })
+    for (let t = 1; t <= 4; t++) {
+      s.rewind.push({ t })
+      s.rewind.snapshot(t, p)
+    }
+    // the climb's own check has it set: a set one agrees, a cleared one differs, and goes into the latest frame too
+    s.actorFlags(p, { tick: 2, inAscendable: true })
+    assert.strictEqual(p.bedrock!.ascendRestated, undefined)
+    s.actorFlags(p, { tick: 2, inAscendable: false })
+    assert.strictEqual(p.bedrock!.ascendRestated, false)
+    assert.strictEqual(s.rewind.snapshots.get(3)!.bedrock!.ascendRestated, false)
+    // set again where that frame had it cleared: it differs there
+    s.actorFlags(p, { tick: 3, inAscendable: true })
+    assert.strictEqual(p.bedrock!.ascendRestated, true)
+  })
+
+  it('writes the restated scaffolding flags only where they differ from the frame, and as sent with no frame', () => {
+    const s = session()
+    const p = player(undefined, { bedrock: {} as any })
+    s.actorFlags(p, { tick: 1, inScaffolding: false })
+    assert.strictEqual(p.bedrock!.scaffoldRestated, false, 'no frame: as sent')
+    p.bedrock!.scaffoldRestated = undefined
+    for (let t = 1; t <= 4; t++) {
+      s.rewind.push({ t })
+      s.rewind.snapshot(t, p)
+    }
+    s.actorFlags(p, { tick: 2, inScaffolding: true })
+    assert.strictEqual(p.bedrock!.scaffoldRestated, undefined, 'set, as the frame has it')
+    s.actorFlags(p, { tick: 2, inScaffolding: false })
+    assert.deepStrictEqual([p.bedrock!.scaffoldRestated, s.rewind.snapshots.get(3)!.bedrock!.scaffoldRestated], [false, false])
+    const bare = player()
+    s.actorFlags(bare, { tick: 1, inScaffolding: false })
+    assert.strictEqual(bare.bedrock, undefined)
   })
 
   it('writes only the restated flags that differ from the frame, and all of them with no frame', () => {
@@ -114,12 +251,79 @@ describe('bedrock network/session', () => {
     p.bedrock!.sneaking = false
     s.actorFlags(p, { tick: 1, sneaking: true, height: 1.49 })
     assert.strictEqual(p.bedrock!.sneaking, false, 'the frame had it: a stale restatement')
-    s.actorFlags(p, { tick: 9, sneaking: true })
+    const fresh = session()
+    fresh.actorFlags(p, { tick: 9, sneaking: true })
     assert.strictEqual(p.bedrock!.sneaking, true, 'no frame for its tick')
     const bare = player()
     s.rewind.snapshot(2, bare)
     s.actorFlags(bare, { tick: 2, swimming: true })
     assert.strictEqual(bare.bedrock!.swimming, true, 'a frame without engine state')
+    const unstamped = player()
+    fresh.actorFlags(unstamped, { tick: 0, gliding: true })
+    assert.strictEqual(unstamped.bedrock!.gliding, true, 'an unstamped one: no frame for tick 0')
+  })
+
+  it('weighs a restatement stamped before the history against the oldest frame the history keeps', () => {
+    const s = session()
+    s.rewind.history = 5
+    const p = player(undefined, { bedrock: { sneaking: true } })
+    for (let t = 1; t <= 10; t++) {
+      if (t === 6) p.bedrock!.sneaking = false
+      s.rewind.push({ t })
+      s.rewind.snapshot(t, p)
+    }
+    // the oldest frame kept is tick 5, which still sneaks: the restatement of tick 3 agrees with it
+    s.actorFlags(p, { tick: 3, sneaking: true })
+    assert.strictEqual(p.bedrock!.sneaking, false)
+    // a tick later the oldest is tick 6, which no longer sneaks: it differs, and is filed there
+    s.rewind.push({ t: 11 })
+    s.actorFlags(p, { tick: 3, sneaking: true })
+    assert.strictEqual(p.bedrock!.sneaking, true)
+    assert.deepStrictEqual(s.flagCorrections.get(6), { sneaking: true })
+  })
+
+  it('writes a stamped movement attribute into the history from its tick, an unstamped one on the player only', () => {
+    const s = session()
+    const p = player()
+    for (let t = 1; t <= 3; t++) s.tick(p, { t })
+    const key = s.physics.movementSpeedAttribute
+    s.movementAttribute(p, { tick: 0, walk: f(0.2), current: f(0.2) })
+    assert.strictEqual(p.attributes![key]!.base, f(0.2))
+    assert.notStrictEqual(s.rewind.snapshots.get(3)!.attributes?.[key]?.base, f(0.2), 'unstamped: the history keeps what it had')
+    s.movementAttribute(p, { tick: 2, walk: f(0.3), current: f(0.3) })
+    assert.deepStrictEqual([s.rewind.snapshots.get(1)!.attributes?.[key]?.base, s.rewind.snapshots.get(3)!.attributes![key]!.base].map(v => v === f(0.3)), [false, true])
+  })
+
+  it('replaces the effect held with the same level that lasts longer, or without end', () => {
+    const s = session()
+    const p = player()
+    s.effect(p, { tick: 0, field: 'levitation', level: 2, duration: 5 })
+    s.effect(p, { tick: 0, field: 'levitation', level: 2, duration: 50 })
+    assert.strictEqual(s.effects.get('levitation')!.at(-1)!.end, s.rewind.current - 1 + 50, 'longer')
+    s.effect(p, { tick: 0, field: 'levitation', level: 2, duration: -1 })
+    assert.strictEqual(s.effects.get('levitation')!.at(-1)!.end, undefined, 'without end')
+  })
+
+  it('takes the push toward free space as sent, whatever the frame had', () => {
+    const s = session()
+    const p = player(undefined, { bedrock: { pushTowardsClosestSpace: true } })
+    s.rewind.push({ t: 1 })
+    s.rewind.snapshot(1, p)
+    p.bedrock!.pushTowardsClosestSpace = false
+    s.actorFlags(p, { tick: 1, pushTowardsClosestSpace: true })
+    assert.strictEqual(p.bedrock!.pushTowardsClosestSpace, true)
+  })
+
+  it('with no frame to compare with, takes the glide only when the server changed it since it last restated it', () => {
+    const s = session()
+    const p = player(undefined, { bedrock: { gliding: false } })
+    s.actorFlags(p, { tick: 50, gliding: false })
+    p.bedrock!.gliding = true
+    s.actorFlags(p, { tick: 51, gliding: false })
+    assert.strictEqual(p.bedrock!.gliding, true, 'the server said the same before: the glide the player started stands')
+    s.actorFlags(p, { tick: 52, gliding: true })
+    s.actorFlags(p, { tick: 53, gliding: false })
+    assert.strictEqual(p.bedrock!.gliding, false, 'a change the server made')
   })
 
   it('writes what it takes into the frame the next restatement compares with', () => {
@@ -164,6 +368,39 @@ describe('bedrock network/session', () => {
     s.teleport(p, 6, { x: 30, y: EYE, z: 0 })
     assert.strictEqual(s.ringOldest, 6)
     assert.strictEqual(s.rewind.oldest, 6)
+    // measured from where the last tick left the player, though the caller placed it at the target already
+    const moved = session()
+    const q = player([0, 0, 0])
+    for (let t = 1; t <= 3; t++) moved.tick(q, { t })
+    q.pos.set(30, 0, 0)
+    moved.teleport(q, 4, { x: 30, y: EYE, z: 0 })
+    assert.strictEqual(moved.ringOldest, 4)
+  })
+
+  it('takes a restated sprint that differs from the history without filing it', () => {
+    const s = session()
+    const p = player([0, 0, 0], { bedrock: { sprinting: true } })
+    for (let t = 1; t <= 5; t++) s.tick(p, { t })
+    s.actorFlags(p, { tick: 3, sprinting: false, sneaking: true })
+    assert.deepStrictEqual([p.bedrock!.sprinting, p.bedrock!.sneaking], [false, true])
+    assert.deepStrictEqual(s.flagCorrections.get(3), { sneaking: true }, 'the sneak is filed, the sprint is not')
+  })
+
+  it('takes a restatement stamped before a far teleport without filing it', () => {
+    const s = session()
+    const p = player([0, 0, 0], { bedrock: { sprinting: true } })
+    for (let t = 1; t <= 5; t++) s.tick(p, { t })
+    p.bedrock!.sprinting = false
+    s.teleport(p, 6, { x: 30, y: EYE, z: 0 })
+    s.tick(p, { t: 6 })
+    s.actorFlags(p, { tick: 4, sprinting: true })
+    assert.deepStrictEqual([p.bedrock!.sprinting, s.flagged.size], [true, 0])
+    // written into the teleport's frame too: the next one from before the teleport is weighed against it
+    s.tick(p, { t: 7 })
+    s.tick(p, { t: 8 })
+    s.actorFlags(p, { tick: 5, sprinting: true })
+    s.actorFlags(p, { tick: 5, sprinting: false })
+    assert.strictEqual(p.bedrock!.sprinting, false)
   })
 
   it('writes a movement attribute onto the history frames from its tick', () => {
@@ -177,16 +414,96 @@ describe('bedrock network/session', () => {
   })
 
   it('keeps the sprint boost when the player started sprinting after the attribute\'s tick', () => {
-    const at = (startTick: number) => {
+    const at = (startTick: number, walk = 0.1) => {
       const s = session()
       const p = player(undefined, { bedrock: { sprinting: true } })
       for (let t = 1; t <= 4; t++) s.rewind.snapshot(t, { ...p, bedrock: { actions: new Set(t === startTick ? ['startSprinting'] : []) } })
       s.rewind.snapshot(5, { ...p, bedrock: undefined })
       s.movementAttribute(p, { tick: 2, walk: 0.1, current: 0.1 })
+      if (walk !== 0.1) s.movementAttribute(p, { tick: 2, walk, current: walk })
       return p.bedrock!.sprintBoost
     }
     assert.strictEqual(at(3), true, 'started after the tick')
     assert.strictEqual(at(2), false, 'started on the tick itself')
+    assert.strictEqual(at(3, f(0.08)), false, 'a packet that changes the speed takes the boost off')
+  })
+
+  it('files restated flags that differ from the history, simulates the next rewind again from them and reports what that raised', () => {
+    const s = session()
+    const p = player([0, 0, 0])
+    for (let t = 1; t <= 6; t++) s.tick(p, { t })
+    s.actorFlags(p, { tick: 3, gliding: true, pushTowardsClosestSpace: true })
+    assert.deepStrictEqual([[...s.flagged], s.flagCorrections.get(3)], [[3], { gliding: true }], 'the push is taken as sent, not filed')
+    p.bedrock!.carriedActions = new Set(['handledTeleport'])
+    s.rewindTo(5, p, () => {})
+    assert.strictEqual(s.flagged.size, 0)
+    assert.deepStrictEqual([...p.bedrock!.carriedActions!].sort(), ['handledTeleport', 'stopGliding'], 'the glide filed on tick 4 stops on the ground again')
+    s.tick(p, { t: 7 })
+    assert.ok(p.bedrock!.actions!.has('stopGliding'))
+    assert.strictEqual(p.bedrock!.carriedActions, undefined)
+    // one that agrees is not filed, nor one with no frame
+    s.actorFlags(p, { tick: 6, gliding: false })
+    s.actorFlags(p, { tick: 99, sneaking: true })
+    assert.strictEqual(s.flagged.size, 0)
+  })
+
+  it('installs the liquid movement attributes on the player and the frames from their tick', () => {
+    const s = session()
+    const p = player([0, 0, 0])
+    for (let t = 1; t <= 4; t++) s.tick(p, { t })
+    const water = (current: number) => ({ name: 'minecraft:underwater_movement', current, default: 0.02, modifiers: [] })
+    const lava = { name: 'minecraft:lava_movement', current: 0.05, default: 0.02, modifiers: [] }
+    assert.strictEqual(s.handlePacket('update_attributes', { runtime_entity_id: 7n, attributes: [water(0.04), lava], tick: 3n }), true)
+    s.tick(p, { t: 5 })
+    assert.deepStrictEqual(p.attributes!['minecraft:underwater_movement'], { base: f(0.04), current: f(0.04) })
+    assert.strictEqual(p.attributes!['minecraft:lava_movement']!.current, f(0.05))
+    assert.strictEqual(s.rewind.snapshots.get(3)!.attributes!['minecraft:underwater_movement']!.current, f(0.04))
+    assert.strictEqual(s.rewind.snapshots.get(2)!.attributes?.['minecraft:underwater_movement'], undefined, 'not before its tick')
+    // an unstamped one is the player's only
+    assert.strictEqual(s.handlePacket('update_attributes', { runtime_entity_id: 7n, attributes: [water(0.03)] }), true)
+    s.tick(p, { t: 6 })
+    assert.strictEqual(p.attributes!['minecraft:underwater_movement']!.current, f(0.03))
+    assert.strictEqual(s.rewind.snapshots.get(3)!.attributes!['minecraft:underwater_movement']!.current, f(0.04))
+    assert.strictEqual(liquidAttributes({}), null)
+  })
+
+  it('files stamped attributes where the movement speed differs, then every one until the next rewind', () => {
+    const s = session()
+    const p = player([0, 0, 0])
+    const movement = (current: number) => ({ name: 'minecraft:movement', current, default: 0.1, modifiers: [] })
+    s.handlePacket('update_attributes', { runtime_entity_id: 7n, attributes: [movement(0.1)], tick: 0n })
+    for (let t = 1; t <= 6; t++) s.tick(p, { t })
+    const exhaustion = { name: 'minecraft:player.exhaustion', current: 1, default: 0, modifiers: [] }
+    assert.strictEqual(s.handlePacket('update_attributes', { runtime_entity_id: 7n, attributes: [exhaustion], tick: 3n }), true)
+    assert.strictEqual(s.handlePacket('update_attributes', { runtime_entity_id: 7n, attributes: [exhaustion], tick: 0n }), false, 'unstamped: nothing to file')
+    s.handlePacket('update_attributes', { runtime_entity_id: 7n, attributes: [movement(0.1)], tick: 4n })
+    s.tick(p, { t: 7 })
+    assert.deepStrictEqual([...s.flagged], [], 'nothing differed')
+    s.handlePacket('update_attributes', { runtime_entity_id: 7n, attributes: [movement(0.13)], tick: 5n })
+    s.handlePacket('update_attributes', { runtime_entity_id: 7n, attributes: [exhaustion], tick: 6n })
+    s.handlePacket('update_attributes', { runtime_entity_id: 7n, attributes: [exhaustion], tick: 99n })
+    s.tick(p, { t: 8 })
+    assert.deepStrictEqual([...s.flagged], [5, 6], 'the speed differed, and after it anything with a frame')
+    s.rewindTo(7, p, () => {})
+    assert.deepStrictEqual([s.flagged.size, s.attributesFiled], [0, false])
+    const bare = session()
+    const q = player([0, 0, 0])
+    for (let t = 1; t <= 3; t++) bare.tick(q, { t })
+    delete bare.rewind.snapshots.get(2)!.attributes
+    bare.handlePacket('update_attributes', { runtime_entity_id: 7n, attributes: [movement(0.1)], tick: 2n })
+    bare.tick(q, { t: 4 })
+    assert.deepStrictEqual([...bare.flagged], [2], 'a frame without the attribute differs')
+  })
+
+  it('forgets filed flags that left the history', () => {
+    const s = session()
+    s.handlePacket('start_game', { runtime_entity_id: 7n, rewind_history_size: 3 })
+    const p = player([0, 0, 0])
+    for (let t = 1; t <= 4; t++) s.tick(p, { t })
+    s.actorFlags(p, { tick: 2, gliding: true })
+    for (let t = 5; t <= 9; t++) s.tick(p, { t })
+    s.rewindTo(8, p, () => {})
+    assert.deepStrictEqual([s.flagged.size, s.flagCorrections.size], [0, 0], 'too old to simulate again from')
   })
 
   describe('a mob effect', () => {
@@ -239,7 +556,13 @@ describe('bedrock network/session', () => {
       assert.strictEqual(p.levitation, 2, 'no duration: until removed')
       s.handlePacket('mob_effect', packet({ duration: -1 }))
       s.tick(p, { t: 31 })
-      assert.deepStrictEqual(s.effects.get('levitation')!.map(event => event.frame), [10, 31], 'what came before the history is dropped but the last of it')
+      assert.strictEqual(s.effects.get('levitation')!.length, 4, 'the same level without end again merges into the one held')
+      s.handlePacket('mob_effect', packet({ amplifier: 3, duration: -1 }))
+      s.tick(p, { t: 32 })
+      assert.deepStrictEqual(s.effects.get('levitation')!.map(event => event.frame), [10, 32], 'what came before the history is dropped but the last of it')
+      s.handlePacket('mob_effect', packet({ amplifier: 0, duration: -1 }))
+      s.tick(p, { t: 33 })
+      assert.strictEqual(p.levitation, 4, 'a lower level leaves the higher one')
     })
 
     it('waits for the frame of one stamped ahead, and simulates again only for a change of the effect it has now', () => {
@@ -286,6 +609,18 @@ describe('bedrock network/session', () => {
       s.tick(p, { t: 9 })
       assert.strictEqual(rewound, 0, 'adding one already there at that level')
       assert.strictEqual(effectLevel(s.effects.get('levitation')!, 2), 2, 'but the history has it')
+    })
+
+    it('takes a late Levitation effect no further back than 4 ticks before 1.26.51', () => {
+      const late = (version: string) => {
+        const s = session(version)
+        const p = player([0.5, 5, 0.5], { onGround: false })
+        for (let t = 1; t <= 9; t++) s.tick(p, { t })
+        s.handlePacket('mob_effect', packet({ tick: 1n, duration: -1 }))
+        s.tick(p, { t: 10 })
+        return s.effects.get('levitation')![0]!.frame
+      }
+      assert.deepStrictEqual([late('1.26.20'), late('1.26.51')], [6, 2])
     })
 
     it('rewinds to its frame only where a tick since changes, and not at all when a later event still sets them', () => {
@@ -435,8 +770,10 @@ describe('bedrock network/session', () => {
     s.tick(p, { t: 3 })
     delete p.vehicle
     s.tick(p, { t: 4 })
-    s.rewindTo(2, p, () => {})
-    assert.strictEqual(p.vehicle, undefined, 'got off since')
+    const off = p.pos.clone()
+    let installed = false
+    s.rewindTo(2, p, () => { installed = true })
+    assert.deepStrictEqual([p.vehicle, installed, p.pos.equals(off)], [undefined, false, true], 'got off since: nothing simulated again')
   })
 
   it('seats the rider on a vehicle the server moves where it is now, not where its frame had it', () => {

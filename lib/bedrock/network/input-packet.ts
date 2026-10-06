@@ -66,6 +66,7 @@ export function inputFlags (entity: Player): Set<string> {
     sprinting: input?.sprinting,
     wantUp: input?.wantUp,
     wantDown: input?.wantDown,
+    persistSneak: input?.persistSneak,
     horizontalCollision: entity.isCollidedHorizontally,
     verticalCollision: entity.isCollidedVertically,
     blockBreakingDelayEnabled: true
@@ -76,7 +77,7 @@ export function inputFlags (entity: Player): Set<string> {
   return flags
 }
 
-const NO_INPUT = { move: { x: 0, z: 0 }, rawMove: { x: 0, z: 0 }, analog: { x: 0, z: 0 } }
+const NO_INPUT = { move: { x: 0, z: 0 }, rawMove: { x: 0, z: 0 }, analog: { x: 0, z: 0 }, inputMode: 'mouse' }
 
 // The packet, in bedrock-protocol's field names (the caller adds `tick` and, where the version has them, the presence
 // flags). The position is the eye position, `delta` the velocity after friction, the rotation the tick's; the camera
@@ -93,7 +94,7 @@ export function buildPlayerAuthInput (entity: Player, eyeHeight = 1.620010018348
     const packet = buildPlayerAuthInput({ ...entity, vehicle: undefined }, eyeHeight)
     ;(packet.input_data as string[]).push('client_predicted_vehicle')
     // the driver's left and right keys are the paddle buttons (forward paddles nothing)
-    const keys = entity.bedrock?.keys
+    const keys = vehicle.kind.endsWith('boat') ? entity.bedrock?.keys : undefined
     if (keys?.left) (packet.input_data as string[]).push('paddling_left')
     if (keys?.right) (packet.input_data as string[]).push('paddling_right')
     return {
@@ -111,7 +112,7 @@ export function buildPlayerAuthInput (entity: Player, eyeHeight = 1.620010018348
     move_vector: { x: input.move.x, z: input.move.z },
     head_yaw: yaw,
     input_data: [...inputFlags(entity)].map(name => INPUT_FLAGS[INPUT_FLAG_BITS.get(name)!]).filter(Boolean),
-    input_mode: 'mouse',
+    input_mode: input.inputMode,
     play_mode: 'screen',
     interaction_model: 'touch',
     interact_rotation: { x: pitch, z: yaw },

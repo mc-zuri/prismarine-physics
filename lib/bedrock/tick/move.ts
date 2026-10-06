@@ -18,6 +18,8 @@ import type { TickState } from './state.ts'
 // Slower landings than this do not bounce on slime (from 1.26.20).
 const MIN_BOUNCE_SPEED = f(0.080000117)
 const MOVE_CAP = 500
+// How far a horizontal lane must be cut short to raise the collision flag.
+const HORIZONTAL_COLLISION_EPSILON = 1e-5
 const MAX_MOVE_LENGTH = 16
 
 // A move with any lane beyond 500 (an infinity, not a NaN), or of an immobile player, is dropped.
@@ -83,7 +85,7 @@ export function sweepMove (ctx: Ctx, entity: Simulated, tick: TickState): void {
   const report: SweepReport = { totalClip: 0 }
   const aabb = st.aabb!
   const limit = moveDepenetrationLimit(ctx.world, aabb, bits)
-  tick.applied = moveWithCollisions(ctx.world, aabb.clone(), tick.requested, !!entity.onGround, ctx.settings.stepHeight, !!st.input!.sneaking, limit, report, { leatherBoots: !!entity.leatherBoots, fallDistance: st.fallDistance || 0 })
+  tick.applied = moveWithCollisions(ctx.world, aabb.clone(), tick.requested, !!entity.onGround, ctx.settings.stepHeight, !!st.input!.sneaking, limit, report, { leatherBoots: !!entity.leatherBoots, fallDistance: st.fallDistance || 0, descendSnow: !!st.descendingSnow })
   tick.penetrated = report.totalClip >= PENETRATION_EPSILON
   st.depenetrationBits = updateDepenetrationBits(bits, !!st.pushTowardsClosestSpace, tick.penetrated)
   tick.moveShapes = report.shapes!
@@ -110,7 +112,7 @@ export function landingBounce (ctx: Ctx, entity: Simulated, tick: TickState): nu
 }
 
 // The collisions of the move: a blocked axis stops, a vertical collision lands (or bounces); the ground flag is set
-// by a landing and kept by a move with no vertical part; a slowed move drops the velocity.
+// by a landing and kept by a move with no vertical part, except with the feet in powder snow; a slowed move drops the velocity.
 export function settleCollisions (ctx: Ctx, entity: Simulated, tick: TickState): void {
   const st = entity.bedrock
   const vel = entity.vel
@@ -129,9 +131,11 @@ export function settleCollisions (ctx: Ctx, entity: Simulated, tick: TickState):
   if (zCollided) vel.z = 0
   st.bounce = null
   if (yCollided) vel.y = landingBounce(ctx, entity, tick)
-  entity.isCollidedHorizontally = xCollided || zCollided
+  // the flag takes a blocked lane only past a hundred-thousandth: a sliver of a move stopped by a wall the player
+  // touches (a turn's float residue) stops the lane but raises no collision
+  entity.isCollidedHorizontally = Math.abs(applied.x - requested.x) > HORIZONTAL_COLLISION_EPSILON || Math.abs(applied.z - requested.z) > HORIZONTAL_COLLISION_EPSILON
   entity.isCollidedVertically = yCollided
-  entity.onGround = yCollided ? requested.y < 0 : (tick.startedOnGround && requested.y === 0)
+  entity.onGround = yCollided ? requested.y < 0 : (tick.startedOnGround && requested.y === 0 && blockName(blockAt(ctx.world, entity.pos.x, entity.pos.y, entity.pos.z)) !== 'powder_snow')
   if (tick.slowed) vel.set(0, 0, 0)
   entity.isInWeb = tick.slowdowns.has('web')
 }

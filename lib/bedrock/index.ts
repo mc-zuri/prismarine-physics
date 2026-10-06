@@ -6,6 +6,8 @@
 // The player is mineflayer's PlayerState shape (feet position, radian yaw/pitch, the control booleans as key levels).
 // Optional extensions: `bedrockYaw` / `bedrockPitch` (degrees) override the radian angles; `control.raw` carries the
 // other raw key bits and `control.analogMoveVector` a stick; `control.moveVector` an already cooked move.
+import fs from 'node:fs'
+import path from 'node:path'
 import { Box } from './math/box.ts'
 import { paired, scalar } from './math/crt.ts'
 import { f, VELOCITY_EPSILON } from './math/float.ts'
@@ -13,7 +15,7 @@ import { collide } from './movement/collision.ts'
 import { boxIsCurrent } from './movement/player-box.ts'
 import { poseHeightOf } from './movement/pose.ts'
 import { setMovementAttribute } from './movement/travel.ts'
-import { applyCorrection, applyMotion, handleTeleport, setActorFlags, type ActorFlags, type MoveCorrection, type Teleport } from './network/corrections.ts'
+import { applyCorrection, applyMotion, changeDimensionTo, handleTeleport, respawnAt, setActorFlags, type ActorFlags, type MoveCorrection, type Teleport } from './network/corrections.ts'
 import { buildPlayerAuthInput } from './network/input-packet.ts'
 import { simulatePlayer } from './tick/index.ts'
 import { dismount } from './tick/vehicle.ts'
@@ -35,6 +37,24 @@ export function versionOf (registry: Registry): number[] {
 export function versionAtLeast (registry: Registry, major: number, minor: number, patch: number): boolean {
   const [a = 0, b = 0, c = 0] = versionOf(registry)
   return a !== major ? a > major : (b !== minor ? b > minor : c >= patch)
+}
+
+// A rule that depends on the client's version: its name, what it does, and the first version it holds for. Bedrock's
+// rules change within a major version (1.26.10 and 1.26.20 differ), so a feature is keyed on the full version.
+export interface Feature { name: string, description: string, since: string }
+
+// How far back a Levitation packet takes effect at most before 1.26.51.
+const LEVITATION_REWIND_REACH = 4
+
+// The Bedrock features (features.json beside this file).
+export const FEATURES: readonly Feature[] = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, 'features.json'), 'utf8'))
+
+// Whether the registry's version has the named feature (an unknown name: never).
+export function supportFeature (registry: Registry, name: string): boolean {
+  const feature = FEATURES.find(entry => entry.name === name)
+  if (!feature) return false
+  const [major, minor, patch] = feature.since.split('.').map(Number) as [number, number, number]
+  return versionAtLeast(registry, major, minor, patch)
 }
 
 // The default tunables of a Bedrock player.
@@ -84,14 +104,20 @@ export interface BedrockPhysics extends Settings {
   playerAuthInput (entity: Player): Record<string, unknown>
   setMovementAttribute (entity: Player, attribute: { base: number, current?: number, sprintStartedSince?: boolean }): void
   handleTeleport (entity: Player, teleport: Teleport): void
+  // how far back a Levitation packet takes effect at most (before 1.26.51: 4 ticks), none where there is no limit
+  levitationRewindReach: number | undefined
+  // the player placed alive at `at` (the eye position) by the server's respawn
+  respawn (entity: Player, at: Vec3Like): void
+  // the player moved to `at` (the feet position) in another dimension, at rest
+  changeDimension (entity: Player, at: Vec3Like): void
   applyCorrection (entity: Player, correction: MoveCorrection): void
   applyMotion (entity: Player, motion: Vec3Like): void
   setActorFlags (entity: Player, flags: ActorFlags): void
   senseLiquids (entity: Player, world: World): LiquidSense
   adjustPositionHeight (pos: Vec3Like): void
-  // the rider leaves its vehicle (the dismount button, or the server taking it off: `byRider` false): placed at the
-  // dismount spot
-  dismount (entity: Player, world?: World, byRider?: boolean): void
+  // the rider leaves its vehicle (the dismount button, or the server taking it off: `byRider` false; `unlinked`: by
+  // the server's link removal): placed at the dismount spot
+  dismount (entity: Player, world?: World, byRider?: boolean, alpha?: number, unlinked?: boolean): void
 }
 
 // The box the coming tick senses liquids with: the kept box when current (resized to the pose height), else one built
@@ -111,22 +137,24 @@ function sensingBox (entity: Player, settings: Settings): Box {
 // own fields; the methods simulate a tick and apply the server's movement packets.
 export function Physics (registry: Registry, world: World): BedrockPhysics {
   const settings = defaultSettings()
-  // from 1.26.20: the scalar sine / cosine routines, and the slow-landing rule of the slime bounce with its gravity
-  // correction
-  const modernRules = versionAtLeast(registry, 1, 26, 20)
-  const trig = modernRules ? scalar : paired
+  const trig = supportFeature(registry, 'scalarTrig') ? scalar : paired
+  const bounceCorrection = supportFeature(registry, 'landingBounceCorrection')
+  const scaffoldingClimbFlag = supportFeature(registry, 'scaffoldingClimbFlag')
   // `settings` is the physics object itself, so a caller's change to a tunable reaches the tick
   const physics = settings as BedrockPhysics
-  const ctxFor = (w: World): Ctx => ({ settings: physics, trig, bounceCorrection: modernRules, world: w })
+  const ctxFor = (w: World): Ctx => ({ settings: physics, trig, bounceCorrection, scaffoldingClimbFlag, world: w })
 
   physics.simulatePlayer = (entity, w) => simulatePlayer(ctxFor(w), entity)
-  physics.dismount = (entity, w = world, byRider = true) => dismount(ctxFor(w), entity, byRider)
+  physics.dismount = (entity, w = world, byRider = true, alpha, unlinked = false) => dismount(ctxFor(w), entity, byRider, alpha, unlinked)
   physics.playerAuthInput = (entity) => buildPlayerAuthInput(entity, physics.eyeHeight)
   physics.setMovementAttribute = (entity, attribute) => setMovementAttribute(entity, physics, attribute)
   physics.handleTeleport = (entity, teleport) => handleTeleport(entity, teleport, physics.eyeHeight)
+  physics.respawn = (entity, at) => respawnAt(entity, at, physics.eyeHeight)
+  physics.changeDimension = (entity, at) => changeDimensionTo(entity, at)
   physics.applyCorrection = (entity, correction) => applyCorrection(entity, correction, physics.eyeHeight)
   physics.setActorFlags = (entity, flags) => setActorFlags(entity, flags)
   physics.applyMotion = (entity, motion) => applyMotion(entity, motion)
+  physics.levitationRewindReach = supportFeature(registry, 'levitationFullRewind') ? undefined : LEVITATION_REWIND_REACH
   // the liquid state of the coming tick, for a caller deciding its inputs on it
   physics.senseLiquids = (entity, w) => senseLiquids(w, sensingBox(entity, physics))
   // drops the position onto the ground below it (up to one block)

@@ -59,6 +59,8 @@ export function blockShapes (block: Block | null | undefined): Shape[] {
 export interface Mover {
   aabb: BoxLike
   descend: boolean
+  // descending through powder snow (the previous tick's sneak over it), where not given the move's own sneak
+  descendSnow?: boolean | undefined
   leatherBoots?: boolean | undefined
   fallDistance?: number | undefined
 }
@@ -70,7 +72,7 @@ const POWDER_SNOW_TOP_TOLERANCE = f(-1.1920929e-7)
 const POWDER_SNOW_FALL = 2.5
 const POWDER_SNOW_LANDING: Shape[] = [[0, 0, 0, 1, f(0.9), 1]]
 export function powderSnowShapes (mover: Mover, y: number): Shape[] {
-  if (f(f(y + 1) + POWDER_SNOW_TOP_TOLERANCE) > mover.aabb.minY || mover.descend) return NO_SHAPE
+  if (f(f(y + 1) + POWDER_SNOW_TOP_TOLERANCE) > mover.aabb.minY || (mover.descendSnow ?? mover.descend)) return NO_SHAPE
   if (mover.fallDistance! > POWDER_SNOW_FALL) return POWDER_SNOW_LANDING
   return mover.leatherBoots ? FULL_BLOCK : NO_SHAPE
 }
@@ -154,29 +156,6 @@ export function collisionBoxes (world: World, query: BoxLike, mover?: Mover): Bo
     if (box.intersects(query)) boxes.push(box)
   }
   return boxes
-}
-
-// The block the box stands on: the one whose collision shape reaches highest in the thin slab under the feet, or the
-// cell at the feet when nothing collides there.
-export function standingOnBlock (world: World, aabb: BoxLike, pos: { x: number, z: number }): Block | null | undefined {
-  const probe = new Box(aabb.minX, aabb.minY - 0.01, aabb.minZ, aabb.maxX, aabb.minY, aabb.maxZ)
-  let tallest: Block | null | undefined = null
-  let top = -Infinity
-  for (let y = Math.floor(probe.minY) - 1; y <= Math.floor(probe.maxY); y++) {
-    for (let z = Math.floor(probe.minZ); z <= Math.floor(probe.maxZ); z++) {
-      for (let x = Math.floor(probe.minX); x <= Math.floor(probe.maxX); x++) {
-        const block = blockAt(world, x, y, z)
-        for (const shape of blockShapes(block)) {
-          const box = new Box(shape[0], shape[1], shape[2], shape[3], shape[4], shape[5]).offset(x, y, z)
-          if (box.intersects(probe) && box.maxY > top) {
-            top = box.maxY
-            tallest = block
-          }
-        }
-      }
-    }
-  }
-  return tallest || blockAt(world, pos.x, aabb.minY, pos.z)
 }
 
 // The union of a block's collision boxes in world coordinates, or null when it has none.

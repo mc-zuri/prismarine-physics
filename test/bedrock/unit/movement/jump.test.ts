@@ -11,6 +11,7 @@ describe('bedrock movement/jump', () => {
     assert.strictEqual(climbSpeed('ladder'), LADDER_CLIMB_SPEED)
     assert.strictEqual(climbSpeed('vine'), f(0.2))
     assert.strictEqual(climbSpeed('scaffolding'), SCAFFOLDING_CLIMB_SPEED)
+    assert.strictEqual(climbSpeed('powder_snow'), SCAFFOLDING_CLIMB_SPEED, 'powder snow is climbed as scaffolding')
   })
 
   it('sinks 0.04 in water on the sneak key or the slow descend, not while flying', () => {

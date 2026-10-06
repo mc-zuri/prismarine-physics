@@ -11,7 +11,7 @@ import { setSprintBoost } from '../movement/travel.ts'
 import type { Ctx, Simulated } from '../types.ts'
 import { blockAt, blockName, collisionBoxes } from '../world/blocks.ts'
 import { climbableAt } from '../world/climbables.ts'
-import { pointInWater } from '../world/liquids.ts'
+import { isLavaName, isWaterName, pointInWater } from '../world/liquids.ts'
 import type { TickState } from './state.ts'
 
 // Cooks the control state into the tick's input.
@@ -24,7 +24,7 @@ export function readInput (entity: Simulated, tick: TickState): void {
     sneaking: !!st.sneaking,
     crawling: !!st.crawling,
     swiftSneak: entity.swiftSneak
-  })
+  }, st.input)
   if (entity.usingItem && !entity.vehicle) input.move = usingItemMove(input.move)
   st.keys = input.keys
   st.input = input
@@ -38,6 +38,8 @@ export function decideSprint (ctx: Ctx, entity: Simulated, tick: TickState): Spr
   st.actions = new Set()
   if (entity.itemUseStarted) st.actions.add('startUsingItem')
   entity.itemUseStarted = false
+  if (entity.missedSwing) st.actions.add('missedSwing')
+  entity.missedSwing = false
   tickTriggerTimers(st)
   const request = sprintTrigger(st, {
     move: st.input!.move,
@@ -51,13 +53,31 @@ export function decideSprint (ctx: Ctx, entity: Simulated, tick: TickState): Spr
     flying: tick.flying,
     swimming: !!st.swimming,
     pos: entity.pos,
-    touch: false
+    touch: st.input!.inputMode === 'touch'
   })
   if (request.start) setSprintBoost(entity, ctx.settings, true)
   if (request.stop) setSprintBoost(entity, ctx.settings, false)
   tick.sprinting = !!st.sprinting
   st.jumpingFlag = (st.input!.jumping || st.keys!.ascendBlock) && !tick.flying
   return request
+}
+
+// A gamepad holding the sneak toggle over scaffolding (the block below the feet): from the sixth tick held, the sneak
+// key and the sneaking flag are set; let go after six ticks or more, both are cleared.
+const SCAFFOLD_HOLD_TO_SET = 5
+const SCAFFOLD_HOLD_TO_CLEAR = 6
+export function scaffoldingHold (entity: Simulated): void {
+  const st = entity.bedrock
+  const input = st.input!
+  if (input.inputMode !== 'game_pad') return
+  const held = st.scaffoldDropHeld || 0
+  if (input.keys.sneakToggleDown && st.overDescendable) {
+    st.scaffoldDropHeld = held + 1
+    if (held >= SCAFFOLD_HOLD_TO_SET) input.keys.sneakDown = input.sneaking = true
+    return
+  }
+  if (held >= SCAFFOLD_HOLD_TO_CLEAR) input.keys.sneakDown = input.sneaking = false
+  st.scaffoldDropHeld = 0
 }
 
 // The room the box has to stand, sneak and crawl.
@@ -89,6 +109,14 @@ export function decideFlight (ctx: Ctx, entity: Simulated, tick: TickState): { f
   return { flyIntent: tick.flyIntent, glideIntent }
 }
 
+// The standing eye height, and the eye's drop from it the pose asks for: to 0.4 lying down (swimming, crawling,
+// gliding or spinning), by 0.35 sneaking.
+const STAND_EYE = f(1.62001)
+function eyeOffsetTarget (st: Simulated['bedrock']): number {
+  if (st.swimming || st.crawling || st.gliding || st.spinning) return f(STAND_EYE - f(0.40000001))
+  return st.sneaking ? f(0.35) : 0
+}
+
 // The pose of the tick, in order: the swim pose amount steps from the previous tick's flags; the swim starts or stops;
 // the fly and glide triggers run; the sneak / crawl / swim intent is decided and applied to the flags.
 export function decidePose (ctx: Ctx, entity: Simulated, tick: TickState, sprint: SprintRequest): void {
@@ -96,7 +124,9 @@ export function decidePose (ctx: Ctx, entity: Simulated, tick: TickState, sprint
   const pos = entity.pos
   const actions = st.actions!
   const swimming = !!st.swimming
-  const eyeY = swimming ? pos.y + 0.4 : pos.y + 1.62
+  if (st.eyeOffset === undefined) st.eyeOffset = st.eyeOffsetPrev = eyeOffsetTarget(st)
+  // the eye the checks read: the standing eye less its drop as it stood before the last easing
+  const eyeY = f(f(pos.y + STAND_EYE) - st.eyeOffsetPrev!)
   // the eye in water as breathing reads it: the block at the eye itself (a waterlogged plant's water does not count)
   const eyeInWater = pointInWater(ctx.world, pos.x, eyeY, pos.z, false)
 
@@ -106,7 +136,8 @@ export function decidePose (ctx: Ctx, entity: Simulated, tick: TickState, sprint
   const room = poseRoom(ctx, entity)
   const aabb = st.aabb!
   const centreY = f(f(f(aabb.maxY - aabb.minY) * 0.5) + aabb.minY)
-  const swim = swimAction({
+  // the water the swim weighs is the one the last move left, and a teleport tick makes none: it starts or stops no swim
+  const swim = !st.teleported && swimAction({
     swimming,
     eyeInWater,
     flying: tick.flying,
@@ -134,10 +165,17 @@ export function decidePose (ctx: Ctx, entity: Simulated, tick: TickState, sprint
     wasInWater: entity.isInWater,
     move: st.input!.move
   })
+  // a teleport tick stops no crawl (one without the room to stand still starts)
+  if (st.teleported && changes.crawl === false) delete changes.crawl
   raisePoseActions(st, changes, actions)
   applyPoseActions(st, actions)
 
   st.headInWater = eyeInWater
+  // the eye eases toward the pose now decided
+  st.eyeOffsetPrev = st.eyeOffset
+  st.eyeOffset = f(f(f(eyeOffsetTarget(st) - st.eyeOffset) * 0.5) + st.eyeOffset)
+  const breathing = blockName(blockAt(ctx.world, pos.x, eyeY, pos.z))
+  st.breathingInLiquid = isWaterName(breathing) || isLavaName(breathing)
   st.view = view
   entity.isSwimming = !!st.swimming
   tick.sneaking = !!st.sneaking

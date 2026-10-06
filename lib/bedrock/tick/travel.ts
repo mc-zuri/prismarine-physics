@@ -6,9 +6,9 @@ import { glide } from '../movement/glide.ts'
 import { climbSpeed, jumpReduced, jumpVelocity, liquidJump, sprintJumpBoost, swimPoseHold, waterSink } from '../movement/jump.ts'
 import { boostedWaterSpeed } from '../movement/dolphin.ts'
 import { fireworkBoost, GLIDE_BOOST_RATE } from '../movement/movement-effects.ts'
-import { depthStriderLevel, depthStriderSpeed, frictionInfluencedSpeed, movementSpeed, moveRelative, walkSpeed, walkSpeedParts } from '../movement/travel.ts'
+import { depthStriderLevel, depthStriderSpeed, frictionInfluencedSpeed, LAVA_MOVEMENT_ATTRIBUTE, liquidSpeed, movementSpeed, moveRelative, UNDERWATER_MOVEMENT_ATTRIBUTE, walkSpeed, walkSpeedParts } from '../movement/travel.ts'
 import type { Ctx, Simulated } from '../types.ts'
-import { blockAt, blockName, standingOnBlock } from '../world/blocks.ts'
+import { blockAt, blockName } from '../world/blocks.ts'
 import type { TickState } from './state.ts'
 
 const SWIM_STEER_STEEP = f(-0.2)
@@ -52,9 +52,9 @@ export function flightControls (ctx: Ctx, entity: Simulated): void {
   st.flightFrictionOverride = control.override
 }
 
-// A jump from the ground, when the cooldown allows: the cooldown restarts, then -- unless the player stands on powder
-// snow -- the impulse (only ever raising the vertical velocity), the start-jumping action, and, while sprinting, the
-// push along the facing.
+// A jump from the ground, when the cooldown allows: the cooldown restarts, then the impulse (only ever raising the
+// vertical velocity), the start-jumping action, and, while sprinting, the push along the facing. Powder snow does not
+// stop it: a player on top of it in leather boots jumps, and so does one on the box it lands on after a long fall.
 export function jumpFromGround (ctx: Ctx, entity: Simulated, tick: TickState): void {
   const st = entity.bedrock
   const vel = entity.vel
@@ -62,7 +62,6 @@ export function jumpFromGround (ctx: Ctx, entity: Simulated, tick: TickState): v
   const feet = blockAt(ctx.world, entity.pos.x, aabb.minY, entity.pos.z)
   const below = blockAt(ctx.world, entity.pos.x, aabb.minY - 1, entity.pos.z)
   entity.jumpTicks = ctx.settings.autojumpCooldown
-  if (blockName(standingOnBlock(ctx.world, aabb, entity.pos)) === 'powder_snow') return
   const jumpY = jumpVelocity(ctx.settings.jumpVelocity, entity.jumpBoost, jumpReduced(feet, below))
   if (jumpY > vel.y) vel.y = jumpY
   st.actions!.add('startJumping')
@@ -71,7 +70,7 @@ export function jumpFromGround (ctx: Ctx, entity: Simulated, tick: TickState): v
 
 // The jump of the tick, in the client's order: a held jump in the swim pose holds still; on a ladder or vine it climbs
 // at 0.2 (in water too: the sink on the sneak key runs first and the climb replaces it), and a fresh press in
-// scaffolding climbs; in a liquid it rises (and the sneak key sinks in water); on the ground it jumps.
+// scaffolding climbs, each climb restarting the jump cooldown; in a liquid it rises (and the sneak key sinks in water); on the ground it jumps.
 export function jump (ctx: Ctx, entity: Simulated, tick: TickState): void {
   const st = entity.bedrock
   const vel = entity.vel
@@ -84,6 +83,8 @@ export function jump (ctx: Ctx, entity: Simulated, tick: TickState): void {
     if (st.wasInWater) vel.y = waterSink(vel.y, sink)
     if (st.climbable !== 'scaffolding') vel.y = climbSpeed(st.climbable)
     else if (pressed) vel.y = Math.max(vel.y, climbSpeed(st.climbable))
+    // a climb on the jump key restarts the jump cooldown: stepping off the top, the next jump waits for it
+    entity.jumpTicks = ctx.settings.autojumpCooldown
     return
   }
   const inLiquid = liquidJump(vel.y, {
@@ -101,11 +102,12 @@ export function jump (ctx: Ctx, entity: Simulated, tick: TickState): void {
     vel.y = inLiquid
     return
   }
-  if (held && !st.climbable && entity.onGround && !entity.jumpTicks) jumpFromGround(ctx, entity, tick)
+  if (held && !st.climbable && !tick.ascendJumped && entity.onGround && !entity.jumpTicks) jumpFromGround(ctx, entity, tick)
 }
 
 // The travel speed for the travel type: flying, or on foot (the ground's friction -- soul sand's only without Soul
-// Speed --, the air, a liquid), with Depth Strider in water, or a dolphin's boost swimming.
+// Speed --, the air, a liquid: water's movement attribute, else lava's), with Depth Strider in water, or a dolphin's
+// boost swimming.
 export function travelSpeed (ctx: Ctx, entity: Simulated, tick: TickState): number {
   if (tick.flying) return flyingSpeed(typeof entity.flySpeed === 'number' ? entity.flySpeed : ctx.settings.flySpeed, tick.sprinting)
   const walk = walkSpeed(entity, ctx.settings)
@@ -118,6 +120,7 @@ export function travelSpeed (ctx: Ctx, entity: Simulated, tick: TickState): numb
     sprinting: tick.sprinting,
     inWater: entity.isInWater,
     inLava: entity.isInLava,
+    liquidSpeed: liquidSpeed(entity, entity.isInWater ? UNDERWATER_MOVEMENT_ATTRIBUTE : LAVA_MOVEMENT_ATTRIBUTE),
     onGround: tick.startedOnGround,
     slipperiness: tick.groundFriction,
     soulSand: blockName(tick.groundBlock) === 'soul_sand' && !(entity.soulSpeed! > 0)
@@ -134,7 +137,8 @@ export function swimSteering (entity: Simulated): void {
   if (!st.swimming || !entity.isInWater || st.input!.jumping || entity.jumpQueued) return
   const view = st.view!
   const rate = view.y < SWIM_STEER_STEEP ? SWIM_STEER_FAST : SWIM_STEER
-  entity.vel.y = view.y <= 0 || st.headInWater ? f(entity.vel.y + f(f(view.y - entity.vel.y) * rate)) : 0
+  // looking up it rises only with a liquid block at the eye (at any level of it); else it holds its height
+  entity.vel.y = view.y <= 0 || st.breathingInLiquid ? f(entity.vel.y + f(f(view.y - entity.vel.y) * rate)) : 0
 }
 
 // The input pushed along the yaw at the travel speed, then the swim steering.

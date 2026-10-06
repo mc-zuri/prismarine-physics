@@ -11,12 +11,12 @@ const REDUCED_JUMP = f(0.60000002)
 const JUMP_REDUCING_BLOCKS = new Set(['honey_block', 'ladder', 'vine', 'cave_vines', 'twisting_vines', 'weeping_vines'])
 // The climb speed on ladders and vines.
 export const LADDER_CLIMB_SPEED = f(0.2)
-// The climb and descend speed in scaffolding.
+// The climb and descend speed in scaffolding, and the climb in powder snow in leather boots.
 export const SCAFFOLDING_CLIMB_SPEED = f(0.15)
 
 // The climb speed of a climbable.
 export function climbSpeed (kind: ClimbableKind): number {
-  return kind === 'scaffolding' ? SCAFFOLDING_CLIMB_SPEED : LADDER_CLIMB_SPEED
+  return kind === 'scaffolding' || kind === 'powder_snow' ? SCAFFOLDING_CLIMB_SPEED : LADDER_CLIMB_SPEED
 }
 
 // Sneaking in water sinks 0.04 per tick (the sneak key or the slow descend), unless flying.

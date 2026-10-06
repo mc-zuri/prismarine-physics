@@ -122,10 +122,41 @@ function precookedMove (move: Partial<XZ>): XZ {
   return { x, z }
 }
 
+// The keys an input clear leaves: the sneak toggle, the slow fly keys and the six edge bits, and the sneak key where
+// the client persists it.
+const KEPT_BY_CLEAR = ['sneakToggleDown', 'wantDownSlow', 'wantUpSlow', ...EDGE_KEYS] as const
+
+// A screen open: the input of the tick cleared as the client clears it. No move and no want up, want down or jumping;
+// the sneaking and sprinting of the previous tick stand, as nothing decides them again.
+function clearedInput (keys: Keys, persistSneak: boolean, inputMode: string, previous: CookedInput | undefined): CookedInput {
+  const kept = {} as Keys
+  for (const key of LEVEL_KEYS) kept[key] = false
+  for (const key of KEPT_BY_CLEAR) kept[key] = keys[key]
+  kept.sneakDown = persistSneak && keys.sneakDown
+  const zero = { x: 0, z: 0 }
+  return {
+    keys: kept,
+    move: zero,
+    rawMove: zero,
+    analog: zero,
+    direction: zero,
+    sprinting: !!previous?.sprinting,
+    sneaking: !!previous?.sneaking,
+    jumping: false,
+    wantUp: false,
+    wantDown: false,
+    persistSneak,
+    inputMode
+  }
+}
+
 // One tick of input: the keys, the move vector (the packet's move_vector), the raw direction (raw_move_vector), the
-// stick, and the derived flags.
-export function cook (control: Control, previousKeys: RawKeys | undefined, pose: SneakPose): CookedInput {
+// stick, and the derived flags. `previous` is the input of the tick before, which a screen's clear keeps flags from.
+export function cook (control: Control, previousKeys: RawKeys | undefined, pose: SneakPose, previous?: CookedInput): CookedInput {
   const keys = readKeys(control, previousKeys)
+  const persistSneak = !!control.persistSneak
+  const inputMode = control.inputMode ?? 'mouse'
+  if (control.screen) return clearedInput(keys, persistSneak, inputMode, previous)
   const stick = control.analogMoveVector
   const analog = stick ? { x: f(stick.x || 0), z: f(stick.z || 0) } : { x: 0, z: 0 }
   const rawMove = direction(keys, analog)
@@ -140,7 +171,9 @@ export function cook (control: Control, previousKeys: RawKeys | undefined, pose:
     sneaking: keys.sneakDown || keys.descend,
     jumping: keys.jumpDown,
     wantUp: keys.jumpDown || keys.ascend,
-    wantDown: keys.sneakDown || keys.descend
+    wantDown: keys.sneakDown || keys.descend,
+    persistSneak,
+    inputMode
   }
 }
 

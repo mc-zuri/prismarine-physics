@@ -3379,6 +3379,7 @@ const PLAYER_STATE_DEFAULTS = {
   spinHits: 0,
   fireworkUsed: false,
   itemUseStarted: false,
+  missedSwing: false,
   jumpBoost: 0,
   speed: 0,
   slowness: 0,
@@ -3508,6 +3509,8 @@ function readBot (state, bot, control) {
   state.fireworkUsed = !!bot.fireworkUsed
   // An item use the bot started this tick (consumed by the tick): the packet's start_using_item.
   state.itemUseStarted = !!bot.itemUseStarted
+  // A swing at nothing this tick (consumed by the tick): the packet's missed_swing.
+  state.missedSwing = !!bot.missedSwing
   // The vehicle the bot rides (the Bedrock engine's, kept by mineflayer's vehicles plugin as bot.bedrockVehicle;
   // the Java engine's, kept by mineflayer's physics plugin as bot.javaVehicle).
   state.vehicle = bot.bedrockVehicle || bot.javaVehicle || undefined
@@ -3606,6 +3609,7 @@ function applyToBot (state, bot) {
   bot.spinHits = state.spinHits
   bot.fireworkUsed = state.fireworkUsed
   bot.itemUseStarted = state.itemUseStarted
+  bot.missedSwing = state.missedSwing
   if (bot.bedrockVehicle) bot.bedrockVehicle = state.vehicle
   if (bot.javaVehicle) bot.javaVehicle = state.vehicle
   // the rotation a tick turned (a boat's rider turns with it), where the bot keeps it in degrees

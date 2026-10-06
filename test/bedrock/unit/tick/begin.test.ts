@@ -97,6 +97,9 @@ describe('bedrock tick/begin', () => {
     assert.strictEqual(flyer.vel.x, 0)
     const lava = beginTick(ctx(worldOf({ '0,0,0': 'lava' })), player([0.5, 0, 0.5])).entity
     assert.deepStrictEqual([lava.isInWater, lava.isInLava], [false, true])
+    // a teleport tick keeps what the last move sensed, and is not pushed
+    const landed = beginTick(ctx(stream), player([2.5, 0, 0.5], { isInWater: false, bedrock: { teleported: true } })).entity
+    assert.deepStrictEqual([landed.isInWater, landed.vel.x], [false, 0])
   })
 
   it('does not jump-cool a released key, and keeps the cooldown while the queue holds jump', () => {

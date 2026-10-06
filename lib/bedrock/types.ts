@@ -35,6 +35,8 @@ export interface World {
   solidEntityBoxes? (query: BoxLike): BoxLike[]
   // whether a dolphin is in a box (Dolphin's Grace)
   dolphinsNear? (query: BoxLike): boolean
+  // whether the column at a position has loaded: a player teleported to one that has not waits there for it
+  loaded? (pos: Vec3Like): boolean
 }
 
 // The raw key bits beyond mineflayer's booleans, and the six jump / sneak edge bits (derived from the key levels when
@@ -80,6 +82,12 @@ export interface Control {
   raw?: RawKeys | undefined
   analogMoveVector?: Partial<XZ> | undefined
   moveVector?: Partial<XZ> | undefined
+  // the client keeps the sneak key held through an input clear (a gamepad's toggle sneak); the packet reports it
+  persistSneak?: boolean | undefined
+  // a screen is open (a menu, the inventory): the client clears the tick's input
+  screen?: boolean | undefined
+  // the input device the packet reports: 'mouse' (keyboard and mouse, the default), 'touch', 'game_pad'
+  inputMode?: string | undefined
 }
 
 // Every raw key bit of one tick, levels and edges.
@@ -98,6 +106,8 @@ export interface CookedInput {
   jumping: boolean
   wantUp: boolean
   wantDown: boolean
+  persistSneak: boolean
+  inputMode: string
 }
 
 // What a player climbs.
@@ -157,6 +167,12 @@ export interface BedrockState {
   // the swim pose amount (0..1), the eye under water, the look direction of the tick
   poseAmount?: number | undefined
   headInWater?: boolean | undefined
+  // the block at the eye is a liquid, whatever its level (what the swim steering reads)
+  breathingInLiquid?: boolean | undefined
+  // how far the eye sits below the standing eye height: eased half-way each tick toward the pose's, and read by the
+  // eye checks as it was before the last easing
+  eyeOffset?: number | undefined
+  eyeOffsetPrev?: number | undefined
   // how far the player has fallen since it last stood, swam, climbed or flew
   fallDistance?: number | undefined
   // the ticks until the next look for dolphins, and the boost one gave (ticks left; -1 without end)
@@ -169,10 +185,32 @@ export interface BedrockState {
 
   climbable?: ClimbableKind | null | undefined
   scaffoldDescend?: boolean | undefined
+  // the ticks a gamepad has held the sneak toggle over scaffolding
+  scaffoldDropHeld?: number | undefined
   wasInWater?: boolean | undefined
   wasInLava?: boolean | undefined
-  // a teleport was handled since the last tick
+  // a teleport was handled since the last tick; and one a rewind simulated through since (still reported handled, but
+  // the tick runs in full)
   teleported?: boolean | undefined
+  teleportSimulatedThrough?: boolean | undefined
+  // the actions ticks a rewind simulated again raised that they had not: reported with the next tick
+  // the climbable-block flag the server restated since the last tick (false: a scaffolding climb does not rise; true
+  // outside a climbable: a jump rises 0.15 instead)
+  ascendRestated?: boolean | undefined
+  scaffoldRestated?: boolean | undefined
+  // the climbable-block flag as the client's own check left it after the tick's move
+  ascendable?: boolean | undefined
+  // the same check of the layer under the feet (a block to descend through), and whether the player descends through
+  // powder snow this tick (the sneak of the tick before over it)
+  overDescendable?: boolean | undefined
+  descendingSnow?: boolean | undefined
+  carriedActions?: Set<string> | undefined
+  // left a vehicle it steered since the last tick (the tick's input was read in the seat)
+  leftSteeredVehicle?: boolean | undefined
+  // the teleport pending is a respawn's (it reports no handled teleport)
+  respawned?: boolean | undefined
+  // the rider jumped in a vehicle that does not take the jump: it asks to leave (the caller dismounts it)
+  leaveVehicle?: boolean | undefined
   // the flying ability as the client holds it (its own toggle), and the server's flag it last saw
   flying?: boolean | undefined
   serverFlying?: boolean | undefined
@@ -261,6 +299,8 @@ export interface Player {
   fireworkUsed?: boolean | undefined
   // an item use started this tick (consumed by the tick; `usingItem` holds while it lasts)
   itemUseStarted?: boolean | undefined
+  // a swing at nothing this tick (consumed by the tick): the packet's missed_swing
+  missedSwing?: boolean | undefined
   lastOnGround?: boolean | undefined
   bedrock?: BedrockState | undefined
 }
@@ -316,5 +356,7 @@ export interface Ctx {
   trig: Trig
   // from 1.26.20: a slow landing on slime does not bounce, and the landing tick's gravity is corrected for the bounce
   bounceCorrection: boolean
+  // from 1.26.20: a held jump in scaffolding climbs while the climbable-block flag the last move left is on
+  scaffoldingClimbFlag: boolean
   world: World
 }

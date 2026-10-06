@@ -2,24 +2,26 @@
 // file only fixes their order.
 import { mt19937NextFloat } from '../math/mt19937.ts'
 import { f } from '../math/float.ts'
+import { pitchOf, yawOf } from '../math/rotation.ts'
 import { closestSpaceReach, pushTowardsClosestSpace } from '../movement/closest-space.ts'
 import { nextFallDistance } from '../movement/fall-distance.ts'
 import { storePreviousInput } from '../movement/sprint.ts'
 import type { Ctx, Player, Simulated } from '../types.ts'
-import { senseLiquids } from '../world/liquids.ts'
+import { applyLiquidFlow, senseLiquids } from '../world/liquids.ts'
 import { collisionBoxes } from '../world/blocks.ts'
 import { slowdownBlocksIn } from '../world/slowdown-blocks.ts'
+import { ascendableAt } from '../world/climbables.ts'
 import { bubbleColumns, honeyBlocks, standOnSticky, velocityAfterMove } from './after-move.ts'
 import { beginTick } from './begin.ts'
 import { climbBeforeMove, climbOnPush, climbOutOfLiquid } from './climb.ts'
 import { dolphinBoost, tickMovementEffects } from './dolphin.ts'
-import { decidePose, decideSprint, readInput } from './intent.ts'
+import { decidePose, decideSprint, readInput, scaffoldingHold } from './intent.ts'
 import { requestMove, settleCollisions, slowDown, sweepMove } from './move.ts'
 import type { TickState } from './state.ts'
 import { spinAttack } from './spin.ts'
 import { takePose } from './take-pose.ts'
 import { flightControls, glideTick, isGliding, jump, travel, useFirework } from './travel.ts'
-import { seatPosition, simulateBoat } from './vehicle.ts'
+import { leavesOnJump, seatPosition, simulateBoat, simulateHorse } from './vehicle.ts'
 
 // The fall distance after the move, with the water sensed on the moved box.
 function trackFall (ctx: Ctx, entity: Simulated, tick: TickState): void {
@@ -63,8 +65,9 @@ function moveTowardsClosestSpace (ctx: Ctx, entity: Simulated, tick: TickState):
 }
 
 // A teleport tick ends after the jump: the travel, the move and what follows are skipped (the blocks the player is
-// in still act).
-function endTeleportTick (ctx: Ctx, entity: Simulated): void {
+// in still act). A respawn's still takes the fall: gravity and the air's drag, with no move.
+function endTeleportTick (ctx: Ctx, entity: Simulated, tick: TickState): void {
+  if (tick.respawned) entity.vel.y = f(f(entity.vel.y - f(ctx.settings.gravity)) * f(ctx.settings.airdrag))
   entity.jumpQueued = false
   insideBlocks(ctx, entity)
   endInput(entity)
@@ -81,7 +84,7 @@ function travelPhase (ctx: Ctx, entity: Simulated, tick: TickState): boolean {
     if (tick.flyIntent) flightControls(ctx, entity)
     if (!tick.flying) jump(ctx, entity, tick)
     if (tick.teleported) {
-      endTeleportTick(ctx, entity)
+      endTeleportTick(ctx, entity, tick)
       return false
     }
     travel(ctx, entity, tick)
@@ -99,12 +102,19 @@ function rideTick (ctx: Ctx, entity: Simulated): void {
   // on the first tick ridden the rider's input has not reached the boat yet: its paddles row with nothing pressed (each
   // still pulling half its last force)
   const input = entity.bedrock.riding ? { move: entity.bedrock.input!.move, up: !!entity.bedrock.keys!.up } : { move: entity.bedrock.input!.move, up: false, rowing: [false, false] as [boolean, boolean] }
-  if (vehicle.predicted) simulateBoat(ctx, vehicle, input, bigWaveRoll(entity))
+  if (vehicle.predicted && vehicle.kind.endsWith('boat')) simulateBoat(ctx, vehicle, input, bigWaveRoll(entity))
+  else if (vehicle.predicted) simulateHorse(ctx, vehicle, { move: entity.bedrock.input!.move, jump: !!entity.bedrock.input!.jumping, yaw: yawOf(entity), pitch: pitchOf(entity), jumpBoost: entity.jumpBoost })
   const seat = seatPosition(vehicle)
   entity.pos.set(seat.x, f(seat.y - f(ctx.settings.eyeHeight)), seat.z)
-  // the first tick ridden still reports the velocity the rider had; it stops from the next
-  if (entity.bedrock.riding) entity.vel.set(0, 0, 0)
+  // the first tick ridden still reports the velocity the rider had; from the next it stops, and flowing water around
+  // it pushes it again (which it keeps when it gets off)
+  if (entity.bedrock.riding) {
+    entity.vel.set(0, 0, 0)
+    applyLiquidFlow(ctx.world, entity.bedrock.aabb!, entity.vel)
+  }
   entity.bedrock.riding = true
+  // jumping in a vehicle that does not take the jump, the rider asks to leave it (the caller takes it off after the tick)
+  entity.bedrock.leaveVehicle = !!entity.bedrock.input!.jumping && leavesOnJump(vehicle)
   // the rider's own ground and collision flags stay as its last move left them: no move of its own changes them
   entity.jumpQueued = false
   // the one-tick inputs are spent riding (they would otherwise act on the first tick after the dismount)
@@ -128,12 +138,14 @@ export function simulatePlayer (ctx: Ctx, player: Player): Player {
   const { tick, entity } = beginTick(ctx, player)
   readInput(entity, tick)
   if (entity.vehicle) {
-    entity.bedrock.actions = new Set()
+    entity.bedrock.actions = new Set(entity.missedSwing ? ['missedSwing'] : [])
+    entity.missedSwing = false
     rideTick(ctx, entity)
     return entity
   }
   entity.bedrock.riding = false
   const sprint = decideSprint(ctx, entity, tick)
+  scaffoldingHold(entity)
   spinAttack(entity, tick)
   decidePose(ctx, entity, tick, sprint)
   dolphinBoost(ctx, entity, tick)
@@ -162,6 +174,9 @@ export function simulatePlayer (ctx: Ctx, player: Player): Player {
   moveTowardsClosestSpace(ctx, entity, tick)
 
   entity.bedrock.pendingSlowdowns = entity.gameMode === 'spectator' ? new Set() : slowdownBlocksIn(ctx.world, entity.bedrock.aabb!)
+  // the climbable-block flag the client's own check sets after the move (what a restatement is weighed against)
+  entity.bedrock.ascendable = ascendableAt(ctx.world, entity.bedrock.aabb!, !!entity.leatherBoots)
+  entity.bedrock.overDescendable = ascendableAt(ctx.world, entity.bedrock.aabb!, !!entity.leatherBoots, Math.floor(f(entity.bedrock.aabb!.minY + -1)))
   endInput(entity)
   standOnSticky(ctx, entity, tick)
   tickMovementEffects(entity)

@@ -41,7 +41,7 @@ export function clientFlying (st: BedrockState, serverFlying: boolean): boolean 
 
 // Begins a tick: float32 velocity, the jump cooldown, the box, the ground block and its friction, the flying ability
 // and fly intent (the caller's own toggle when it tracks one, else the ability), and the liquids on the box -- with
-// the flowing water's push.
+// the flowing water's push. A teleport tick makes no move, and keeps the liquids the last move sensed.
 export function beginTick (ctx: Ctx, entity: Player): { tick: TickState, entity: Simulated } {
   const control = entity.control || {}
   const tick = newTick(control)
@@ -61,6 +61,7 @@ export function beginTick (ctx: Ctx, entity: Player): { tick: TickState, entity:
   syncGlideFlag(simulated)
   st.flightFrictionOverride = undefined
 
+  if (st.teleported) return { tick, entity: simulated }
   const liquids = senseLiquids(ctx.world, aabb)
   entity.isInWater = liquids.isInWater
   entity.isInLava = liquids.isInLava
