@@ -41,9 +41,16 @@ function course () {
 
 const exact = v => new Vec3(v.x, v.y, v.z)
 
+// a mineflayer inventory's slots: the chest's an elytra when worn
+function slots (elytra) {
+  const list = new Array(46).fill(null)
+  if (elytra) list[6] = { name: 'elytra', count: 1 }
+  return list
+}
+
 // The bot as the gameplay client's pathfinder adapter shows the live player: exact copies, never the engine's own
 // objects
-function botOf (live, frame, { gameMode, mayFly }) {
+function botOf (live, frame, { gameMode, mayFly, elytra }) {
   return {
     registry,
     entity: {
@@ -64,15 +71,16 @@ function botOf (live, frame, { gameMode, mayFly }) {
     bedrockPhysicsState: live.bedrock === undefined ? undefined : cloneValue(live.bedrock),
     jumpTicks: live.jumpTicks ?? 0,
     jumpQueued: live.jumpQueued ?? false,
-    fireworkRocketDuration: 0,
+    fireworkRocketDuration: live.fireworkRocketDuration ?? 0,
+    fireworkUsed: !!frame.fireworkUsed,
     abilities: { flags: { mayFly, flying: !!live.flying } },
     food: 20,
-    inventory: { slots: new Array(46).fill(null) },
+    inventory: { slots: slots(elytra) },
     game: { gameMode }
   }
 }
 
-function livePlayer ({ gameMode, mayFly }) {
+function livePlayer ({ gameMode, mayFly, elytra }) {
   const bot = {
     registry,
     entity: { position: new Vec3(0.5, FLOOR_Y, 0.5), velocity: new Vec3(0, 0, 0), onGround: true, yaw: EAST, pitch: 0, effects: {}, attributes: {} },
@@ -80,7 +88,7 @@ function livePlayer ({ gameMode, mayFly }) {
     jumpQueued: false,
     fireworkRocketDuration: 0,
     abilities: { flags: { mayFly } },
-    inventory: { slots: new Array(46).fill(null) },
+    inventory: { slots: slots(elytra) },
     game: { gameMode }
   }
   return new PlayerState(bot, Object.fromEntries(KEYS.map(k => [k, false])))
@@ -99,6 +107,8 @@ function snapshot (state) {
     jumpTicks: state.jumpTicks,
     jumpQueued: state.jumpQueued,
     flying: !!state.bedrock?.flying,
+    elytraFlying: !!state.elytraFlying,
+    fireworkRocketDuration: state.fireworkRocketDuration ?? 0,
     bedrock: cloneValue(state.bedrock)
   }
 }
@@ -111,14 +121,15 @@ function run (script, options, setup) {
   session.handlePacket('start_game', { runtime_entity_id: 1n })
   const live = livePlayer(options)
   if (setup) setup(live)
-  const seen = { water: 0, air: 0, swimming: 0, sneaking: 0, flying: 0, maxY: live.pos.y, minY: live.pos.y }
+  const seen = { water: 0, air: 0, swimming: 0, sneaking: 0, flying: 0, gliding: 0, boosted: 0, maxY: live.pos.y, minY: live.pos.y }
   let t = 0
   for (const segment of script) {
     for (let i = 0; i < segment.ticks; i++) {
       t++
       if (segment.before) segment.before(i, live, world)
       const control = Object.fromEntries(KEYS.map(k => [k, !!segment.keys?.[k]]))
-      const frame = { t, control, yaw: segment.yaw ?? EAST, pitch: segment.pitch ?? 0 }
+      // (a firework rocket used on the segment's first tick)
+      const frame = { t, control, yaw: segment.yaw ?? EAST, pitch: segment.pitch ?? 0, fireworkUsed: !!segment.firework && i === 0 }
       const predicted = physics.simulatePlayer(new PlayerState(botOf(live, frame, options), { ...control }), world)
       const expected = snapshot(predicted)
       session.tick(live, frame)
@@ -128,6 +139,8 @@ function run (script, options, setup) {
       if (live.bedrock?.swimming) seen.swimming++
       if (live.bedrock?.sneaking) seen.sneaking++
       if (live.bedrock?.flying) seen.flying++
+      if (live.elytraFlying) seen.gliding++
+      if (live.fireworkRocketDuration > 0) seen.boosted++
       seen.maxY = Math.max(seen.maxY, live.pos.y)
       seen.minY = Math.min(seen.minY, live.pos.y)
     }
@@ -205,5 +218,22 @@ describe('bedrock predictions', function () {
       { name: 'fly down', ticks: 15, keys: { sneak: true } }
     ], { gameMode: 'creative', mayFly: true })
     assert.ok(seen.flying > 30, `flew ${seen.flying} ticks`)
+  })
+
+  it('a tick predicted while a player wearing an elytra glides, boosted by a firework rocket, and lands is the tick', function () {
+    const { seen, live } = run([
+      { name: 'fall', ticks: 6 },
+      { name: 'jump in the air', ticks: 1, keys: { jump: true } },
+      { name: 'glide', ticks: 15, pitch: 10 },
+      { name: 'firework rocket', ticks: 15, pitch: -20, firework: true },
+      { name: 'glide down', ticks: 120, pitch: 30 }
+    ], { gameMode: 'survival', mayFly: false, elytra: true }, live => {
+      live.pos.y += 60
+      live.onGround = false
+    })
+    assert.ok(seen.gliding > 30, `glided ${seen.gliding} ticks`)
+    assert.ok(seen.boosted > 5, `boosted ${seen.boosted} ticks`)
+    // (on the ground, or in the pool on the way)
+    assert.ok((live.onGround || live.isInWater) && !live.elytraFlying, `landed: ${live.pos}`)
   })
 })
