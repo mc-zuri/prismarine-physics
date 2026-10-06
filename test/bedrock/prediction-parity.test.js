@@ -6,6 +6,7 @@
 const assert = require('assert')
 const { Physics, PlayerState, BedrockSession } = require('prismarine-physics')
 const { cloneValue } = require('../../lib/bedrock/network/rewind.ts')
+const { mt19937FromSeed } = require('../../lib/bedrock/math/mt19937.ts')
 const { Vec3 } = require('vec3')
 
 const registry = require('prismarine-registry')('bedrock_1.26.45')
@@ -73,6 +74,9 @@ function botOf (live, frame, { gameMode, mayFly, elytra }) {
     jumpQueued: live.jumpQueued ?? false,
     fireworkRocketDuration: live.fireworkRocketDuration ?? 0,
     fireworkUsed: !!frame.fireworkUsed,
+    // the boat ridden, and the client's random numbers its waves draw from: copies
+    bedrockVehicle: live.vehicle === undefined ? undefined : cloneValue(live.vehicle),
+    bedrockRandomState: live.randomState === undefined ? undefined : new Uint8Array(live.randomState),
     abilities: { flags: { mayFly, flying: !!live.flying } },
     food: 20,
     inventory: { slots: slots(elytra) },
@@ -109,6 +113,8 @@ function snapshot (state) {
     flying: !!state.bedrock?.flying,
     elytraFlying: !!state.elytraFlying,
     fireworkRocketDuration: state.fireworkRocketDuration ?? 0,
+    vehicle: cloneValue(state.vehicle),
+    randomState: state.randomState === undefined ? undefined : [...state.randomState],
     bedrock: cloneValue(state.bedrock)
   }
 }
@@ -218,6 +224,24 @@ describe('bedrock predictions', function () {
       { name: 'fly down', ticks: 15, keys: { sneak: true } }
     ], { gameMode: 'creative', mayFly: true })
     assert.ok(seen.flying > 30, `flew ${seen.flying} ticks`)
+  })
+
+  it('a tick predicted while a player drives a boat on the pool is the tick', function () {
+    const start = { x: 14.5, z: 0.5 }
+    const { live } = run([
+      { name: 'sit', ticks: 5 },
+      { name: 'paddle', ticks: 25, keys: { forward: true } },
+      { name: 'turn left', ticks: 10, keys: { forward: true, left: true } },
+      { name: 'turn right', ticks: 10, keys: { right: true } },
+      { name: 'drift', ticks: 15 }
+    ], { gameMode: 'survival', mayFly: false }, live => {
+      live.vehicle = { id: 9n, kind: 'boat', pos: new Vec3(start.x, Math.fround(FLOOR_Y - 0.05), start.z), vel: new Vec3(0, 0, 0), yaw: 0, pitch: 0, predicted: true, jumpControlled: false, seat: { x: 0, y: Math.fround(1.0200101), z: 0 } }
+      live.randomState = mt19937FromSeed(3)
+      live.onGround = false
+    })
+    const moved = Math.hypot(live.vehicle.pos.x - start.x, live.vehicle.pos.z - start.z)
+    assert.ok(moved > 2, `the boat went ${moved} blocks`)
+    assert.ok(live.vehicle.yaw !== 0, 'the boat turned')
   })
 
   it('a tick predicted while a player wearing an elytra glides, boosted by a firework rocket, and lands is the tick', function () {
