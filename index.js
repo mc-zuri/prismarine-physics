@@ -825,9 +825,9 @@ class PlayerState {
     const mcData = bot.registry ?? require('minecraft-data')(bot.version)
     const nbt = require('prismarine-nbt')
 
-    // Input / Outputs
-    this.pos = bot.entity.position.clone()
-    this.vel = bot.entity.velocity.clone()
+    // Input / Outputs: the bot's own numbers (Vec3.clone adds 0, which turns a -0 into 0)
+    this.pos = new Vec3(bot.entity.position.x, bot.entity.position.y, bot.entity.position.z)
+    this.vel = new Vec3(bot.entity.velocity.x, bot.entity.velocity.y, bot.entity.velocity.z)
     this.onGround = bot.entity.onGround
     this.isInWater = bot.entity.isInWater
     this.isInLava = bot.entity.isInLava

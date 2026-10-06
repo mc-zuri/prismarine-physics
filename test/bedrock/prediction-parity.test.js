@@ -39,13 +39,16 @@ function course () {
   }
 }
 
-// The bot as the gameplay client's pathfinder adapter shows the live player: copies, never the engine's own objects
+const exact = v => new Vec3(v.x, v.y, v.z)
+
+// The bot as the gameplay client's pathfinder adapter shows the live player: exact copies, never the engine's own
+// objects
 function botOf (live, frame, { gameMode, mayFly }) {
   return {
     registry,
     entity: {
-      position: live.pos.clone(),
-      velocity: live.vel.clone(),
+      position: exact(live.pos),
+      velocity: exact(live.vel),
       onGround: live.onGround,
       isInWater: !!live.isInWater,
       isInLava: !!live.isInLava,
@@ -101,12 +104,13 @@ function snapshot (state) {
 }
 
 // Steps the scripted inputs through a session, predicting each tick first; returns what the run went through
-function run (script, options) {
+function run (script, options, setup) {
   const world = course()
   const physics = Physics(registry, world)
   const session = new BedrockSession({ physics, world })
   session.handlePacket('start_game', { runtime_entity_id: 1n })
   const live = livePlayer(options)
+  if (setup) setup(live)
   const seen = { water: 0, air: 0, swimming: 0, sneaking: 0, flying: 0, maxY: live.pos.y, minY: live.pos.y }
   let t = 0
   for (const segment of script) {
@@ -178,6 +182,16 @@ describe('bedrock predictions', function () {
       { name: 'stand on it', ticks: 10 }
     ], { gameMode: 'survival', mayFly: false })
     assert.ok(live.pos.y >= FLOOR_Y + 2 && live.onGround, `on the pillar: ${live.pos}`)
+  })
+
+  it('a tick predicted from a velocity of -0 is the tick', function () {
+    // the engine leaves -0 in a velocity (a fall straight down after a move along x); a copy that adds 0 makes it 0
+    const { live } = run([{ name: 'fall', ticks: 3 }], { gameMode: 'survival', mayFly: false }, live => {
+      live.pos.y += 3
+      live.onGround = false
+      live.vel.set(0, 0, -0)
+    })
+    assert.ok(Object.is(live.vel.z, -0), `vel.z ${live.vel.z}`)
   })
 
   it('a tick predicted while a creative player double-taps into flight and flies is the tick', function () {
