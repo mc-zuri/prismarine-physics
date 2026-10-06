@@ -3431,6 +3431,8 @@ function readBot (state, bot, control) {
   // resolve to the wrong edition). Fall back to minecraft-data for bare non-mineflayer callers.
   const mcData = bot.registry ?? require('minecraft-data')(bot.version)
   const nbt = require('prismarine-nbt')
+  // the Java engine's own fields: a Bedrock bot neither has nor gets them
+  const java = mcData.type !== 'bedrock'
 
   // Input / Outputs
   state.pos = bot.entity.position.clone()
@@ -3439,42 +3441,48 @@ function readBot (state, bot, control) {
   state.isInWater = bot.entity.isInWater
   state.isInLava = bot.entity.isInLava
   state.isInWeb = bot.entity.isInWeb
-  state.stuckSpeedMultiplier = bot.entity.stuckSpeedMultiplier
-  state.isCrouching = bot.entity.isCrouching ?? false
-  state.jumpHeld = bot.entity.jumpHeld ?? false
-  state.pose = bot.entity.javaPose
-  state.swimming = bot.entity.swimming ?? false
-  state.autoSpinAttack = bot.entity.autoSpinAttack ?? false
-  state.fallDistance = bot.entity.fallDistance ?? 0
-  state.sprintTriggerTime = bot.entity.sprintTriggerTime ?? 0
-  state.jumpTriggerTime = bot.entity.jumpTriggerTime ?? 0
-  state.hadForward = bot.entity.hadForward ?? false
-  state.isInPowderSnow = bot.entity.isInPowderSnow ?? false
-  state.eyeInWater = bot.entity.eyeInWater ?? false
-  state.crouching = bot.entity.crouching ?? false
-  // The sprint state (vanilla's isSprinting): the sprint key starts it, the game's conditions stop it
-  state.sprinting = bot.entity.sprinting ?? false
-  state.minorHorizontalCollision = bot.entity.minorHorizontalCollision ?? false
-  // The block the player stands on (1.20+) and whether its last landing found none
-  state.supportingBlockPos = bot.entity.supportingBlockPos ?? null
-  state.onGroundNoBlocks = bot.entity.onGroundNoBlocks ?? false
+  if (java) {
+    state.stuckSpeedMultiplier = bot.entity.stuckSpeedMultiplier
+    state.isCrouching = bot.entity.isCrouching ?? false
+    state.jumpHeld = bot.entity.jumpHeld ?? false
+    state.pose = bot.entity.javaPose
+    state.swimming = bot.entity.swimming ?? false
+    state.autoSpinAttack = bot.entity.autoSpinAttack ?? false
+    state.fallDistance = bot.entity.fallDistance ?? 0
+    state.sprintTriggerTime = bot.entity.sprintTriggerTime ?? 0
+    state.jumpTriggerTime = bot.entity.jumpTriggerTime ?? 0
+    state.hadForward = bot.entity.hadForward ?? false
+    state.isInPowderSnow = bot.entity.isInPowderSnow ?? false
+    state.eyeInWater = bot.entity.eyeInWater ?? false
+    state.crouching = bot.entity.crouching ?? false
+    // The sprint state (vanilla's isSprinting): the sprint key starts it, the game's conditions stop it
+    state.sprinting = bot.entity.sprinting ?? false
+    state.minorHorizontalCollision = bot.entity.minorHorizontalCollision ?? false
+    // The block the player stands on (1.20+) and whether its last landing found none
+    state.supportingBlockPos = bot.entity.supportingBlockPos ?? null
+    state.onGroundNoBlocks = bot.entity.onGroundNoBlocks ?? false
+  }
   state.isCollidedHorizontally = bot.entity.isCollidedHorizontally
   state.isCollidedVertically = bot.entity.isCollidedVertically
   state.elytraFlying = bot.entity.elytraFlying
   state.jumpTicks = bot.jumpTicks
   state.jumpQueued = bot.jumpQueued
   state.fireworkRocketDuration = bot.fireworkRocketDuration
-  state.fireworkRockets = bot.fireworkRockets
-  state.fireworkRocketsBeforePlayer = bot.fireworkRocketsBeforePlayer
-  // the auto-jump option and the jump it queued for the next tick
-  state.autoJump = !!bot.autoJump
-  state.autoJumpTime = bot.autoJumpTime || 0
-  state.jumpRidingTicks = bot.jumpRidingTicks || 0
+  if (java) {
+    state.fireworkRockets = bot.fireworkRockets
+    state.fireworkRocketsBeforePlayer = bot.fireworkRocketsBeforePlayer
+    // the auto-jump option and the jump it queued for the next tick
+    state.autoJump = !!bot.autoJump
+    state.autoJumpTime = bot.autoJumpTime || 0
+    state.jumpRidingTicks = bot.jumpRidingTicks || 0
+  }
   // Bedrock engine state (float32 collision box, swim pose, pending block slowdowns); undefined on Java.
   state.bedrock = bot.bedrockPhysicsState
-  // The Java engine's kept bounding box (before 1.17 vanilla moves the box and centers the position on it).
-  state.javaBox = bot.javaPhysicsBox
-  state.sprintAttributeSuppressed = !!bot.sprintAttributeSuppressed
+  if (java) {
+    // The Java engine's kept bounding box (before 1.17 vanilla moves the box and centers the position on it).
+    state.javaBox = bot.javaPhysicsBox
+    state.sprintAttributeSuppressed = !!bot.sprintAttributeSuppressed
+  }
   // Bedrock-only inputs (ignored by the Java engine): creative flight (the server-granted ability, mineflayer's
   // bot.abilities from UpdateAbilities, or bot.flying), the client's own fly toggle when tracked separately,
   // the ability fly speeds, and the item-use movement slowdown.
@@ -3529,9 +3537,11 @@ function readBot (state, bot, control) {
   }
   state.yaw = bot.entity.yaw
   state.pitch = bot.entity.pitch
-  // the vanilla rotation in degrees when the bot keeps it (radians lose whole turns and float precision)
-  if (typeof bot.entity.yawDegrees === 'number') state.yawDegrees = bot.entity.yawDegrees
-  if (typeof bot.entity.pitchDegrees === 'number') state.pitchDegrees = bot.entity.pitchDegrees
+  if (java) {
+    // the vanilla rotation in degrees when the bot keeps it (radians lose whole turns and float precision)
+    if (typeof bot.entity.yawDegrees === 'number') state.yawDegrees = bot.entity.yawDegrees
+    if (typeof bot.entity.pitchDegrees === 'number') state.pitchDegrees = bot.entity.pitchDegrees
+  }
   state.control = control
 
   // effects
@@ -3575,51 +3585,61 @@ function readBot (state, bot, control) {
 }
 
 function applyToBot (state, bot) {
+  // the Java engine's own fields: a Bedrock bot neither has nor gets them
+  const java = bot.registry?.type !== 'bedrock'
   bot.entity.position = state.pos
   bot.entity.velocity = state.vel
   bot.entity.onGround = state.onGround
   bot.entity.isInWater = state.isInWater
   bot.entity.isInLava = state.isInLava
   bot.entity.isInWeb = state.isInWeb
-  bot.entity.stuckSpeedMultiplier = state.stuckSpeedMultiplier
-  bot.entity.isCrouching = state.isCrouching
-  bot.entity.jumpHeld = state.jumpHeld
-  bot.entity.javaPose = state.pose
-  bot.entity.swimming = state.swimming
-  bot.entity.fallDistance = state.fallDistance
-  bot.entity.sprintTriggerTime = state.sprintTriggerTime
-  bot.entity.jumpTriggerTime = state.jumpTriggerTime
-  bot.entity.hadForward = state.hadForward
-  bot.entity.isInPowderSnow = state.isInPowderSnow
-  bot.entity.eyeInWater = state.eyeInWater
-  bot.entity.crouching = state.crouching
-  bot.entity.sprinting = state.sprinting
-  bot.entity.minorHorizontalCollision = state.minorHorizontalCollision
-  bot.entity.supportingBlockPos = state.supportingBlockPos
-  bot.entity.onGroundNoBlocks = state.onGroundNoBlocks
+  if (java) {
+    bot.entity.stuckSpeedMultiplier = state.stuckSpeedMultiplier
+    bot.entity.isCrouching = state.isCrouching
+    bot.entity.jumpHeld = state.jumpHeld
+    bot.entity.javaPose = state.pose
+    bot.entity.swimming = state.swimming
+    bot.entity.fallDistance = state.fallDistance
+    bot.entity.sprintTriggerTime = state.sprintTriggerTime
+    bot.entity.jumpTriggerTime = state.jumpTriggerTime
+    bot.entity.hadForward = state.hadForward
+    bot.entity.isInPowderSnow = state.isInPowderSnow
+    bot.entity.eyeInWater = state.eyeInWater
+    bot.entity.crouching = state.crouching
+    bot.entity.sprinting = state.sprinting
+    bot.entity.minorHorizontalCollision = state.minorHorizontalCollision
+    bot.entity.supportingBlockPos = state.supportingBlockPos
+    bot.entity.onGroundNoBlocks = state.onGroundNoBlocks
+  }
   bot.entity.isCollidedHorizontally = state.isCollidedHorizontally
   bot.entity.isCollidedVertically = state.isCollidedVertically
   bot.entity.elytraFlying = state.elytraFlying
   bot.jumpTicks = state.jumpTicks
   bot.jumpQueued = state.jumpQueued
   bot.fireworkRocketDuration = state.fireworkRocketDuration
-  bot.autoJumpTime = state.autoJumpTime
-  bot.jumpRidingTicks = state.jumpRidingTicks
+  if (java) {
+    bot.autoJumpTime = state.autoJumpTime
+    bot.jumpRidingTicks = state.jumpRidingTicks
+  }
   bot.riptideLaunch = state.riptideLaunch
   bot.spinHits = state.spinHits
   bot.fireworkUsed = state.fireworkUsed
   bot.itemUseStarted = state.itemUseStarted
   bot.missedSwing = state.missedSwing
   if (bot.bedrockVehicle) bot.bedrockVehicle = state.vehicle
-  if (bot.javaVehicle) bot.javaVehicle = state.vehicle
-  // the rotation a tick turned (a boat's rider turns with it), where the bot keeps it in degrees
-  if (typeof bot.entity.yawDegrees === 'number' && state.yawDegrees !== bot.entity.yawDegrees) {
-    bot.entity.yawDegrees = state.yawDegrees
-    bot.entity.yaw = state.yaw
+  if (java) {
+    if (bot.javaVehicle) bot.javaVehicle = state.vehicle
+    // the rotation a tick turned (a boat's rider turns with it), where the bot keeps it in degrees
+    if (typeof bot.entity.yawDegrees === 'number' && state.yawDegrees !== bot.entity.yawDegrees) {
+      bot.entity.yawDegrees = state.yawDegrees
+      bot.entity.yaw = state.yaw
+    }
   }
   if (state.bedrock !== undefined) bot.bedrockPhysicsState = state.bedrock
-  if (state.javaBox !== undefined) bot.javaPhysicsBox = state.javaBox
-  bot.sprintAttributeSuppressed = state.sprintAttributeSuppressed
+  if (java) {
+    if (state.javaBox !== undefined) bot.javaPhysicsBox = state.javaBox
+    bot.sprintAttributeSuppressed = state.sprintAttributeSuppressed
+  }
 }
 
 // The Bedrock classes load with the engine on first use, so requiring the package for Java needs neither the engine

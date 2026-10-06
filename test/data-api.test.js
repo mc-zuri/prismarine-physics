@@ -96,6 +96,23 @@ describe('PlayerState from plain data', () => {
     fromBot.apply(player)
     assert.equal(player.missedSwing, false)
   })
+
+  it('reads and writes only the Bedrock engine\'s fields for a Bedrock bot', () => {
+    const bedrock = require('minecraft-data')('bedrock_1.26.45')
+    const player = { ...bot(new Vec3(0.5, 64, 0.5)), registry: bedrock, bedrockPhysicsState: {} }
+    const state = PlayerState.fromBot(player, { ...NO_KEYS })
+    for (const field of ['sprinting', 'swimming', 'fallDistance', 'supportingBlockPos', 'autoJump', 'javaBox', 'yawDegrees']) {
+      assert.ok(!(field in state), `${field} is the Java engine's`)
+    }
+    state.apply(player)
+    for (const field of ['sprinting', 'swimming', 'fallDistance', 'isCrouching', 'supportingBlockPos']) {
+      assert.ok(!(field in player.entity), `${field} is the Java engine's`)
+    }
+    assert.ok(!('sprintAttributeSuppressed' in player) && !('autoJumpTime' in player))
+    const java = PlayerState.fromBot(bot(new Vec3(0.5, 64, 0.5)), { ...NO_KEYS })
+    assert.equal(java.sprinting, false)
+    assert.equal(java.supportingBlockPos, null)
+  })
 })
 
 describe('Physics trig option', () => {
