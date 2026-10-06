@@ -18,9 +18,11 @@ function makeSupportFeature (mcData) {
     : (!since || mcData.isNewerOrEqualTo(since)) && (!before || mcData.isOlderThan(before))))
 }
 
-function Physics (mcData, world) {
+// options.trig: the sin and cos this engine uses ({ sin, cos }); Java's own make it exact to the bit (see lib/math.js)
+function Physics (mcData, world, options = {}) {
   // Bedrock Edition (prismarine-registry reports type 'bedrock') uses its own engine; everything below is Java.
   if (mcData.type === 'bedrock') return bedrock().Physics(mcData, world)
+  const trig = math.forTrig(options.trig)
 
   const supportFeature = makeSupportFeature(mcData)
   const blocksByName = mcData.blocksByName
@@ -271,8 +273,8 @@ function Physics (mcData, world) {
   }
   const DEG_TO_RAD_F = f32(0.017453292)
   const PI_F = f32(Math.PI)
-  const mthSin = radians => math.mthSin(radians, vanilla.mthSinDouble)
-  const mthCos = radians => math.mthCos(radians, vanilla.mthSinDouble)
+  const mthSin = radians => trig.mthSin(radians, vanilla.mthSinDouble)
+  const mthCos = radians => trig.mthCos(radians, vanilla.mthSinDouble)
 
   // The player's pose (1.14+) sets its height: 1.8F standing, 1.5F crouching, 0.6F swimming, crawling or gliding.
   const POSE_EYE_HEIGHT = { standing: Math.fround(1.62), crouching: Math.fround(1.27), swimming: Math.fround(0.4), fall_flying: Math.fround(0.4), spin_attack: Math.fround(0.4) }
@@ -1688,7 +1690,7 @@ function Physics (mcData, world) {
       const lookLength = Math.sqrt(look.x * look.x + look.y * look.y + look.z * look.z)
       let lift
       if (vanilla.elytraDoubleCos) {
-        const cos = math.trig.cos(pitch)
+        const cos = trig.cos(pitch)
         lift = vanilla.elytraSquareOnly ? cos * cos : cos * cos * Math.min(1, lookLength / 0.4)
       } else {
         const cos = mthCos(pitch)
@@ -3039,7 +3041,7 @@ function Physics (mcData, world) {
     const angle = f32(-f32(horse.yawDegrees === undefined ? horse.yaw : horse.yawDegrees) * DEG_TO_RAD_F)
     // (before 1.20.5 a float vector turned by JOML)
     const back = (vanilla.entityAttachments ? -0.7 * anim : f32(f32(-0.7) * anim)) + (dims.forward || 0)
-    const sin = vanilla.entityAttachments ? mthSin(angle) : f32(math.trig.sin(angle))
+    const sin = vanilla.entityAttachments ? mthSin(angle) : f32(trig.sin(angle))
     const cos = vanilla.entityAttachments ? mthCos(angle) : jomlCosFromSin(sin, angle)
     const offX = vanilla.entityAttachments ? back * sin : f32(back * sin)
     const offZ = vanilla.entityAttachments ? back * cos : f32(back * cos)
@@ -3225,8 +3227,8 @@ function Physics (mcData, world) {
         entity.pos.z = vehicle.pos.z
         if (isBoatType(vehicle.type)) {
           const radians = vehicle.yaw * Math.PI / 180
-          entity.pos.x += math.trig.cos(radians) * 0.4
-          entity.pos.z += math.trig.sin(radians) * 0.4
+          entity.pos.x += trig.cos(radians) * 0.4
+          entity.pos.z += trig.sin(radians) * 0.4
         }
       }
       return entity
@@ -3346,199 +3348,274 @@ function getEnchantmentLevel (mcData, enchantmentName, enchantments) {
   return 0
 }
 
+// The defaults of the state's fields that a caller may leave out (as the bot reader does for a bot without them)
+const PLAYER_STATE_DEFAULTS = {
+  isCrouching: false,
+  jumpHeld: false,
+  swimming: false,
+  autoSpinAttack: false,
+  fallDistance: 0,
+  sprintTriggerTime: 0,
+  jumpTriggerTime: 0,
+  hadForward: false,
+  isInPowderSnow: false,
+  eyeInWater: false,
+  crouching: false,
+  sprinting: false,
+  minorHorizontalCollision: false,
+  supportingBlockPos: null,
+  onGroundNoBlocks: false,
+  autoJump: false,
+  autoJumpTime: 0,
+  jumpRidingTicks: 0,
+  sprintAttributeSuppressed: false,
+  flying: false,
+  usingItem: false,
+  mayFly: false,
+  noClip: false,
+  instabuild: false,
+  immobile: false,
+  riptideLaunch: 0,
+  spinHits: 0,
+  fireworkUsed: false,
+  itemUseStarted: false,
+  jumpBoost: 0,
+  speed: 0,
+  slowness: 0,
+  dolphinsGrace: 0,
+  slowFalling: 0,
+  levitation: 0,
+  blindness: 0,
+  weaving: 0,
+  depthStrider: 0,
+  soulSpeed: 0,
+  leatherBoots: false,
+  swiftSneak: 0,
+  elytraEquipped: false
+}
+
+// The player as the engine simulates it. simulatePlayer(state, world) reads and updates its fields.
+//   new PlayerState(data, control?)   from plain data: the engine's own fields (pos, vel, yaw, pitch, control, the
+//                                     effect and enchantment levels, ...); the fields left out take their defaults
+//   PlayerState.fromBot(bot, control) from a mineflayer-shaped bot (bot.entity, bot.inventory, bot.abilities, ...),
+//                                     which new PlayerState(bot, control) also does
+//   state.apply(bot)                  writes the result back to such a bot
 class PlayerState {
-  constructor (bot, control) {
-    // Prefer the bot's registry (works for both editions; Bedrock's bot.version is a bare id that minecraft-data would
-    // resolve to the wrong edition). Fall back to minecraft-data for bare non-mineflayer callers.
-    const mcData = bot.registry ?? require('minecraft-data')(bot.version)
-    const nbt = require('prismarine-nbt')
-
-    // Input / Outputs
-    this.pos = bot.entity.position.clone()
-    this.vel = bot.entity.velocity.clone()
-    this.onGround = bot.entity.onGround
-    this.isInWater = bot.entity.isInWater
-    this.isInLava = bot.entity.isInLava
-    this.isInWeb = bot.entity.isInWeb
-    this.stuckSpeedMultiplier = bot.entity.stuckSpeedMultiplier
-    this.isCrouching = bot.entity.isCrouching ?? false
-    this.jumpHeld = bot.entity.jumpHeld ?? false
-    this.pose = bot.entity.javaPose
-    this.swimming = bot.entity.swimming ?? false
-    this.autoSpinAttack = bot.entity.autoSpinAttack ?? false
-    this.fallDistance = bot.entity.fallDistance ?? 0
-    this.sprintTriggerTime = bot.entity.sprintTriggerTime ?? 0
-    this.jumpTriggerTime = bot.entity.jumpTriggerTime ?? 0
-    this.hadForward = bot.entity.hadForward ?? false
-    this.isInPowderSnow = bot.entity.isInPowderSnow ?? false
-    this.eyeInWater = bot.entity.eyeInWater ?? false
-    this.crouching = bot.entity.crouching ?? false
-    // The sprint state (vanilla's isSprinting): the sprint key starts it, the game's conditions stop it
-    this.sprinting = bot.entity.sprinting ?? false
-    this.minorHorizontalCollision = bot.entity.minorHorizontalCollision ?? false
-    // The block the player stands on (1.20+) and whether its last landing found none
-    this.supportingBlockPos = bot.entity.supportingBlockPos ?? null
-    this.onGroundNoBlocks = bot.entity.onGroundNoBlocks ?? false
-    this.isCollidedHorizontally = bot.entity.isCollidedHorizontally
-    this.isCollidedVertically = bot.entity.isCollidedVertically
-    this.elytraFlying = bot.entity.elytraFlying
-    this.jumpTicks = bot.jumpTicks
-    this.jumpQueued = bot.jumpQueued
-    this.fireworkRocketDuration = bot.fireworkRocketDuration
-    this.fireworkRockets = bot.fireworkRockets
-    this.fireworkRocketsBeforePlayer = bot.fireworkRocketsBeforePlayer
-    // the auto-jump option and the jump it queued for the next tick
-    this.autoJump = !!bot.autoJump
-    this.autoJumpTime = bot.autoJumpTime || 0
-    this.jumpRidingTicks = bot.jumpRidingTicks || 0
-    // Bedrock engine state (float32 collision box, swim pose, pending block slowdowns); undefined on Java.
-    this.bedrock = bot.bedrockPhysicsState
-    // The Java engine's kept bounding box (before 1.17 vanilla moves the box and centers the position on it).
-    this.javaBox = bot.javaPhysicsBox
-    this.sprintAttributeSuppressed = !!bot.sprintAttributeSuppressed
-    // Bedrock-only inputs (ignored by the Java engine): creative flight (the server-granted ability, mineflayer's
-    // bot.abilities from UpdateAbilities, or bot.flying), the client's own fly toggle when tracked separately,
-    // the ability fly speeds, and the item-use movement slowdown.
-    const abilities = bot.abilities || {}
-    const abilityFlags = abilities.flags || {}
-    // The abilities are the server's alone (update_abilities, the layers merged): the client takes none from the game
-    // mode, and the server restates them a second or so after the mode changes.
-    const mode = bot.game ? bot.game.gameMode : undefined
-    this.flying = bot.flying !== undefined ? !!bot.flying : !!abilityFlags.flying
-    this.flyIntent = bot.flyIntent
-    this.flySpeed = typeof abilities.flySpeed === 'number' ? abilities.flySpeed : undefined
-    this.verticalFlySpeed = typeof abilities.verticalFlySpeed === 'number' ? abilities.verticalFlySpeed : undefined
-    this.usingItem = !!bot.usingHeldItem
-    // Bedrock-only inputs of the client's sprint and flight triggers: the may-fly ability, the food level (a sprint
-    // needs more than 6) and blindness (no sprint).
-    this.mayFly = !!(abilityFlags.mayFly || abilityFlags.may_fly)
-    this.noClip = !!(abilityFlags.noClip || abilityFlags.no_clip)
-    // Instant build (the creative ability): a held jump then ends no glide, and boosts it.
-    this.instabuild = !!(abilityFlags.instabuild || abilityFlags.instant_build)
-    // The game mode (mineflayer's bot.game.gameMode, the default already resolved to the world's): the creative hover
-    // damping and the spectator's standing pose.
-    this.gameMode = mode
-    // Whether the client holds the player immobile: the server's NO_AI actor flag, sleeping, or no health left.
-    const actorFlags = (bot.entity.metadata && bot.entity.metadata.flags) || {}
-    this.immobile = !!actorFlags.no_ai || !!bot.isSleeping || (typeof bot.health === 'number' && bot.health <= 0)
-    this.food = bot.food
-    // A riptide launch this tick (the released trident's Riptide level) and the mobs the spin hit this tick; the
-    // Bedrock engine consumes both.
-    this.riptideLaunch = bot.riptideLaunch || 0
-    this.spinHits = bot.spinHits || 0
-    // A firework rocket the bot used this tick (consumed by the tick): the glide boost the client gives itself.
-    this.fireworkUsed = !!bot.fireworkUsed
-    // An item use the bot started this tick (consumed by the tick): the packet's start_using_item.
-    this.itemUseStarted = !!bot.itemUseStarted
-    // The vehicle the bot rides (the Bedrock engine's, kept by mineflayer's vehicles plugin as bot.bedrockVehicle;
-    // the Java engine's, kept by mineflayer's physics plugin as bot.javaVehicle).
-    this.vehicle = bot.bedrockVehicle || bot.javaVehicle || undefined
-    // The big-wave roll of a boat the bot steers (a uniform draw in [0, 1)), where the caller supplies the client's.
-    this.bigWaveRoll = typeof bot.bedrockBigWaveRoll === 'function' ? bot.bedrockBigWaveRoll : undefined
-    // The client's core random state (a recording's), from which the boat draws the roll itself.
-    this.randomState = bot.bedrockRandomState
-
-    // Input only (not modified)
-    this.attributes = bot.entity.attributes
-    // the other entities around the player (mineflayer's bot.entities): the solid ones it collides with, the mobs
-    // and boats that push it
-    if (bot.entities && mcData.type !== 'bedrock') {
-      this.entities = Object.values(bot.entities).filter(e => e && e !== bot.entity && e.position && e.name && e.id !== (bot.entity.vehicle && bot.entity.vehicle.id))
-        .map(e => ({ id: e.id, type: e.name, pos: e.position.clone(), tickBeforePlayer: e.tickBeforePlayer }))
+  constructor (source, control) {
+    if (source?.entity?.position) {
+      readBot(this, source, control)
+      return
     }
-    this.yaw = bot.entity.yaw
-    this.pitch = bot.entity.pitch
-    // the vanilla rotation in degrees when the bot keeps it (radians lose whole turns and float precision)
-    if (typeof bot.entity.yawDegrees === 'number') this.yawDegrees = bot.entity.yawDegrees
-    if (typeof bot.entity.pitchDegrees === 'number') this.pitchDegrees = bot.entity.pitchDegrees
-    this.control = control
+    Object.assign(this, PLAYER_STATE_DEFAULTS, source)
+    if (typeof this.pos?.clone === 'function') this.pos = this.pos.clone()
+    if (typeof this.vel?.clone === 'function') this.vel = this.vel.clone()
+    if (control !== undefined) this.control = control
+  }
 
-    // effects
-    const effects = bot.entity.effects
+  static fromBot (bot, control) {
+    return new PlayerState(bot, control)
+  }
 
-    this.jumpBoost = getEffectLevel(mcData, 'JumpBoost', effects)
-    this.speed = getEffectLevel(mcData, 'Speed', effects)
-    this.slowness = getEffectLevel(mcData, 'Slowness', effects)
-
-    this.dolphinsGrace = getEffectLevel(mcData, 'DolphinsGrace', effects)
-    this.slowFalling = getEffectLevel(mcData, 'SlowFalling', effects)
-    this.levitation = getEffectLevel(mcData, 'Levitation', effects)
-    this.blindness = getEffectLevel(mcData, 'Blindness', effects)
-    this.weaving = mcData.type === 'bedrock' ? getEffectLevel(mcData, 'Weaving', effects) : 0
-
-    // armour enchantments
-    const boots = bot.inventory.slots[8]
-    if (boots && boots.nbt) {
-      const simplifiedNbt = nbt.simplify(boots.nbt)
-      const enchantments = simplifiedNbt.Enchantments ?? simplifiedNbt.ench ?? []
-      this.depthStrider = getEnchantmentLevel(mcData, 'depth_strider', enchantments)
-      this.soulSpeed = getEnchantmentLevel(mcData, 'soul_speed', enchantments)
-    } else {
-      this.depthStrider = 0
-      this.soulSpeed = 0
-    }
-    // leather boots: powder snow holds the player up (Bedrock)
-    this.leatherBoots = !!boots && boots.name === 'leather_boots'
-    // Swift Sneak on the leggings: the sneaking move is scaled less
-    const leggings = bot.inventory.slots[7]
-    if (leggings && leggings.nbt) {
-      const simplifiedNbt = nbt.simplify(leggings.nbt)
-      this.swiftSneak = getEnchantmentLevel(mcData, 'swift_sneak', simplifiedNbt.Enchantments ?? simplifiedNbt.ench ?? [])
-    } else {
-      this.swiftSneak = 0
-    }
-
-    // extra elytra requirements
-    const item = bot.inventory.slots[6]
-    this.elytraEquipped = item != null && item.name === 'elytra'
+  static toBot (state, bot) {
+    state.apply(bot)
   }
 
   apply (bot) {
-    bot.entity.position = this.pos
-    bot.entity.velocity = this.vel
-    bot.entity.onGround = this.onGround
-    bot.entity.isInWater = this.isInWater
-    bot.entity.isInLava = this.isInLava
-    bot.entity.isInWeb = this.isInWeb
-    bot.entity.stuckSpeedMultiplier = this.stuckSpeedMultiplier
-    bot.entity.isCrouching = this.isCrouching
-    bot.entity.jumpHeld = this.jumpHeld
-    bot.entity.javaPose = this.pose
-    bot.entity.swimming = this.swimming
-    bot.entity.fallDistance = this.fallDistance
-    bot.entity.sprintTriggerTime = this.sprintTriggerTime
-    bot.entity.jumpTriggerTime = this.jumpTriggerTime
-    bot.entity.hadForward = this.hadForward
-    bot.entity.isInPowderSnow = this.isInPowderSnow
-    bot.entity.eyeInWater = this.eyeInWater
-    bot.entity.crouching = this.crouching
-    bot.entity.sprinting = this.sprinting
-    bot.entity.minorHorizontalCollision = this.minorHorizontalCollision
-    bot.entity.supportingBlockPos = this.supportingBlockPos
-    bot.entity.onGroundNoBlocks = this.onGroundNoBlocks
-    bot.entity.isCollidedHorizontally = this.isCollidedHorizontally
-    bot.entity.isCollidedVertically = this.isCollidedVertically
-    bot.entity.elytraFlying = this.elytraFlying
-    bot.jumpTicks = this.jumpTicks
-    bot.jumpQueued = this.jumpQueued
-    bot.fireworkRocketDuration = this.fireworkRocketDuration
-    bot.autoJumpTime = this.autoJumpTime
-    bot.jumpRidingTicks = this.jumpRidingTicks
-    bot.riptideLaunch = this.riptideLaunch
-    bot.spinHits = this.spinHits
-    bot.fireworkUsed = this.fireworkUsed
-    bot.itemUseStarted = this.itemUseStarted
-    if (bot.bedrockVehicle) bot.bedrockVehicle = this.vehicle
-    if (bot.javaVehicle) bot.javaVehicle = this.vehicle
-    // the rotation a tick turned (a boat's rider turns with it), where the bot keeps it in degrees
-    if (typeof bot.entity.yawDegrees === 'number' && this.yawDegrees !== bot.entity.yawDegrees) {
-      bot.entity.yawDegrees = this.yawDegrees
-      bot.entity.yaw = this.yaw
-    }
-    if (this.bedrock !== undefined) bot.bedrockPhysicsState = this.bedrock
-    if (this.javaBox !== undefined) bot.javaPhysicsBox = this.javaBox
-    bot.sprintAttributeSuppressed = this.sprintAttributeSuppressed
+    applyToBot(this, bot)
   }
+}
+
+function readBot (state, bot, control) {
+  // Prefer the bot's registry (works for both editions; Bedrock's bot.version is a bare id that minecraft-data would
+  // resolve to the wrong edition). Fall back to minecraft-data for bare non-mineflayer callers.
+  const mcData = bot.registry ?? require('minecraft-data')(bot.version)
+  const nbt = require('prismarine-nbt')
+
+  // Input / Outputs
+  state.pos = bot.entity.position.clone()
+  state.vel = bot.entity.velocity.clone()
+  state.onGround = bot.entity.onGround
+  state.isInWater = bot.entity.isInWater
+  state.isInLava = bot.entity.isInLava
+  state.isInWeb = bot.entity.isInWeb
+  state.stuckSpeedMultiplier = bot.entity.stuckSpeedMultiplier
+  state.isCrouching = bot.entity.isCrouching ?? false
+  state.jumpHeld = bot.entity.jumpHeld ?? false
+  state.pose = bot.entity.javaPose
+  state.swimming = bot.entity.swimming ?? false
+  state.autoSpinAttack = bot.entity.autoSpinAttack ?? false
+  state.fallDistance = bot.entity.fallDistance ?? 0
+  state.sprintTriggerTime = bot.entity.sprintTriggerTime ?? 0
+  state.jumpTriggerTime = bot.entity.jumpTriggerTime ?? 0
+  state.hadForward = bot.entity.hadForward ?? false
+  state.isInPowderSnow = bot.entity.isInPowderSnow ?? false
+  state.eyeInWater = bot.entity.eyeInWater ?? false
+  state.crouching = bot.entity.crouching ?? false
+  // The sprint state (vanilla's isSprinting): the sprint key starts it, the game's conditions stop it
+  state.sprinting = bot.entity.sprinting ?? false
+  state.minorHorizontalCollision = bot.entity.minorHorizontalCollision ?? false
+  // The block the player stands on (1.20+) and whether its last landing found none
+  state.supportingBlockPos = bot.entity.supportingBlockPos ?? null
+  state.onGroundNoBlocks = bot.entity.onGroundNoBlocks ?? false
+  state.isCollidedHorizontally = bot.entity.isCollidedHorizontally
+  state.isCollidedVertically = bot.entity.isCollidedVertically
+  state.elytraFlying = bot.entity.elytraFlying
+  state.jumpTicks = bot.jumpTicks
+  state.jumpQueued = bot.jumpQueued
+  state.fireworkRocketDuration = bot.fireworkRocketDuration
+  state.fireworkRockets = bot.fireworkRockets
+  state.fireworkRocketsBeforePlayer = bot.fireworkRocketsBeforePlayer
+  // the auto-jump option and the jump it queued for the next tick
+  state.autoJump = !!bot.autoJump
+  state.autoJumpTime = bot.autoJumpTime || 0
+  state.jumpRidingTicks = bot.jumpRidingTicks || 0
+  // Bedrock engine state (float32 collision box, swim pose, pending block slowdowns); undefined on Java.
+  state.bedrock = bot.bedrockPhysicsState
+  // The Java engine's kept bounding box (before 1.17 vanilla moves the box and centers the position on it).
+  state.javaBox = bot.javaPhysicsBox
+  state.sprintAttributeSuppressed = !!bot.sprintAttributeSuppressed
+  // Bedrock-only inputs (ignored by the Java engine): creative flight (the server-granted ability, mineflayer's
+  // bot.abilities from UpdateAbilities, or bot.flying), the client's own fly toggle when tracked separately,
+  // the ability fly speeds, and the item-use movement slowdown.
+  const abilities = bot.abilities || {}
+  const abilityFlags = abilities.flags || {}
+  // The abilities are the server's alone (update_abilities, the layers merged): the client takes none from the game
+  // mode, and the server restates them a second or so after the mode changes.
+  const mode = bot.game ? bot.game.gameMode : undefined
+  state.flying = bot.flying !== undefined ? !!bot.flying : !!abilityFlags.flying
+  state.flyIntent = bot.flyIntent
+  state.flySpeed = typeof abilities.flySpeed === 'number' ? abilities.flySpeed : undefined
+  state.verticalFlySpeed = typeof abilities.verticalFlySpeed === 'number' ? abilities.verticalFlySpeed : undefined
+  state.usingItem = !!bot.usingHeldItem
+  // Bedrock-only inputs of the client's sprint and flight triggers: the may-fly ability, the food level (a sprint
+  // needs more than 6) and blindness (no sprint).
+  state.mayFly = !!(abilityFlags.mayFly || abilityFlags.may_fly)
+  state.noClip = !!(abilityFlags.noClip || abilityFlags.no_clip)
+  // Instant build (the creative ability): a held jump then ends no glide, and boosts it.
+  state.instabuild = !!(abilityFlags.instabuild || abilityFlags.instant_build)
+  // The game mode (mineflayer's bot.game.gameMode, the default already resolved to the world's): the creative hover
+  // damping and the spectator's standing pose.
+  state.gameMode = mode
+  // Whether the client holds the player immobile: the server's NO_AI actor flag, sleeping, or no health left.
+  const actorFlags = (bot.entity.metadata && bot.entity.metadata.flags) || {}
+  state.immobile = !!actorFlags.no_ai || !!bot.isSleeping || (typeof bot.health === 'number' && bot.health <= 0)
+  state.food = bot.food
+  // A riptide launch this tick (the released trident's Riptide level) and the mobs the spin hit this tick; the
+  // Bedrock engine consumes both.
+  state.riptideLaunch = bot.riptideLaunch || 0
+  state.spinHits = bot.spinHits || 0
+  // A firework rocket the bot used this tick (consumed by the tick): the glide boost the client gives itself.
+  state.fireworkUsed = !!bot.fireworkUsed
+  // An item use the bot started this tick (consumed by the tick): the packet's start_using_item.
+  state.itemUseStarted = !!bot.itemUseStarted
+  // The vehicle the bot rides (the Bedrock engine's, kept by mineflayer's vehicles plugin as bot.bedrockVehicle;
+  // the Java engine's, kept by mineflayer's physics plugin as bot.javaVehicle).
+  state.vehicle = bot.bedrockVehicle || bot.javaVehicle || undefined
+  // The big-wave roll of a boat the bot steers (a uniform draw in [0, 1)), where the caller supplies the client's.
+  state.bigWaveRoll = typeof bot.bedrockBigWaveRoll === 'function' ? bot.bedrockBigWaveRoll : undefined
+  // The client's core random state (a recording's), from which the boat draws the roll itself.
+  state.randomState = bot.bedrockRandomState
+
+  // Input only (not modified)
+  state.attributes = bot.entity.attributes
+  // the other entities around the player (mineflayer's bot.entities): the solid ones it collides with, the mobs
+  // and boats that push it
+  if (bot.entities && mcData.type !== 'bedrock') {
+    state.entities = Object.values(bot.entities).filter(e => e && e !== bot.entity && e.position && e.name && e.id !== (bot.entity.vehicle && bot.entity.vehicle.id))
+      .map(e => ({ id: e.id, type: e.name, pos: e.position.clone(), tickBeforePlayer: e.tickBeforePlayer }))
+  }
+  state.yaw = bot.entity.yaw
+  state.pitch = bot.entity.pitch
+  // the vanilla rotation in degrees when the bot keeps it (radians lose whole turns and float precision)
+  if (typeof bot.entity.yawDegrees === 'number') state.yawDegrees = bot.entity.yawDegrees
+  if (typeof bot.entity.pitchDegrees === 'number') state.pitchDegrees = bot.entity.pitchDegrees
+  state.control = control
+
+  // effects
+  const effects = bot.entity.effects
+
+  state.jumpBoost = getEffectLevel(mcData, 'JumpBoost', effects)
+  state.speed = getEffectLevel(mcData, 'Speed', effects)
+  state.slowness = getEffectLevel(mcData, 'Slowness', effects)
+
+  state.dolphinsGrace = getEffectLevel(mcData, 'DolphinsGrace', effects)
+  state.slowFalling = getEffectLevel(mcData, 'SlowFalling', effects)
+  state.levitation = getEffectLevel(mcData, 'Levitation', effects)
+  state.blindness = getEffectLevel(mcData, 'Blindness', effects)
+  state.weaving = mcData.type === 'bedrock' ? getEffectLevel(mcData, 'Weaving', effects) : 0
+
+  // armour enchantments
+  const boots = bot.inventory.slots[8]
+  if (boots && boots.nbt) {
+    const simplifiedNbt = nbt.simplify(boots.nbt)
+    const enchantments = simplifiedNbt.Enchantments ?? simplifiedNbt.ench ?? []
+    state.depthStrider = getEnchantmentLevel(mcData, 'depth_strider', enchantments)
+    state.soulSpeed = getEnchantmentLevel(mcData, 'soul_speed', enchantments)
+  } else {
+    state.depthStrider = 0
+    state.soulSpeed = 0
+  }
+  // leather boots: powder snow holds the player up (Bedrock)
+  state.leatherBoots = !!boots && boots.name === 'leather_boots'
+  // Swift Sneak on the leggings: the sneaking move is scaled less
+  const leggings = bot.inventory.slots[7]
+  if (leggings && leggings.nbt) {
+    const simplifiedNbt = nbt.simplify(leggings.nbt)
+    state.swiftSneak = getEnchantmentLevel(mcData, 'swift_sneak', simplifiedNbt.Enchantments ?? simplifiedNbt.ench ?? [])
+  } else {
+    state.swiftSneak = 0
+  }
+
+  // extra elytra requirements
+  const item = bot.inventory.slots[6]
+  state.elytraEquipped = item != null && item.name === 'elytra'
+}
+
+function applyToBot (state, bot) {
+  bot.entity.position = state.pos
+  bot.entity.velocity = state.vel
+  bot.entity.onGround = state.onGround
+  bot.entity.isInWater = state.isInWater
+  bot.entity.isInLava = state.isInLava
+  bot.entity.isInWeb = state.isInWeb
+  bot.entity.stuckSpeedMultiplier = state.stuckSpeedMultiplier
+  bot.entity.isCrouching = state.isCrouching
+  bot.entity.jumpHeld = state.jumpHeld
+  bot.entity.javaPose = state.pose
+  bot.entity.swimming = state.swimming
+  bot.entity.fallDistance = state.fallDistance
+  bot.entity.sprintTriggerTime = state.sprintTriggerTime
+  bot.entity.jumpTriggerTime = state.jumpTriggerTime
+  bot.entity.hadForward = state.hadForward
+  bot.entity.isInPowderSnow = state.isInPowderSnow
+  bot.entity.eyeInWater = state.eyeInWater
+  bot.entity.crouching = state.crouching
+  bot.entity.sprinting = state.sprinting
+  bot.entity.minorHorizontalCollision = state.minorHorizontalCollision
+  bot.entity.supportingBlockPos = state.supportingBlockPos
+  bot.entity.onGroundNoBlocks = state.onGroundNoBlocks
+  bot.entity.isCollidedHorizontally = state.isCollidedHorizontally
+  bot.entity.isCollidedVertically = state.isCollidedVertically
+  bot.entity.elytraFlying = state.elytraFlying
+  bot.jumpTicks = state.jumpTicks
+  bot.jumpQueued = state.jumpQueued
+  bot.fireworkRocketDuration = state.fireworkRocketDuration
+  bot.autoJumpTime = state.autoJumpTime
+  bot.jumpRidingTicks = state.jumpRidingTicks
+  bot.riptideLaunch = state.riptideLaunch
+  bot.spinHits = state.spinHits
+  bot.fireworkUsed = state.fireworkUsed
+  bot.itemUseStarted = state.itemUseStarted
+  if (bot.bedrockVehicle) bot.bedrockVehicle = state.vehicle
+  if (bot.javaVehicle) bot.javaVehicle = state.vehicle
+  // the rotation a tick turned (a boat's rider turns with it), where the bot keeps it in degrees
+  if (typeof bot.entity.yawDegrees === 'number' && state.yawDegrees !== bot.entity.yawDegrees) {
+    bot.entity.yawDegrees = state.yawDegrees
+    bot.entity.yaw = state.yaw
+  }
+  if (state.bedrock !== undefined) bot.bedrockPhysicsState = state.bedrock
+  if (state.javaBox !== undefined) bot.javaPhysicsBox = state.javaBox
+  bot.sprintAttributeSuppressed = state.sprintAttributeSuppressed
 }
 
 // The Bedrock classes load with the engine on first use, so requiring the package for Java needs neither the engine
