@@ -69,5 +69,7 @@ describe('bedrock vehicle/dismount', () => {
     assert.deepStrictEqual(dismountPosition(EMPTY, boat, seat, seated), { x: seat.x, y: seated.minY, z: seat.z, standing: false })
     // taken off by the server: the rider stays over the boat's own block
     assert.deepStrictEqual(dismountPosition(FLAT, boat, seat, riderBox, false), { x: f(0.4), y: f(0.001), z: f(0.6), standing: true })
+    // before 1.21.30 the rider stands on the floor itself
+    assert.deepStrictEqual(dismountPosition(FLAT, boat, seat, riderBox, true, false), { x: f(0.4), y: 0, z: f(f(0.6) - 1), standing: true })
   })
 })

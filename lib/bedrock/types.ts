@@ -358,5 +358,7 @@ export interface Ctx {
   bounceCorrection: boolean
   // from 1.26.20: a held jump in scaffolding climbs while the climbable-block flag the last move left is on
   scaffoldingClimbFlag: boolean
+  // from 1.21.30: a rider leaving its vehicle stands 0.001 above the floor it found (unset: as the newest)
+  dismountLift?: boolean
   world: World
 }

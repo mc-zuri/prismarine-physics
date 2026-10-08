@@ -229,7 +229,7 @@ export function dismount (ctx: Ctx, entity: Player, byRider = true, alpha?: numb
   const w = f(ctx.settings.playerHalfWidth)
   const feetY = f(seat.y - eye)
   const riderBox = { minX: -w, minY: feetY, minZ: -w, maxX: w, maxY: f(feetY + f(ctx.settings.playerHeight)), maxZ: w }
-  const at = dismountPosition(ctx.world, vehicle, seat, riderBox, byRider)
+  const at = dismountPosition(ctx.world, vehicle, seat, riderBox, byRider, ctx.dismountLift !== false)
   if (at.standing) entity.pos.set(at.x, at.y, at.z)
   else {
     // no spot: the centre of the rider's own box (built where it was at the start of the last tick), its eye 0.001
