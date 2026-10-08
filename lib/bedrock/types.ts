@@ -207,6 +207,8 @@ export interface BedrockState {
   carriedActions?: Set<string> | undefined
   // left a vehicle it steered since the last tick (the tick's input was read in the seat)
   leftSteeredVehicle?: boolean | undefined
+  // the last dismount stood the rider on a floor (false: it left the rider where it sat, or in the air)
+  dismountStanding?: boolean | undefined
   // the teleport pending is a respawn's (it reports no handled teleport)
   respawned?: boolean | undefined
   // the rider jumped in a vehicle that does not take the jump: it asks to leave (the caller dismounts it)
@@ -360,5 +362,9 @@ export interface Ctx {
   scaffoldingClimbFlag: boolean
   // from 1.21.30: a rider leaving its vehicle stands 0.001 above the floor it found (unset: as the newest)
   dismountLift?: boolean
+  // from 1.16.210: a rider leaving its vehicle looks for a free spot around it (unset: as the newest)
+  dismountSearch?: boolean
+  // from 1.16.210: a solid entity (a boat) the player is inside is a one-way collider (unset: as the newest)
+  solidEntityOneWay?: boolean
   world: World
 }

@@ -7,7 +7,8 @@ import { scalar } from '../math/crt.ts'
 import { f } from '../math/float.ts'
 import { moveWithCollisions } from '../movement/auto-step.ts'
 import type { Ctx, Player, Vec3Like, XZ } from '../types.ts'
-import { dismountPosition } from '../vehicle/dismount.ts'
+import { dismountPosition, exitRidePosition } from '../vehicle/dismount.ts'
+import { viewOf } from '../math/rotation.ts'
 import { applyBoatFriction, BOAT_HEIGHT, BOAT_HEIGHT_OFFSET, BOAT_WIDTH, boatControl, boatFriction, newPaddle, OUT_OF_CONTROL_LIMIT, paddleForces, paddleRowing, paddleWithForce, type Paddle } from '../vehicle/boat.ts'
 import { chargeJump, mountMove, newHorseState, powerJump, turnToward, type HorseState } from '../vehicle/horse.ts'
 import { frictionInfluencedSpeed, moveRelative } from '../movement/travel.ts'
@@ -210,6 +211,9 @@ function insideReach (box: Box): Box {
   return new Box(f(box.minX - 0.5), f(box.minY - 0.5), f(box.minZ - 0.5), f(box.maxX + 0.5), f(box.maxY + 0.5), f(box.maxZ + 0.5))
 }
 
+// How far a boat's rider steps off before 1.16.210 (the rider's exit distance BDS 1.16.201 passes Actor::_exitRide)
+const OLD_EXIT_DISTANCE = f(1.6)
+
 // Whether a jumping rider leaves the vehicle: any the client does not predict, but a boat or one that takes the jump.
 export function leavesOnJump (vehicle: Vehicle): boolean {
   return !vehicle.predicted && !vehicle.kind.endsWith('boat') && !vehicle.jumpControlled
@@ -229,6 +233,19 @@ export function dismount (ctx: Ctx, entity: Player, byRider = true, alpha?: numb
   const w = f(ctx.settings.playerHalfWidth)
   const feetY = f(seat.y - eye)
   const riderBox = { minX: -w, minY: feetY, minZ: -w, maxX: w, maxY: f(feetY + f(ctx.settings.playerHeight)), maxZ: w }
+  // (before 1.16.210 a boat's rider steps off along its look, 1.6 from the boat, onto whatever is there)
+  if (ctx.dismountSearch === false && vehicle.kind.endsWith('boat')) {
+    const body = { x: seat.x, y: f(feetY + f(f(ctx.settings.playerHeight) * 0.5)), z: seat.z }
+    const size = { x: f(w * 2), y: f(ctx.settings.playerHeight), z: f(w * 2) }
+    const feet = exitRidePosition(ctx.world, vehicle.pos, viewOf(entity), body, eye, size, OLD_EXIT_DISTANCE)
+    entity.pos.set(feet.x, feet.y, feet.z)
+    entity.vehicle = undefined
+    if (entity.bedrock) {
+      entity.bedrock.aabb = undefined
+      entity.bedrock.dismountStanding = false
+    }
+    return
+  }
   const at = dismountPosition(ctx.world, vehicle, seat, riderBox, byRider, ctx.dismountLift !== false)
   if (at.standing) entity.pos.set(at.x, at.y, at.z)
   else {
@@ -243,6 +260,7 @@ export function dismount (ctx: Ctx, entity: Player, byRider = true, alpha?: numb
   entity.vehicle = undefined
   if (entity.bedrock) {
     entity.bedrock.aabb = undefined
+    entity.bedrock.dismountStanding = at.standing
     // the tick's input was read in the seat: it still reports the paddles
     if (unlinked && vehicle.predicted) entity.bedrock.leftSteeredVehicle = true
   }

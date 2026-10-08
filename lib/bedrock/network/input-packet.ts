@@ -81,8 +81,9 @@ const NO_INPUT = { move: { x: 0, z: 0 }, rawMove: { x: 0, z: 0 }, analog: { x: 0
 
 // The packet, in bedrock-protocol's field names (the caller adds `tick` and, where the version has them, the presence
 // flags). The position is the eye position, `delta` the velocity after friction, the rotation the tick's; the camera
-// orientation is the look direction (the client's camera follows it within 1e-3), the head yaw the yaw.
-export function buildPlayerAuthInput (entity: Player, eyeHeight = 1.6200100183486938): Record<string, unknown> {
+// orientation is the look direction (the client's camera follows it within 1e-3), the head yaw the yaw (before
+// 1.18.11, `signedHeadYaw` false: wrapped into [0, 360)).
+export function buildPlayerAuthInput (entity: Player, eyeHeight = 1.6200100183486938, signedHeadYaw = true): Record<string, unknown> {
   const yaw = yawOf(entity)
   const pitch = pitchOf(entity)
   const input = entity.bedrock?.input || NO_INPUT
@@ -91,7 +92,7 @@ export function buildPlayerAuthInput (entity: Player, eyeHeight = 1.620010018348
   if (vehicle && vehicle.predicted) {
     // in a vehicle it simulates, the client reports the vehicle: its position and velocity, its rotation and its id;
     // the collision flags stay the rider's own, as it last moved itself
-    const packet = buildPlayerAuthInput({ ...entity, vehicle: undefined }, eyeHeight)
+    const packet = buildPlayerAuthInput({ ...entity, vehicle: undefined }, eyeHeight, signedHeadYaw)
     ;(packet.input_data as string[]).push('client_predicted_vehicle')
     // the driver's left and right keys are the paddle buttons (forward paddles nothing)
     const keys = vehicle.kind.endsWith('boat') ? entity.bedrock?.keys : undefined
@@ -110,7 +111,7 @@ export function buildPlayerAuthInput (entity: Player, eyeHeight = 1.620010018348
     yaw,
     position: { x: f(entity.pos.x), y: f(f(entity.pos.y) + f(eyeHeight)), z: f(entity.pos.z) },
     move_vector: { x: input.move.x, z: input.move.z },
-    head_yaw: yaw,
+    head_yaw: signedHeadYaw || yaw >= 0 ? yaw : f(yaw + 360),
     input_data: [...inputFlags(entity)].map(name => INPUT_FLAGS[INPUT_FLAG_BITS.get(name)!]).filter(Boolean),
     input_mode: input.inputMode,
     play_mode: 'screen',

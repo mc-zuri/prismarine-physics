@@ -15,6 +15,21 @@
     "since": "1.26.20"
   },
   {
+    "name": "signedHeadYaw",
+    "description": "player_auth_input's head_yaw is the yaw as it is (-180 to 180); before, wrapped into [0, 360) (bedrock-observer's recordings: yaw -90, head_yaw 270 through 1.18.0)",
+    "since": "1.18.11"
+  },
+  {
+    "name": "solidEntityOneWay",
+    "description": "A solid entity (a boat) the player is inside makes it a one-way collider, its push out limited to 0.1; before, nothing changes and the player is pushed out of it whole (1.16.201's rider left onto its boat's top)",
+    "since": "1.16.210"
+  },
+  {
+    "name": "dismountSearch",
+    "description": "A rider that leaves its vehicle looks for a free spot around it; before, a boat's rider steps off along its look (its body's height + 1 upward, absolute), 1.6 from the boat, onto whatever is there",
+    "since": "1.16.210"
+  },
+  {
     "name": "dismountLift",
     "description": "A rider that leaves its vehicle stands 0.001 above the floor of the spot it found; before, on the floor",
     "since": "1.21.30"

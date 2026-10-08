@@ -29,6 +29,7 @@ describe('bedrock solid entities', () => {
     assert.deepStrictEqual(moveDepenetrationLimit(withBoat, player(1), 0), { x: 1, y: 1, z: 1 }, 'near: the whole block stays')
     const inside = SOLID_ENTITY_DEPENETRATION
     assert.deepStrictEqual(moveDepenetrationLimit(withBoat, player(0), 0), { x: inside, y: inside, z: inside }, 'inside: one way at 0.1')
+    assert.deepStrictEqual(moveDepenetrationLimit(withBoat, player(0), 0, false), { x: 1, y: 1, z: 1 }, 'before 1.16.210: pushed out whole')
     assert.deepStrictEqual(moveDepenetrationLimit(withBoat, player(0), DepenetrationBit.stuckItem), { x: 1, y: 1, z: 1 }, 'a stuck item is never engaged')
     const far: World = { getBlock: FLAT.getBlock, solidEntityBoxes: () => [] }
     assert.deepStrictEqual(moveDepenetrationLimit(far, player(0), 0), { x: 1, y: 1, z: 1 })

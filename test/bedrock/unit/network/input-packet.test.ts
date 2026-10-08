@@ -49,6 +49,14 @@ describe('bedrock network/input-packet', () => {
     assert.strictEqual((buildPlayerAuthInput(p, 1).position as { y: number }).y, f(2 + 1))
   })
 
+  // (bedrock-observer's recordings: a yaw of -90 reported with head_yaw 270 through 1.18.0, -90 from 1.18.11)
+  it('wraps the head yaw into [0, 360) before 1.18.11', () => {
+    const west = player([0, 0, 0], { bedrockYaw: -90, bedrockPitch: 0 })
+    assert.strictEqual(buildPlayerAuthInput(west).head_yaw, -90)
+    assert.deepStrictEqual([buildPlayerAuthInput(west, undefined, false).head_yaw, buildPlayerAuthInput(west, undefined, false).yaw], [270, -90])
+    assert.strictEqual(buildPlayerAuthInput(player([0, 0, 0], { bedrockYaw: 90, bedrockPitch: 0 }), undefined, false).head_yaw, 90)
+  })
+
   it('builds a packet before any tick with zero move vectors', () => {
     const packet = buildPlayerAuthInput(player()) as Record<string, any>
     assert.deepStrictEqual([packet.move_vector, packet.raw_move_vector, packet.analogue_move_vector], [{ x: 0, z: 0 }, { x: 0, z: 0 }, { x: 0, z: 0 }])

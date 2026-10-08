@@ -91,6 +91,24 @@ export function searchDismountColumn (world: World, anchor: Vec3Like, size: Vec3
   return null
 }
 
+// Before 1.16.210 (Actor::_exitRide): the rider steps off at `distance` from the vehicle's position, toward its look
+// across and, upward, its body's height + 1 (an absolute height, as that client has it), normalized; its eyes there,
+// or one or two blocks higher, the first spot whose box meets no block; with none, it stands at its body. `body` is
+// the rider's attach point (its feet + half its height), `eye` its eye height. Returns the feet.
+export function exitRidePosition (world: World, vehiclePos: Vec3Like, view: Vec3Like, body: Vec3Like, eye: number, size: Vec3Like, distance: number): Vec3Like {
+  const up = f(body.y + 1)
+  const length = f(Math.sqrt(f(f(f(view.x * view.x) + f(up * up)) + f(view.z * view.z))))
+  const inverse = length < f(0.0001) ? 0 : f(1 / length)
+  const dir = { x: f(inverse * view.x), y: f(inverse * up), z: f(inverse * view.z) }
+  const at = { x: f(f(dir.x * distance) + vehiclePos.x), y: f(f(dir.y * distance) + vehiclePos.y), z: f(f(dir.z * distance) + vehiclePos.z) }
+  for (let i = 0; i < 3; i++) {
+    const feet = { x: at.x, y: f(at.y - eye), z: at.z }
+    if (fitsAt(world, feet, size)) return feet
+    at.y = f(at.y + 1)
+  }
+  return { x: body.x, y: body.y, z: body.z }
+}
+
 // The rider's position (feet) after it leaves the vehicle: the seat moved to the free spot, standing on its floor
 // (0.001 above from 1.21.30: `lift`); where there is none, where it sits (the rider box's feet). `standing`: whether it
 // stands on a floor. `byRider`: the rider leaves by itself (else the server takes it off).

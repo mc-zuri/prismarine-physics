@@ -60,8 +60,10 @@ export function requestMove (ctx: Ctx, entity: Simulated, tick: TickState): void
 }
 
 // The depenetration limit of a move: from the state the previous moves left, raised to 0.1 with a solid entity (a
-// boat) near; a solid entity the player is inside makes it a one-way collider, which engages the push at 0.1.
-export function moveDepenetrationLimit (world: World, aabb: BoxLike, bits: number): Vec3Like {
+// boat) near; a solid entity the player is inside makes it a one-way collider, which engages the push at 0.1. Before
+// 1.16.210 (`oneWay` false) a solid entity changes nothing: a player inside a boat is pushed out of it whole.
+export function moveDepenetrationLimit (world: World, aabb: BoxLike, bits: number, oneWay = true): Vec3Like {
+  if (!oneWay) return depenetrationLimit(bits)
   const R = SOLID_ENTITY_REACH
   const near = world.solidEntityBoxes ? world.solidEntityBoxes(new Box(aabb.minX - R, aabb.minY - R, aabb.minZ - R, aabb.maxX + R, aabb.maxY + R, aabb.maxZ + R)) : []
   if (!near.length) return depenetrationLimit(bits)
@@ -84,7 +86,7 @@ export function sweepMove (ctx: Ctx, entity: Simulated, tick: TickState): void {
   const bits = st.depenetrationBits || 0
   const report: SweepReport = { totalClip: 0 }
   const aabb = st.aabb!
-  const limit = moveDepenetrationLimit(ctx.world, aabb, bits)
+  const limit = moveDepenetrationLimit(ctx.world, aabb, bits, ctx.solidEntityOneWay !== false)
   tick.applied = moveWithCollisions(ctx.world, aabb.clone(), tick.requested, !!entity.onGround, ctx.settings.stepHeight, !!st.input!.sneaking, limit, report, { leatherBoots: !!entity.leatherBoots, fallDistance: st.fallDistance || 0, descendSnow: !!st.descendingSnow })
   tick.penetrated = report.totalClip >= PENETRATION_EPSILON
   st.depenetrationBits = updateDepenetrationBits(bits, !!st.pushTowardsClosestSpace, tick.penetrated)
