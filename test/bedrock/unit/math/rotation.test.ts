@@ -68,6 +68,8 @@ describe('bedrock math/rotation', () => {
     assert.strictEqual(javaYawToBedrockDeg(0), 180)
     assert.strictEqual(javaYawToBedrockDeg(Math.PI / 2), 90)
     assert.strictEqual(javaPitchToBedrockDeg(-Math.PI / 4), 45)
+    // (a level look, either zero: 0, not -0, as the vanilla client writes it)
+    assert.ok(Object.is(javaPitchToBedrockDeg(0), 0) && Object.is(javaPitchToBedrockDeg(-0), 0))
   })
 
   it('reads the degrees when given, else converts the radians', () => {
@@ -76,7 +78,7 @@ describe('bedrock math/rotation', () => {
     assert.strictEqual(yawOf({}), 180)
     assert.strictEqual(pitchOf({ bedrockPitch: -7.5, pitch: 1 }), -7.5)
     assert.strictEqual(pitchOf({ pitch: -Math.PI / 4 }), 45)
-    assert.strictEqual(pitchOf({}), -0)
+    assert.ok(Object.is(pitchOf({}), 0))
     assert.deepStrictEqual(viewOf({ bedrockYaw: 90, bedrockPitch: 10 }), directionFromRotation(10, 90))
   })
 })

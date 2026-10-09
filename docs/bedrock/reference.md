@@ -550,7 +550,7 @@ Angles and directions. The game's 65536-entry sine table drives the view vector 
 - `function directionFromRotation (pitchDeg: number, yawDeg: number): Vec3Like` -- The unit look direction of a pitch and yaw in degrees (pitch > 0 looks down, so y = sin(-pitch)).
 - `function viewBetween (fromYaw: number, fromPitch: number, toYaw: number, toPitch: number, alpha = 1): Vec3Like` -- The look direction between two rotations (both lerped by alpha, wrapped).
 - `function javaYawToBedrockDeg (yaw: number): number` -- mineflayer's yaw (radians, 0 = north (-z), counter-clockwise) and pitch (radians, up positive) in Bedrock degrees (yaw 0 = south (+z), clockwise; pitch down positive).
-- `function javaPitchToBedrockDeg (pitch: number): number` -- mineflayer's pitch in Bedrock degrees.
+- `function javaPitchToBedrockDeg (pitch: number): number` -- mineflayer's pitch in Bedrock degrees; a level look is 0, as the client reports it (the negation alone made it -0)
 - `interface Rotated` -- An entity's rotation: mineflayer radians, or Bedrock degrees overriding them.
 - `function yawOf (entity: Rotated): number` -- The entity's yaw and pitch in Bedrock degrees: `bedrockYaw` / `bedrockPitch` when given, else the radian angles.
 - `function pitchOf (entity: Rotated): number` -- The entity's pitch in Bedrock degrees.

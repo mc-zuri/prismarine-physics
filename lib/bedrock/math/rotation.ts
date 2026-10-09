@@ -65,8 +65,8 @@ export function viewBetween (fromYaw: number, fromPitch: number, toYaw: number, 
 // mineflayer's yaw (radians, 0 = north (-z), counter-clockwise) and pitch (radians, up positive) in Bedrock degrees
 // (yaw 0 = south (+z), clockwise; pitch down positive).
 export function javaYawToBedrockDeg (yaw: number): number { return f((Math.PI - yaw) * 180 / Math.PI) }
-// mineflayer's pitch in Bedrock degrees.
-export function javaPitchToBedrockDeg (pitch: number): number { return f(-pitch * 180 / Math.PI) }
+// mineflayer's pitch in Bedrock degrees; a level look is 0, as the client reports it (the negation alone made it -0)
+export function javaPitchToBedrockDeg (pitch: number): number { return f(-pitch * 180 / Math.PI) + 0 }
 
 // An entity's rotation: mineflayer radians, or Bedrock degrees overriding them.
 export interface Rotated {
