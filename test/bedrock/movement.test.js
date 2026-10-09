@@ -546,6 +546,10 @@ describe('bedrock physics', function () {
     assert.ok(wire[2] && flags(wire[2], 'start_flying')[0], 'the ability as the protocol names it')
     const creative = run(flat, 4, t => ({ jump: t === 0 || t === 2 }), b => { b.game = { gameMode: 'creative' } }).packets
     assert.ok(!flags(creative[2], 'start_flying')[0], 'the game mode alone gives no ability')
+    // mineflayer's bot.abilities.mayFly: BDS leaves may_fly out of the flags in creative, the client takes it from the
+    // game mode
+    const derived = run(flat, 4, t => ({ jump: t === 0 || t === 2 }), b => { b.abilities = { mayFly: true, flags: { may_fly: false } } }).packets
+    assert.ok(derived[2] && flags(derived[2], 'start_flying')[0], 'the ability mineflayer derives')
   })
 
   it('takes flight and no-clip from the abilities, not the game mode', function () {

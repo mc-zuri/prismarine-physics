@@ -3498,7 +3498,9 @@ function readBot (state, bot, control) {
   state.usingItem = !!bot.usingHeldItem
   // Bedrock-only inputs of the client's sprint and flight triggers: the may-fly ability, the food level (a sprint
   // needs more than 6) and blindness (no sprint).
-  state.mayFly = !!(abilityFlags.mayFly || abilityFlags.may_fly)
+  // (mineflayer's bot.abilities.mayFly too: BDS leaves may_fly out of the flags in creative, and the client takes it
+  // from the game mode)
+  state.mayFly = !!(abilityFlags.mayFly || abilityFlags.may_fly || abilities.mayFly === true)
   state.noClip = !!(abilityFlags.noClip || abilityFlags.no_clip)
   // Instant build (the creative ability): a held jump then ends no glide, and boosts it.
   state.instabuild = !!(abilityFlags.instabuild || abilityFlags.instant_build)
