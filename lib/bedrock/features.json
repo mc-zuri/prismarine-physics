@@ -38,5 +38,10 @@
     "name": "levitationFullRewind",
     "description": "A Levitation added or removed takes effect from the tick after its stamp however late it arrives; before, from no earlier than 4 ticks before the current one",
     "since": "1.26.51"
+  },
+  {
+    "name": "noNorthJump",
+    "description": "player_auth_input sets no north_jump; before, the jump key set it out of water and lava (bedrock-observer's recordings: with every jump_down outside a liquid through 1.20.80)",
+    "since": "1.21.0"
   }
 ]

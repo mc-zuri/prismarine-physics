@@ -31,7 +31,7 @@ export const INPUT_FLAG_BITS: ReadonlyMap<string, number> = new Map(INPUT_FLAG_N
 
 // The input flags of the tick just simulated, as camelCase names: the raw key bits, the input's derived bits, the
 // start / stop actions the tick raised, the move's collision flags, and the constant a keyboard-and-mouse client sets.
-export function inputFlags (entity: Player): Set<string> {
+export function inputFlags (entity: Player, northJump = false): Set<string> {
   const st = entity.bedrock || {}
   const keys = st.keys
   const input = st.input
@@ -39,6 +39,8 @@ export function inputFlags (entity: Player): Set<string> {
     ascend: keys?.ascend,
     descend: keys?.descend,
     jumpDown: keys?.jumpDown,
+    // (before 1.21.0) the jump key out of water and lava
+    northJump: northJump && !!keys?.jumpDown && !st.wasInWater && !st.wasInLava,
     sprintDown: keys?.sprintDown,
     changeHeight: keys?.changeHeight,
     sneakDown: keys?.sneakDown,
@@ -82,8 +84,9 @@ const NO_INPUT = { move: { x: 0, z: 0 }, rawMove: { x: 0, z: 0 }, analog: { x: 0
 // The packet, in bedrock-protocol's field names (the caller adds `tick` and, where the version has them, the presence
 // flags). The position is the eye position, `delta` the velocity after friction, the rotation the tick's; the camera
 // orientation is the look direction (the client's camera follows it within 1e-3), the head yaw the yaw (before
-// 1.18.11, `signedHeadYaw` false: wrapped into [0, 360)).
-export function buildPlayerAuthInput (entity: Player, eyeHeight = 1.6200100183486938, signedHeadYaw = true): Record<string, unknown> {
+// 1.18.11, `signedHeadYaw` false: wrapped into [0, 360)); before 1.21.0 (`northJump`) north_jump with the jump key
+// out of water and lava.
+export function buildPlayerAuthInput (entity: Player, eyeHeight = 1.6200100183486938, signedHeadYaw = true, northJump = false): Record<string, unknown> {
   const yaw = yawOf(entity)
   const pitch = pitchOf(entity)
   const input = entity.bedrock?.input || NO_INPUT
@@ -92,7 +95,7 @@ export function buildPlayerAuthInput (entity: Player, eyeHeight = 1.620010018348
   if (vehicle && vehicle.predicted) {
     // in a vehicle it simulates, the client reports the vehicle: its position and velocity, its rotation and its id;
     // the collision flags stay the rider's own, as it last moved itself
-    const packet = buildPlayerAuthInput({ ...entity, vehicle: undefined }, eyeHeight, signedHeadYaw)
+    const packet = buildPlayerAuthInput({ ...entity, vehicle: undefined }, eyeHeight, signedHeadYaw, northJump)
     ;(packet.input_data as string[]).push('client_predicted_vehicle')
     // the driver's left and right keys are the paddle buttons (forward paddles nothing)
     const keys = vehicle.kind.endsWith('boat') ? entity.bedrock?.keys : undefined
@@ -112,7 +115,7 @@ export function buildPlayerAuthInput (entity: Player, eyeHeight = 1.620010018348
     position: { x: f(entity.pos.x), y: f(f(entity.pos.y) + f(eyeHeight)), z: f(entity.pos.z) },
     move_vector: { x: input.move.x, z: input.move.z },
     head_yaw: signedHeadYaw || yaw >= 0 ? yaw : f(yaw + 360),
-    input_data: [...inputFlags(entity)].map(name => INPUT_FLAGS[INPUT_FLAG_BITS.get(name)!]).filter(Boolean),
+    input_data: [...inputFlags(entity, northJump)].map(name => INPUT_FLAGS[INPUT_FLAG_BITS.get(name)!]).filter(Boolean),
     input_mode: input.inputMode,
     play_mode: 'screen',
     interaction_model: 'touch',

@@ -1,6 +1,7 @@
 import assert from 'node:assert'
 import { Vec3 } from 'vec3'
 import { defaultSettings, FEATURES, Physics, supportFeature, versionAtLeast, versionOf } from '../../../lib/bedrock/index.ts'
+import { cook } from '../../../lib/bedrock/movement/input.ts'
 import { FLAT, player, worldOf } from './helpers.ts'
 
 const f = Math.fround
@@ -17,7 +18,7 @@ describe('bedrock physics object', () => {
   })
 
   it('keys the version-dependent rules on the full version, from features.json', () => {
-    assert.deepStrictEqual(FEATURES.map(feature => feature.name), ['scalarTrig', 'landingBounceCorrection', 'scaffoldingClimbFlag', 'signedHeadYaw', 'solidEntityOneWay', 'dismountSearch', 'dismountLift', 'levitationFullRewind'])
+    assert.deepStrictEqual(FEATURES.map(feature => feature.name), ['scalarTrig', 'landingBounceCorrection', 'scaffoldingClimbFlag', 'signedHeadYaw', 'solidEntityOneWay', 'dismountSearch', 'dismountLift', 'levitationFullRewind', 'noNorthJump'])
     assert.ok(supportFeature(registry('1.26.20'), 'landingBounceCorrection'))
     assert.ok(!supportFeature(registry('1.26.10'), 'landingBounceCorrection'), 'the same major version, before it')
     assert.ok(!supportFeature(registry('1.26.51'), 'noSuchFeature'), 'an unknown feature: never')
@@ -26,6 +27,13 @@ describe('bedrock physics object', () => {
     assert.ok(!versionAtLeast(registry('1.26.10'), 1, 26, 20))
     assert.ok(!versionAtLeast(registry('1.25.99'), 1, 26, 20))
     assert.ok(!versionAtLeast({}, 1, 26, 20))
+  })
+
+  it('sets north_jump with the jump key before 1.21.0', () => {
+    const input = cook({ jump: true }, undefined, {})
+    const jumping = () => player(undefined, { bedrock: { keys: input.keys, input } })
+    const north = (version: string) => (Physics(registry(version), FLAT).playerAuthInput(jumping()).input_data as string[]).includes('north_jump')
+    assert.deepStrictEqual([north('1.20.80'), north('1.21.0')], [true, false])
   })
 
   it('carries the default tunables', () => {

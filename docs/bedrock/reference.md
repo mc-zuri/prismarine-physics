@@ -618,8 +618,8 @@ The player_auth_input packet the client sends after each tick, built from the si
 - `function camelCase (name: string): string` -- A snake_case flag name in camelCase.
 - `const INPUT_FLAG_NAMES` -- The same flags in camelCase, by bit number, and the bit of each.
 - `const INPUT_FLAG_BITS` -- The bit number of each camelCase flag name.
-- `function inputFlags (entity: Player): Set<string>` -- The input flags of the tick just simulated, as camelCase names: the raw key bits, the input's derived bits, the start / stop actions the tick raised, the move's collision flags, and the constant a keyboard-and-mouse client sets.
-- `function buildPlayerAuthInput (entity: Player, eyeHeight = 1.6200100183486938, signedHeadYaw = true): Record<string, unknown>` -- The packet, in bedrock-protocol's field names (the caller adds `tick` and, where the version has them, the presence flags). The position is the eye position, `delta` the velocity after friction, the rotation the tick's; the camera orientation is the look direction (the client's camera follows it within 1e-3), the head yaw the yaw (before 1.18.11, `signedHeadYaw` false: wrapped into [0, 360)).
+- `function inputFlags (entity: Player, northJump = false): Set<string>` -- The input flags of the tick just simulated, as camelCase names: the raw key bits, the input's derived bits, the start / stop actions the tick raised, the move's collision flags, and the constant a keyboard-and-mouse client sets.
+- `function buildPlayerAuthInput (entity: Player, eyeHeight = 1.6200100183486938, signedHeadYaw = true, northJump = false): Record<string, unknown>` -- The packet, in bedrock-protocol's field names (the caller adds `tick` and, where the version has them, the presence flags). The position is the eye position, `delta` the velocity after friction, the rotation the tick's; the camera orientation is the look direction (the client's camera follows it within 1e-3), the head yaw the yaw (before 1.18.11, `signedHeadYaw` false: wrapped into [0, 360)); before 1.21.0 (`northJump`) north_jump with the jump key out of water and lava.
 
 ### `network/rewind.ts`
 

@@ -144,13 +144,14 @@ export function Physics (registry: Registry, world: World): BedrockPhysics {
   const dismountSearch = supportFeature(registry, 'dismountSearch')
   const solidEntityOneWay = supportFeature(registry, 'solidEntityOneWay')
   const signedHeadYaw = supportFeature(registry, 'signedHeadYaw')
+  const northJump = !supportFeature(registry, 'noNorthJump')
   // `settings` is the physics object itself, so a caller's change to a tunable reaches the tick
   const physics = settings as BedrockPhysics
   const ctxFor = (w: World): Ctx => ({ settings: physics, trig, bounceCorrection, scaffoldingClimbFlag, dismountLift, dismountSearch, solidEntityOneWay, world: w })
 
   physics.simulatePlayer = (entity, w) => simulatePlayer(ctxFor(w), entity)
   physics.dismount = (entity, w = world, byRider = true, alpha, unlinked = false) => dismount(ctxFor(w), entity, byRider, alpha, unlinked)
-  physics.playerAuthInput = (entity) => buildPlayerAuthInput(entity, physics.eyeHeight, signedHeadYaw)
+  physics.playerAuthInput = (entity) => buildPlayerAuthInput(entity, physics.eyeHeight, signedHeadYaw, northJump)
   physics.setMovementAttribute = (entity, attribute) => setMovementAttribute(entity, physics, attribute)
   physics.handleTeleport = (entity, teleport) => handleTeleport(entity, teleport, physics.eyeHeight)
   physics.respawn = (entity, at) => respawnAt(entity, at, physics.eyeHeight)

@@ -57,6 +57,17 @@ describe('bedrock network/input-packet', () => {
     assert.strictEqual(buildPlayerAuthInput(player([0, 0, 0], { bedrockYaw: 90, bedrockPitch: 0 }), undefined, false).head_yaw, 90)
   })
 
+  // (bedrock-observer's recordings: north_jump with every jump_down out of water and lava through 1.20.80, never from
+  // 1.21.0)
+  it('sets north_jump with the jump key out of water and lava before 1.21.0', () => {
+    const jumping = (bedrock: { wasInWater?: boolean, wasInLava?: boolean }) => {
+      const input = cook({ jump: true }, undefined, {})
+      return player(undefined, { bedrock: { keys: input.keys, input, ...bedrock } })
+    }
+    const north = (p: ReturnType<typeof jumping>, northJump?: boolean) => (buildPlayerAuthInput(p, undefined, true, northJump).input_data as string[]).includes('north_jump')
+    assert.deepStrictEqual([north(jumping({}), true), north(jumping({ wasInWater: true }), true), north(jumping({ wasInLava: true }), true), north(jumping({})), north(player(), true)], [true, false, false, false, false])
+  })
+
   it('builds a packet before any tick with zero move vectors', () => {
     const packet = buildPlayerAuthInput(player()) as Record<string, any>
     assert.deepStrictEqual([packet.move_vector, packet.raw_move_vector, packet.analogue_move_vector], [{ x: 0, z: 0 }, { x: 0, z: 0 }, { x: 0, z: 0 }])
