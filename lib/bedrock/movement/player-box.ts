@@ -66,7 +66,10 @@ export function dropBox (st: BedrockState): void {
   st.anchor = new Vec3(NaN, NaN, NaN)
 }
 
-// Moves the box by the applied movement (each axis that moved) and the position with it.
+// Moves the box by the applied movement (each axis that moved), then takes the position from the box on every axis,
+// moved or not, as the client's FinalizeMoveSystem does: x and z its centre, the feet its floor. A box just rebuilt
+// around the position (after a teleport) can have its centre a float32 step off the position (x 0.156): the first
+// move after it reports the centre.
 export function applyMovementToBox (entity: Player, applied: Vec3Like): void {
   const st = entity.bedrock!
   const aabb = st.aabb!
@@ -74,18 +77,18 @@ export function applyMovementToBox (entity: Player, applied: Vec3Like): void {
   if (applied.x !== 0) {
     aabb.minX = f(aabb.minX + applied.x)
     aabb.maxX = f(aabb.maxX + applied.x)
-    pos.x = f((aabb.minX + aabb.maxX) * 0.5)
   }
   if (applied.y !== 0) {
     aabb.minY = f(aabb.minY + applied.y)
     aabb.maxY = f(aabb.maxY + applied.y)
-    pos.y = aabb.minY
   }
   if (applied.z !== 0) {
     aabb.minZ = f(aabb.minZ + applied.z)
     aabb.maxZ = f(aabb.maxZ + applied.z)
-    pos.z = f((aabb.minZ + aabb.maxZ) * 0.5)
   }
+  pos.x = f((aabb.minX + aabb.maxX) * 0.5)
+  pos.y = aabb.minY
+  pos.z = f((aabb.minZ + aabb.maxZ) * 0.5)
   st.anchor!.set(pos.x, pos.y, pos.z)
 }
 

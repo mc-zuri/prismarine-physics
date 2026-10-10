@@ -68,6 +68,17 @@ describe('bedrock movement/player-box', () => {
     assert.ok(boxIsCurrent(st, p.pos))
   })
 
+  it('takes the position from a box just built around it even when nothing moved (x 0.156 after a teleport)', () => {
+    // the box around x 0.156 has its centre a float32 step above it: the client reports the centre from the first move
+    const x = f(0.156)
+    const p = player([x, 13, f(236.159)])
+    const st = ensureBox(p, 1.8, 0.3)
+    applyMovementToBox(p, { x: 0, y: 0, z: 0 })
+    assert.strictEqual(p.pos.x, 0.156000018119812)
+    assert.deepStrictEqual([p.pos.x, p.pos.y, p.pos.z], [f((st.aabb!.minX + st.aabb!.maxX) * 0.5), st.aabb!.minY, f((st.aabb!.minZ + st.aabb!.maxZ) * 0.5)])
+    assert.ok(boxIsCurrent(st, p.pos))
+  })
+
   describe('catching on scaffolding', () => {
     // a scaffolding column at x = z = 0, two cells high
     const column = worldOf({ '0,0,0': 'scaffolding', '0,1,0': 'scaffolding' }, null)
