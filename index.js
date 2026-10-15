@@ -393,6 +393,7 @@ function Physics (mcData, world) {
       }
     }
 
+    if (!blockEffectsAfterTravel) stepOn(entity, blockAtFeet)
     // Up to 1.21.1 the blocks the player is in act during the move (Entity.checkInsideBlocks); from 1.21.2 after
     // travel (LivingEntity.applyEffectsFromBlocks), so after gravity and drag
     if (!blockEffectsAfterTravel) applyInsideBlocks(entity, world, playerBB)
@@ -404,6 +405,18 @@ function Physics (mcData, world) {
         vel.z *= factor
       }
     }
+  }
+
+  // Block.stepOn on the block the player stands on (getOnPosLegacy): slime scales the horizontal motion by
+  // 0.4 + |vy| * 0.2 when |vy| < 0.1, unless sneaking. Up to 1.21.1 in Entity.move after the fall-on bounce; from 1.21.2
+  // in applyEffectsFromBlocks after travel, so after gravity and drag.
+  function stepOn (entity, block) {
+    if (!entity.onGround || !block || block.type !== slimeBlockId || entity.control.sneak) return
+    const vy = Math.abs(entity.vel.y)
+    if (vy >= 0.1) return
+    const scale = 0.4 + vy * 0.2
+    entity.vel.x *= scale
+    entity.vel.z *= scale
   }
 
   // Entity.getBlockSpeedFactor (1.15+): the feet block's speed factor, or when that is 1 (and the feet are not in water
@@ -1743,6 +1756,7 @@ function Physics (mcData, world) {
     if (!rocketTicksAfterPlayer) boostByRocket(entity)
     moveEntityWithHeading(entity, world, strafe, forward)
     if (blockEffectsAfterTravel) {
+      stepOn(entity, world.getBlock(onPos(entity, world, Math.fround(0.2))))
       const moves = entity.movesThisTick.length ? entity.movesThisTick : [{ from: tickStart, to: pos.clone() }]
       applyInsideBlocksAlongMoves(entity, world, moves)
     }
