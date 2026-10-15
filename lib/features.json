@@ -73,5 +73,15 @@
     "name": "groundSpeedConstantRoundedUp",
     "description": "The ground speed factor's constant is 0.16277137F instead of 0.16277136F",
     "versions": ["1.13"]
+  },
+  {
+    "name": "positionFromBox",
+    "description": "After a move the position is the centre and bottom of the moved box (resetPositionToBB, setLocationFromBoundingbox); since 1.17 the move is added to the position (setPos)",
+    "versions": ["1.8", "1.9", "1.10", "1.11", "1.12", "1.13", "1.14", "1.15", "1.16"]
+  },
+  {
+    "name": "moveThreshold",
+    "description": "Entity.move drops a collided move whose squared length is 1.0E-7 or less; before 1.14 every move is applied",
+    "versions": ["1.14", "1.15", "1.16", "1.17", "1.18", "1.19", "1.20", "1.21", "26.1", "26.2"]
   }
 ]

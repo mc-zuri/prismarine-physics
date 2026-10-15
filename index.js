@@ -117,12 +117,6 @@ function Physics (mcData, world) {
     return new AABB(-w, 0, -w, w, physics.playerHeight, w).offset(pos.x, pos.y, pos.z)
   }
 
-  function setPositionToBB (bb, pos) {
-    pos.x = bb.minX + physics.playerHalfWidth
-    pos.y = bb.minY
-    pos.z = bb.minZ + physics.playerHalfWidth
-  }
-
   function getSurroundingBBs (world, queryBB) {
     const surroundingBBs = []
     const cursor = new Vec3(0, 0, 0)
@@ -204,7 +198,8 @@ function Physics (mcData, world) {
       }
     }
 
-    let playerBB = getPlayerBB(pos)
+    // Up to 1.16 the box carries the player from tick to tick and the position is read from it
+    let playerBB = positionFromBox && entity.box ? entity.box.clone() : getPlayerBB(pos)
     const queryBB = playerBB.clone().extend(dx, dy, dz)
     const surroundingBBs = getSurroundingBBs(world, queryBB)
     const oldBB = playerBB.clone()
@@ -224,7 +219,8 @@ function Physics (mcData, world) {
     }
     playerBB.offset(0, 0, dz)
 
-    // Step on block if height < stepHeight
+    // Step on block if height < stepHeight. The move then goes up by stepUp, across, and down by dy.
+    let stepUp = 0
     if (physics.stepHeight > 0 &&
       (entity.onGround || (dy !== oldVelY && oldVelY < 0)) &&
       (dx !== oldVelX || dz !== oldVelZ)) {
@@ -275,11 +271,13 @@ function Physics (mcData, world) {
         dx = dx1
         dy = -dy1
         dz = dz1
+        stepUp = dy1
         playerBB = BB1
       } else {
         dx = dx2
         dy = -dy2
         dz = dz2
+        stepUp = dy2
         playerBB = BB2
       }
 
@@ -292,12 +290,35 @@ function Physics (mcData, world) {
         dx = oldVelXCol
         dy = oldVelYCol
         dz = oldVelZCol
+        stepUp = 0
         playerBB = oldBBCol
       }
     }
 
+    // Entity.move: where the collided move leaves the player. Up to 1.16 the position is the box's centre and bottom
+    // (resetPositionToBB, setLocationFromBoundingbox); since 1.17 the move is added to the position (setPos). From 1.14
+    // a move whose squared length is 1.0E-7 or less is dropped, unless (from 1.21.2) nothing shortened it.
+    const movedY = stepUp + dy
+    const movedSqr = dx * dx + movedY * movedY + dz * dz
+    if (!moveThreshold || movedSqr > 1.0e-7 ||
+      (appliesUnobstructedTinyMove && oldVelX * oldVelX + oldVelY * oldVelY + oldVelZ * oldVelZ - movedSqr < 1.0e-7)) {
+      if (positionFromBox) {
+        // 1.14 to 1.16 move the box once by the whole collided move (a step's up and down in one), before axis by axis
+        if (moveThreshold) playerBB = oldBB.clone().offset(dx, movedY, dz)
+        pos.x = (playerBB.minX + playerBB.maxX) / 2
+        pos.y = playerBB.minY
+        pos.z = (playerBB.minZ + playerBB.maxZ) / 2
+        entity.box = playerBB.clone()
+      } else {
+        pos.x += dx
+        pos.y += movedY
+        pos.z += dz
+      }
+    } else if (positionFromBox) {
+      entity.box = oldBB.clone()
+    }
+
     // Update flags
-    setPositionToBB(playerBB, pos)
     entity.isCollidedHorizontally = dx !== oldVelX || dz !== oldVelZ
     entity.minorHorizontalCollision = entity.isCollidedHorizontally && isHorizontalCollisionMinor(entity, dx, dz)
     entity.isCollidedVertically = dy !== oldVelY
@@ -478,6 +499,9 @@ function Physics (mcData, world) {
   const climbableTrapdoorFeature = supportFeature('climbableTrapdoor')
   const sprintSurvivesMinorCollision = supportFeature('sprintSurvivesMinorCollision')
   const headingAnglePiOver180 = supportFeature('headingAnglePiOver180')
+  const positionFromBox = supportFeature('positionFromBox')
+  const moveThreshold = supportFeature('moveThreshold')
+  const appliesUnobstructedTinyMove = mcData.version['>=']('1.21.2') // Entity.move: changed within 1.21
   const floatMoveRelative = supportFeature('floatMoveRelative')
   const floatLengthNormalize = supportFeature('floatLengthNormalize')
   const groundSpeedFromInertia = supportFeature('groundSpeedFromInertia')
@@ -989,6 +1013,9 @@ class PlayerState {
 
     // Input / Outputs
     this.pos = bot.entity.position.clone()
+    // The box the last tick left, while the entity is still where that box put it (positionFromBox)
+    const physicsBox = bot.entity.physicsBox
+    this.box = physicsBox && physicsBox.position.equals(this.pos) ? physicsBox.box.clone() : null
     this.vel = bot.entity.velocity.clone()
     this.onGround = bot.entity.onGround
     this.isInWater = bot.entity.isInWater
@@ -1041,6 +1068,7 @@ class PlayerState {
 
   apply (bot) {
     bot.entity.position = this.pos
+    bot.entity.physicsBox = this.box ? { box: this.box, position: this.pos.clone() } : undefined
     bot.entity.velocity = this.vel
     bot.entity.onGround = this.onGround
     bot.entity.isInWater = this.isInWater

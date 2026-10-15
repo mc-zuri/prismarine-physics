@@ -83,6 +83,9 @@ Read / Write properties:
 - jumpTicks : (integer) number of ticks before the player can auto-jump again
 - jumpQueued : (boolean) true if the jump control state was true between the last tick and the current one
 - fireworkRocketDuration : (number) how many ticks of firework boost are remaining ?
+- box : (AABB or null) up to 1.16, the player's box as the last move left it; the position is read from it. It is kept on
+  the entity as `physicsBox` ({ box, position }) and used only while the entity is still at that position, otherwise
+  the box is rebuilt from the position
 
 Read only properties:
 - yaw : (float) the yaw angle, in radians, of the player entity
