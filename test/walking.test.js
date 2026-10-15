@@ -98,4 +98,15 @@ describe('walking from rest', () => {
       expect(firstTick(version, { yawDegrees: -90, airborne: true }).x).toBe(x)
     })
   }
+
+  // A server syncs the sprint modifier along with the movement speed. The engine replaces it with its own, which it
+  // finds by the modifier's UUID before 1.21 and by its id, minecraft:sprinting, since.
+  for (const [version, id] of [['1.20.4', '662a6b8d-da3e-4c1c-8813-96ea6097278d'], ['1.21.1', 'minecraft:sprinting'], ['1.21.11', 'minecraft:sprinting'], ['26.1', 'minecraft:sprinting']]) {
+    it(`${version}: sprints at vanilla's speed with the sprint modifier synced`, () => {
+      const resource = require('minecraft-data')(version).attributesByName.movementSpeed.resource
+      const attributes = { [resource]: { value: Math.fround(0.1), modifiers: [{ uuid: id, amount: Math.fround(0.3), operation: 2 }] } }
+      const vel = firstTick(version, { yawDegrees: -90, controls: { forward: true, sprint: true }, attributes })
+      expect(vel.x).toBe(SPRINT.frictionFactor.stone)
+    })
+  }
 })

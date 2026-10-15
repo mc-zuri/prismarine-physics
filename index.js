@@ -98,7 +98,8 @@ function Physics (mcData, world) {
     },
     slowFalling: 0.125,
     movementSpeedAttribute: mcData.attributesByName.movementSpeed.resource,
-    sprintingUUID: '662a6b8d-da3e-4c1c-8813-96ea6097278d' // SPEED_MODIFIER_SPRINTING_UUID is from LivingEntity.java
+    // LivingEntity's sprinting speed modifier: SPEED_MODIFIER_SPRINTING_UUID, since 1.21 the id SPEED_MODIFIER_SPRINTING_ID
+    sprintingUUID: supportFeature('attributeModifierIds') ? 'minecraft:sprinting' : '662a6b8d-da3e-4c1c-8813-96ea6097278d'
   }
 
   if (supportFeature('independentLiquidGravity')) {

@@ -108,5 +108,10 @@
     "name": "sneakingSpeedAttribute",
     "description": "The sneak slowdown is the sneaking_speed attribute",
     "versions": ["1.21", "26.1", "26.2"]
+  },
+  {
+    "name": "attributeModifierIds",
+    "description": "Attribute modifiers are identified by a resource location (the sprint modifier is minecraft:sprinting); before 1.21 by a UUID",
+    "versions": ["1.21", "26.1", "26.2"]
   }
 ]
