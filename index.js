@@ -550,6 +550,69 @@ function Physics (mcData, world) {
     entity.fallFlyingRequested = true
   }
 
+  // LivingEntity.travel while gliding (1.21.3+ updateFallFlyingMovement). The pitch is the float xRot in radians; c is
+  // its cosine squared: through the float Mth.cos up to 1.18.1, the double Math.cos from 1.18.2. The lift is
+  // -0.08 + c * 0.06 up to 1.12 and gravity * (-1 + c * 0.75) from 1.13 (gravity 0.08, 0.01 falling with Slow Falling).
+  // Falling turns into speed along the look, pulling up (xRot below 0, looking up) trades speed for lift, and the
+  // motion turns towards the look; then 0.99F, 0.98F and 0.99F of it stay.
+  function glide (entity, gravityMultiplier) {
+    const vel = entity.vel
+    const look = viewVector(entity)
+    const xRot = Math.fround(-entity.pitch * 180 / Math.PI)
+    const pitchRad = Math.fround(xRot * math.DEG_TO_RAD_F)
+    const hLook = Math.sqrt(look.x * look.x + look.z * look.z)
+    const hVel = Math.sqrt(vel.x * vel.x + vel.z * vel.z)
+    let c
+    if (glideCosineIsDouble) {
+      const cos = Math.cos(pitchRad)
+      c = cos * cos
+    } else {
+      const cos = math.mthCos(pitchRad, sinTableDoubleIndex)
+      c = Math.fround(cos * cos)
+    }
+    if (glideLiftIsConstant) vel.y += -0.08 + c * 0.06
+    else vel.y += physics.gravity * gravityMultiplier * (-1.0 + c * 0.75)
+    if (vel.y < 0.0 && hLook > 0.0) {
+      const q = vel.y * -0.1 * c
+      vel.y += q
+      vel.x += look.x * q / hLook
+      vel.z += look.z * q / hLook
+    }
+    if (pitchRad < 0 && (glideLiftIsConstant || hLook > 0.0)) {
+      const q = hVel * -math.mthSin(pitchRad, sinTableDoubleIndex) * 0.04
+      vel.y += q * 3.2
+      vel.x -= look.x * q / hLook
+      vel.z -= look.z * q / hLook
+    }
+    if (hLook > 0.0) {
+      vel.x += (look.x / hLook * hVel - vel.x) * 0.1
+      vel.z += (look.z / hLook * hVel - vel.z) * 0.1
+    }
+    vel.x *= Math.fround(0.99)
+    vel.y *= Math.fround(0.98)
+    vel.z *= Math.fround(0.99)
+  }
+
+  // Entity.getLookAngle: the look direction from the float yRot and xRot through Mth.sin and Mth.cos, each component a
+  // float. Up to 1.12 (getVectorForRotation) from -yRot - PI and -xRot; since (calculateViewVector) from -yRot and xRot.
+  function viewVector (entity) {
+    const f = Math.fround
+    const yRot = f((Math.PI - entity.yaw) * 180 / Math.PI)
+    const xRot = f(-entity.pitch * 180 / Math.PI)
+    const sin = r => math.mthSin(r, sinTableDoubleIndex)
+    const cos = r => math.mthCos(r, sinTableDoubleIndex)
+    if (legacyViewVector) {
+      const yawRad = f(f(-yRot * math.DEG_TO_RAD_F) - math.PI_F)
+      const pitchRad = f(-xRot * math.DEG_TO_RAD_F)
+      const pitchCos = -cos(pitchRad)
+      return new Vec3(f(sin(yawRad) * pitchCos), sin(pitchRad), f(cos(yawRad) * pitchCos))
+    }
+    const pitchRad = f(xRot * math.DEG_TO_RAD_F)
+    const yawRad = f(-yRot * math.DEG_TO_RAD_F)
+    const pitchCos = cos(pitchRad)
+    return new Vec3(f(sin(yawRad) * pitchCos), -sin(pitchRad), f(cos(yawRad) * pitchCos))
+  }
+
   // LivingEntity.jumpFromGround. The jump power is 0.42F times the block jump factor (from 1.15: the block at the feet,
   // or the one below when that is 1; honey 0.5F), from 1.20.6 the jump_strength attribute instead of 0.42F, plus 0.1F per
   // Jump Boost level. The sum is in double up to 1.13 and on 1.17 to 1.19, in float otherwise. From 1.20.6 a power of
@@ -640,6 +703,10 @@ function Physics (mcData, world) {
   const climbableTrapdoorFeature = supportFeature('climbableTrapdoor')
   const sprintSurvivesMinorCollision = supportFeature('sprintSurvivesMinorCollision')
   const headingAnglePiOver180 = supportFeature('headingAnglePiOver180')
+  // gliding by version
+  const glideLiftIsConstant = mcData.version['<']('1.13')
+  const glideCosineIsDouble = mcData.version['>=']('1.18.2')
+  const legacyViewVector = mcData.version['<']('1.13')
   // starting to glide by version
   const clientStartsGliding = mcData.version['>=']('1.15')
   const levitationBlocksGliding = mcData.version['>=']('1.16')
@@ -937,39 +1004,7 @@ function Physics (mcData, world) {
         vel.y = physics.outOfLiquidImpulse // jump out of liquid
       }
     } else if (entity.elytraFlying) {
-      const {
-        pitch,
-        sinPitch,
-        cosPitch,
-        lookDir
-      } = getLookingVector(entity)
-      const horizontalSpeed = Math.sqrt(vel.x * vel.x + vel.z * vel.z)
-      const cosPitchSquared = cosPitch * cosPitch
-      vel.y += physics.gravity * gravityMultiplier * (-1.0 + cosPitchSquared * 0.75)
-      // cosPitch is in [0, 1], so cosPitch > 0.0 is just to protect against
-      // divide by zero errors
-      if (vel.y < 0.0 && cosPitch > 0.0) {
-        const movingDownSpeedModifier = vel.y * (-0.1) * cosPitchSquared
-        vel.x += lookDir.x * movingDownSpeedModifier / cosPitch
-        vel.y += movingDownSpeedModifier
-        vel.z += lookDir.z * movingDownSpeedModifier / cosPitch
-      }
-
-      if (pitch > 0.0 && cosPitch > 0.0) {
-        const lookDownSpeedModifier = horizontalSpeed * sinPitch * 0.04
-        vel.x += -lookDir.x * lookDownSpeedModifier / cosPitch
-        vel.y += lookDownSpeedModifier * 3.2
-        vel.z += -lookDir.z * lookDownSpeedModifier / cosPitch
-      }
-
-      if (cosPitch > 0.0) {
-        vel.x += (lookDir.x / cosPitch * horizontalSpeed - vel.x) * 0.1
-        vel.z += (lookDir.z / cosPitch * horizontalSpeed - vel.z) * 0.1
-      }
-
-      vel.x *= 0.99
-      vel.y *= 0.98
-      vel.z *= 0.99
+      glide(entity, gravityMultiplier)
       moveEntity(entity, world, vel.x, vel.y, vel.z)
 
       if (entity.onGround) {
