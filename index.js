@@ -889,6 +889,7 @@ function Physics (mcData, world) {
       }
     }
     if (block.type === honeyblockId && honeySlidesDown(entity, cursor)) slideDownHoney(entity)
+    if (block.type === powderSnowId) entity.isInPowderSnow = true
     const stuck = stuckMultiplier(entity, world, block)
     if (stuck) {
       entity.isInWeb = true
@@ -1080,6 +1081,16 @@ function Physics (mcData, world) {
   const swiftSneakFeature = supportFeature('swiftSneak')
   const sneakingSpeedAttribute = mcData.attributesByName.sneakingSpeed ?? mcData.attributesByName.playerSneakingSpeed
   const sneakingSpeedResource = supportFeature('sneakingSpeedAttribute') && sneakingSpeedAttribute ? sneakingSpeedAttribute.resource : null
+  // LivingEntity.travel (1.17+): leather boots climb powder snow like a ladder: the block at the feet after the move up to
+  // 1.21.4 (getFeetBlockState, getInBlockState), from 1.21.5 whether powder snow touched the player the tick before
+  // (wasInPowderSnow)
+  function climbsPowderSnow (entity, world) {
+    if (!entity.leatherBoots || powderSnowId === -1) return false
+    if (powderSnowClimbPreviousTick) return entity.wasInPowderSnow
+    return world.getBlock(entity.pos.floored())?.type === powderSnowId
+  }
+  const powderSnowClimbPreviousTick = mcData.version['>=']('1.21.5')
+
   // LivingEntity.onClimbable: the feet block is a ladder or vine; from 1.14 scaffolding, from 1.16 the climbable tag's
   // weeping and twisting vines, from 1.17 its cave vines.
   function isOnLadder (world, pos) {
@@ -1385,7 +1396,7 @@ function Physics (mcData, world) {
 
       moveEntity(entity, world, vel.x, vel.y, vel.z)
 
-      if (!entity.flying && isOnLadder(world, pos) && (entity.isCollidedHorizontally ||
+      if (!entity.flying && (isOnLadder(world, pos) || climbsPowderSnow(entity, world)) && (entity.isCollidedHorizontally ||
         (supportFeature('climbUsingJump') && entity.control.jump))) {
         vel.y = physics.ladderClimbSpeed // climb ladder
       }
@@ -1739,6 +1750,9 @@ function Physics (mcData, world) {
     const pos = entity.pos
     const tickStart = pos.clone()
     entity.movesThisTick = blockEffectsAfterTravel ? [] : null
+    // Entity.baseTick: whether powder snow touched the player last tick
+    entity.wasInPowderSnow = entity.isInPowderSnow
+    entity.isInPowderSnow = false
 
     updateInWater(entity, world, getPlayerBB(pos))
     // Entity.updateFluidOnEyes (1.13+): whether the eyes are in water. From 1.16 isUnderWater is the eyes of the tick
@@ -1937,6 +1951,7 @@ class PlayerState {
     this.food = bot.food ?? 20
     this.mayFly = bot.abilities?.mayFly ?? false
     this.elytraFlying = bot.entity.elytraFlying
+    this.isInPowderSnow = bot.entity.isInPowderSnow ?? false
     // Entity.fallDistance, which the client keeps itself
     this.fallDistance = bot.entity.fallDistance ?? 0
     this.jumpTicks = bot.jumpTicks
@@ -2007,6 +2022,7 @@ class PlayerState {
     bot.entity.sprintTriggerTime = this.sprintTriggerTime
     bot.entity.forwardImpulse = this.forwardImpulse
     bot.entity.elytraFlying = this.elytraFlying
+    bot.entity.isInPowderSnow = this.isInPowderSnow
     bot.entity.fallDistance = this.fallDistance
     bot.jumpTicks = this.jumpTicks
     bot.jumpQueued = this.jumpQueued
