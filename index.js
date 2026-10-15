@@ -474,64 +474,6 @@ function Physics (mcData, world) {
     return best
   }
 
-  function getLookingVector (entity) {
-    // given a yaw pitch, we need the looking vector
-
-    // yaw is right handed rotation about y (up) starting from -z (north)
-    // pitch is -90 looking down, 90 looking up, 0 looking at horizon
-    // lets get its coordinate system.
-    // let x' = -z (north)
-    // let y' = -x (west)
-    // let z' = y (up)
-
-    // the non normalized looking vector in x', y', z' space is
-    // x' is cos(yaw)
-    // y' is sin(yaw)
-    // z' is tan(pitch)
-
-    // substituting back in x, y, z, we get the looking vector in the normal x, y, z space
-    // -z = cos(yaw) => z = -cos(yaw)
-    // -x = sin(yaw) => x = -sin(yaw)
-    // y = tan(pitch)
-
-    // normalizing the vectors, we divide each by |sqrt(x*x + y*y + z*z)|
-    // x*x + z*z = sin^2 + cos^2 = 1
-    // so |sqrt(xx+yy+zz)| = |sqrt(1+tan^2(pitch))|
-    //     = |sqrt(1+sin^2(pitch)/cos^2(pitch))|
-    //     = |sqrt((cos^2+sin^2)/cos^2(pitch))|
-    //     = |sqrt(1/cos^2(pitch))|
-    //     = |+/- 1/cos(pitch)|
-    //     = 1/cos(pitch) since pitch in [-90, 90]
-
-    // the looking vector is therefore
-    // x = -sin(yaw) * cos(pitch)
-    // y = tan(pitch) * cos(pitch) = sin(pitch)
-    // z = -cos(yaw) * cos(pitch)
-
-    const yaw = entity.yaw
-    const pitch = entity.pitch
-    const sinYaw = Math.sin(yaw)
-    const cosYaw = Math.cos(yaw)
-    const sinPitch = Math.sin(pitch)
-    const cosPitch = Math.cos(pitch)
-    const lookX = -sinYaw * cosPitch
-    const lookY = sinPitch
-    const lookZ = -cosYaw * cosPitch
-    const lookDir = new Vec3(lookX, lookY, lookZ)
-    return {
-      yaw,
-      pitch,
-      sinYaw,
-      cosYaw,
-      sinPitch,
-      cosPitch,
-      lookX,
-      lookY,
-      lookZ,
-      lookDir
-    }
-  }
-
   // The single input-to-world transform LocalPlayer uses: a (strafe, forward) impulse becomes a world direction under the
   // entity's yaw. applyHeading and isHorizontalCollisionMinor MUST share it so their conventions cannot drift (the strafe
   // sign in particular): x = -(strafe*cos + forward*sin), z = forward*cos - strafe*sin.
@@ -1560,10 +1502,11 @@ function Physics (mcData, world) {
       if (!entity.elytraFlying) {
         entity.fireworkRocketDuration = 0
       } else {
-        const { lookDir } = getLookingVector(entity)
-        vel.x += lookDir.x * 0.1 + (lookDir.x * 1.5 - vel.x) * 0.5
-        vel.y += lookDir.y * 0.1 + (lookDir.y * 1.5 - vel.y) * 0.5
-        vel.z += lookDir.z * 0.1 + (lookDir.z * 1.5 - vel.z) * 0.5
+        // FireworkRocketEntity.tick: the boost goes along the look (Entity.getLookAngle, the view vector the glide uses)
+        const look = viewVector(entity)
+        vel.x += look.x * 0.1 + (look.x * 1.5 - vel.x) * 0.5
+        vel.y += look.y * 0.1 + (look.y * 1.5 - vel.y) * 0.5
+        vel.z += look.z * 0.1 + (look.z * 1.5 - vel.z) * 0.5
         --entity.fireworkRocketDuration
       }
     }

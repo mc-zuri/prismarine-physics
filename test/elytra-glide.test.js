@@ -19,8 +19,9 @@ const TICKS = [
   ['1.21.11', 30, [0, -0.29554576472903166, 0.11845902984021583], [0, -0.2996397426537458, 0.13936316129128812]]
 ]
 
-// `blockAt`: the block name at a y (air by default); `y`: the start height; `flying`: creative flying
-function glideOneTick (version, pitchDegrees, velocity, { blockAt = () => 'air', y = 130, flying = false } = {}) {
+// `blockAt`: the block name at a y (air by default); `y`: the start height; `flying`: creative flying; `rocket`: ticks of
+// firework boost left
+function glideOneTick (version, pitchDegrees, velocity, { blockAt = () => 'air', y = 130, flying = false, rocket = 0 } = {}) {
   const mcData = require('minecraft-data')(version)
   const Block = require('prismarine-block')(version)
   const world = {
@@ -50,7 +51,7 @@ function glideOneTick (version, pitchDegrees, velocity, { blockAt = () => 'air',
     },
     jumpTicks: 0,
     jumpQueued: false,
-    fireworkRocketDuration: 0,
+    fireworkRocketDuration: rocket,
     version,
     inventory: { slots: Object.assign([], { 6: { name: 'elytra' } }) }
   }
@@ -60,6 +61,13 @@ function glideOneTick (version, pitchDegrees, velocity, { blockAt = () => 'air',
 }
 
 describe('gliding', () => {
+  // FireworkRocketEntity.tick boosts along Entity.getLookAngle, the view vector: looking due south its x is 0 exactly
+  for (const version of ['1.13.2', '1.20.4', '1.21.11', '26.1']) {
+    it(`${version}: a rocket boosts along the view vector`, () => {
+      expect(glideOneTick(version, 0, [0, 0, 0.5], { rocket: 10 }).x).toBe(0)
+    })
+  }
+
   for (const [version, pitch, before, after] of TICKS) {
     it(`${version}: glides at pitch ${pitch} as vanilla`, () => {
       const vel = glideOneTick(version, pitch, before)
