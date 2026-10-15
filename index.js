@@ -423,10 +423,16 @@ function Physics (mcData, world) {
   // The single input-to-world transform LocalPlayer uses: a (strafe, forward) impulse becomes a world direction under the
   // entity's yaw. applyHeading and isHorizontalCollisionMinor MUST share it so their conventions cannot drift (the strafe
   // sign in particular): x = -(strafe*cos + forward*sin), z = forward*cos - strafe*sin.
+  // The sin and cos are Mth.sin and Mth.cos of the float yRot in radians, read from the sine table (lib/math.js).
+  // yRot is recovered as degrees(PI - yaw), the value mineflayer sends. The table entry depends on the unwrapped
+  // angle, so a yaw normalized to [0, 2PI) matches a client only while its yRot is within (-180, 180].
   function inputToWorld (strafe, forward, yaw) {
-    const a = Math.PI - yaw
-    const sin = Math.sin(a)
-    const cos = Math.cos(a)
+    const yRot = Math.fround((Math.PI - yaw) * 180 / Math.PI)
+    const radians = headingAnglePiOver180
+      ? Math.fround(Math.fround(yRot * math.PI_F) / 180)
+      : Math.fround(yRot * math.DEG_TO_RAD_F)
+    const sin = math.mthSin(radians, sinTableDoubleIndex)
+    const cos = math.mthCos(radians, sinTableDoubleIndex)
     return { x: -(strafe * cos + forward * sin), z: forward * cos - strafe * sin }
   }
 
@@ -447,6 +453,10 @@ function Physics (mcData, world) {
 
   const climbableTrapdoorFeature = supportFeature('climbableTrapdoor')
   const sprintSurvivesMinorCollision = supportFeature('sprintSurvivesMinorCollision')
+  const headingAnglePiOver180 = supportFeature('headingAnglePiOver180')
+  // Mth.sin(double) indexes the table in double from 1.21.11. features.json lists major versions only, and this
+  // splits 1.21, so it is a version check.
+  const sinTableDoubleIndex = mcData.version['>=']('1.21.11')
   const sneakStopsSprinting = supportFeature('sneakStopsSprinting')
   function isOnLadder (world, pos) {
     const block = world.getBlock(pos)

@@ -48,5 +48,10 @@
     "name": "sprintSurvivesMinorCollision",
     "description": "A horizontal collision within 8 degrees of the wanted direction (LocalPlayer.isHorizontalCollisionMinor) does not stop sprinting",
     "versions": ["1.18", "1.19", "1.20", "1.21", "26.1"]
+  },
+  {
+    "name": "headingAnglePiOver180",
+    "description": "Entity.moveFlying turns the input by the angle yaw * 3.1415927F / 180.0F (two float roundings); since 1.9 by yaw * 0.017453292F",
+    "versions": ["1.8"]
   }
 ]
