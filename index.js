@@ -116,8 +116,27 @@ function Physics (mcData, world) {
   }
 
   function getPlayerBB (pos) {
-    const w = physics.playerHalfWidth
-    return new AABB(-w, 0, -w, w, physics.playerHeight, w).offset(pos.x, pos.y, pos.z)
+    const w = playerDims ? playerDims.halfWidth : physics.playerHalfWidth
+    return new AABB(-w, 0, -w, w, playerDims ? playerDims.height : physics.playerHeight, w).offset(pos.x, pos.y, pos.z)
+  }
+
+  // The player's dimensions for the tick being simulated: 0.6F by 1.8F, from 1.20.5 times the scale attribute
+  // (EntityDimensions.scale, in float; the box half as wide, Entity.makeBoundingBox)
+  let playerDims = null // null: physics.playerHalfWidth and physics.playerHeight
+  const scaleResource = mcData.attributesByName.scale?.resource
+  function dimensionsOf (entity) {
+    const synced = scaleResource && entity.attributes && entity.attributes[scaleResource]
+    const scale = synced ? Math.fround(attribute.getAttributeValue(synced)) : 1
+    if (scale === 1) return null
+    const f = Math.fround
+    return { halfWidth: f(f(f(0.6) * scale) / 2), height: f(f(1.8) * scale) }
+  }
+
+  // Entity.maxUpStep: 0.6; from 1.20.5 the step_height attribute, as a float
+  const stepHeightResource = mcData.attributesByName.stepHeight?.resource
+  function stepHeightOf (entity) {
+    const synced = stepHeightResource && entity.attributes && entity.attributes[stepHeightResource]
+    return synced ? Math.fround(attribute.getAttributeValue(synced)) : physics.stepHeight
   }
 
   // The collision boxes around queryBB. `entity`: the player whose collision context shapes some blocks (scaffolding)
@@ -245,7 +264,8 @@ function Physics (mcData, world) {
 
     // Step on block if height < stepHeight. The move then goes up by stepUp, across, and down by dy.
     let stepUp = 0
-    if (physics.stepHeight > 0 &&
+    const stepHeight = stepHeightOf(entity)
+    if (stepHeight > 0 &&
       (entity.onGround || (dy !== oldVelY && oldVelY < 0)) &&
       (dx !== oldVelX || dz !== oldVelZ)) {
       const oldVelXCol = dx
@@ -253,7 +273,7 @@ function Physics (mcData, world) {
       const oldVelZCol = dz
       const oldBBCol = playerBB.clone()
 
-      dy = physics.stepHeight
+      dy = stepHeight
       const queryBB = oldBB.clone().extend(oldVelX, dy, oldVelZ)
       const surroundingBBs = getSurroundingBBs(world, queryBB, entity)
 
@@ -1585,6 +1605,15 @@ function Physics (mcData, world) {
   }
 
   physics.simulatePlayer = (entity, world) => {
+    playerDims = dimensionsOf(entity)
+    try {
+      return simulateTick(entity, world)
+    } finally {
+      playerDims = null
+    }
+  }
+
+  function simulateTick (entity, world) {
     const vel = entity.vel
     const pos = entity.pos
     const tickStart = pos.clone()
