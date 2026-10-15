@@ -375,6 +375,7 @@ function Physics (mcData, world) {
     // Entity.move then checkFallDamage: LivingEntity looks for water again around the moved box when the player was not
     // in it, before the collided axes stop (not on 1.21.4, where the local player skips checkFallDamage in move)
     if (waterAfterMove && !entity.isInWater) updateInWater(entity, world, positionFromBox ? entity.box : getPlayerBB(pos))
+    if (waterAfterMove) updateFallDistance(entity, movedY)
 
     // the block landed on: Entity.getOnPosLegacy, 0.2F under the position (from 1.20 by the supporting block)
     const blockAtFeet = world.getBlock(onPosBelow ? onPos(entity, world, Math.fround(0.2)) : pos.offset(0, -0.2, 0))
@@ -418,6 +419,26 @@ function Physics (mcData, world) {
     entity.vel.x *= scale
     entity.vel.z *= scale
   }
+
+  // Entity.checkFallDamage, after LivingEntity's water re-check (in water the fall distance resets): on the ground the
+  // fall ends, otherwise a downward move adds to it. A float field: (float)(fallDistance - y) up to 1.18, fallDistance -=
+  // (float)y from 1.19; from 1.21.5 a double that adds (float)y out of water before the ground check. The local player
+  // skips it in Entity.move on 1.21.4 (Player.isControlledByClient), so its fall distance stays 0 there.
+  function updateFallDistance (entity, dy) {
+    if (entity.isInWater) entity.fallDistance = 0
+    if (fallDistanceDouble) {
+      if (!entity.isInWater && dy < 0) entity.fallDistance -= Math.fround(dy)
+      if (entity.onGround) entity.fallDistance = 0
+    } else if (entity.onGround) {
+      entity.fallDistance = 0
+    } else if (dy < 0) {
+      entity.fallDistance = Math.fround(entity.fallDistance - (fallDistanceFloatMove ? Math.fround(dy) : dy))
+    }
+  }
+  const fallDistanceFloatMove = mcData.version['>=']('1.19')
+  const flightEndsFallBeforeTravel = mcData.version['>=']('1.21.2')
+  const effectsEndFallBeforeTravel = mcData.version['>=']('1.20')
+  const fallDistanceDouble = mcData.version['>=']('1.21.5')
 
   // Entity.getBlockSpeedFactor (1.15+): the feet block's speed factor, or when that is 1 (and the feet are not in water
   // or a bubble column) the one of the block below that affects movement; soul sand and honey 0.4F. On 1.16 to 1.20
@@ -852,6 +873,7 @@ function Physics (mcData, world) {
     if (stuck) {
       entity.isInWeb = true
       entity.stuckSpeedMultiplier = stuck
+      entity.fallDistance = 0
     } else if (block.type === bubblecolumnId && touches) {
       const down = !block.metadata
       const aboveBlock = world.getBlock(cursor.offset(0, 1, 0))
@@ -1218,6 +1240,8 @@ function Physics (mcData, world) {
   function moveEntityWithHeading (entity, world, strafe, forward) {
     const vel = entity.vel
     const pos = entity.pos
+    // up to 1.19.4 LivingEntity.travel ends the fall distance as it starts, falling under Slow Falling
+    if (!effectsEndFallBeforeTravel && vel.y <= 0 && entity.slowFalling > 0) entity.fallDistance = 0
 
     // Player.travel (1.13+): swimming turns the vertical motion towards the look, by 0.085 when looking down past -0.2,
     // else 0.06, when looking level or down, jumping, or with fluid just under the head
@@ -1330,6 +1354,7 @@ function Physics (mcData, world) {
       if (!entity.flying && isOnLadder(world, pos)) {
         // LivingEntity.handleOnClimbable: at most 0.15F across; down at most 0.15 up to 1.13, 0.15F since; holding sneak
         // stops a fall (from 1.14 not on scaffolding)
+        entity.fallDistance = 0
         const limit = Math.fround(0.15)
         vel.x = math.clamp(-limit, vel.x, limit)
         vel.z = math.clamp(-limit, vel.z, limit)
@@ -1351,6 +1376,7 @@ function Physics (mcData, world) {
       } else {
         if (entity.levitation > 0) {
           vel.y += (0.05 * entity.levitation - vel.y) * 0.2
+          if (!effectsEndFallBeforeTravel) entity.fallDistance = 0 // up to 1.19.4 after the move
         } else {
           // from 1.21.2 travelInAir reads the gravity after the move, so Slow Falling sees the motion the move left
           vel.y -= gravityAfterMove ? effectiveGravity(entity) : gravity
@@ -1769,6 +1795,11 @@ function Physics (mcData, world) {
     entity.jumpQueued = false
 
     const { strafe, forward } = input
+    // the fall distance ends before travel for a flyer from 1.21.2 (Player.aiStep) and under Slow Falling or Levitation
+    // from 1.20 (LivingEntity.aiStep); before, during or after travel (below)
+    if ((flightEndsFallBeforeTravel && entity.flying) || (effectsEndFallBeforeTravel && (entity.slowFalling > 0 || entity.levitation > 0))) {
+      entity.fallDistance = 0
+    }
     entity.forwardImpulse = input.nextImpulse
     entity.shiftKeyDown = entity.control.sneak
     entity.inputStrafe = strafe
@@ -1783,6 +1814,7 @@ function Physics (mcData, world) {
 
     if (!rocketTicksAfterPlayer) boostByRocket(entity)
     moveEntityWithHeading(entity, world, strafe, forward)
+    if (!flightEndsFallBeforeTravel && entity.flying) entity.fallDistance = 0 // up to 1.21.1 Player.travel, after the move
     if (blockEffectsAfterTravel) {
       stepOn(entity, world.getBlock(onPos(entity, world, Math.fround(0.2))))
       const moves = entity.movesThisTick.length ? entity.movesThisTick : [{ from: tickStart, to: pos.clone() }]
@@ -1885,6 +1917,8 @@ class PlayerState {
     this.food = bot.food ?? 20
     this.mayFly = bot.abilities?.mayFly ?? false
     this.elytraFlying = bot.entity.elytraFlying
+    // Entity.fallDistance, which the client keeps itself
+    this.fallDistance = bot.entity.fallDistance ?? 0
     this.jumpTicks = bot.jumpTicks
     this.jumpQueued = bot.jumpQueued
     this.fireworkRocketDuration = bot.fireworkRocketDuration
@@ -1951,6 +1985,7 @@ class PlayerState {
     bot.entity.sprintTriggerTime = this.sprintTriggerTime
     bot.entity.forwardImpulse = this.forwardImpulse
     bot.entity.elytraFlying = this.elytraFlying
+    bot.entity.fallDistance = this.fallDistance
     bot.jumpTicks = this.jumpTicks
     bot.jumpQueued = this.jumpQueued
     bot.fireworkRocketDuration = this.fireworkRocketDuration
