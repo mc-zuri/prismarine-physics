@@ -70,7 +70,6 @@ function Physics (mcData, world) {
     negligeableVelocity: 0.003, // actually 0.005 for 1.8, but seems fine
     soulsandSpeed: 0.4,
     honeyblockSpeed: 0.4,
-    honeyblockJumpSpeed: 0.4,
     ladderMaxSpeed: 0.15,
     ladderClimbSpeed: 0.2,
     playerHalfWidth: Math.fround(0.3), // EntityDimensions: (double)(0.6F / 2.0F)
@@ -447,14 +446,61 @@ function Physics (mcData, world) {
   // The sin and cos are Mth.sin and Mth.cos of the float yRot in radians, read from the sine table (lib/math.js).
   // yRot is recovered as degrees(PI - yaw), the value mineflayer sends. The table entry depends on the unwrapped
   // angle, so a yaw normalized to [0, 2PI) matches a client only while its yRot is within (-180, 180].
-  // `round` rounds each operation, Math.fround where vanilla computes it in float (moveRelative before 1.14).
-  function inputToWorld (strafe, forward, yaw, round = x => x) {
+  // Mth.sin and Mth.cos of the float yRot in radians: yRot * 0.017453292F, or with `piOver180` yRot * 3.1415927F / 180.0F
+  function yawSinCos (yaw, piOver180) {
     const yRot = Math.fround((Math.PI - yaw) * 180 / Math.PI)
-    const radians = headingAnglePiOver180
+    const radians = piOver180
       ? Math.fround(Math.fround(yRot * math.PI_F) / 180)
       : Math.fround(yRot * math.DEG_TO_RAD_F)
-    const sin = math.mthSin(radians, sinTableDoubleIndex)
-    const cos = math.mthCos(radians, sinTableDoubleIndex)
+    return { sin: math.mthSin(radians, sinTableDoubleIndex), cos: math.mthCos(radians, sinTableDoubleIndex) }
+  }
+
+  // LivingEntity.jumpFromGround. The jump power is 0.42F times the block jump factor (from 1.15: the block at the feet,
+  // or the one below when that is 1; honey 0.5F), from 1.20.6 the jump_strength attribute instead of 0.42F, plus 0.1F per
+  // Jump Boost level. The sum is in double up to 1.13 and on 1.17 to 1.19, in float otherwise. From 1.20.6 a power of
+  // 1.0E-5F or less does not jump, and from 1.21.2 the jump keeps a higher upward motion. A sprinting jump adds 0.2 along
+  // the yaw (Mth.sin and Mth.cos of yRot * 0.017453292F): as a float product up to 1.20.4, a double one since.
+  function jumpFromGround (entity, world) {
+    const vel = entity.vel
+    const f = Math.fround
+    const factor = blockJumpFactor(entity, world)
+    const boost = entity.jumpBoost > 0 ? f(f(0.1) * entity.jumpBoost) : 0
+    let power
+    if (jumpStrengthAttribute) {
+      const synced = jumpStrengthResource && entity.attributes && entity.attributes[jumpStrengthResource]
+      const strength = f(synced ? attribute.getAttributeValue(synced) : 0.41999998688697815)
+      power = f(f(strength * factor) + boost)
+      if (power <= f(1.0e-5)) return
+    } else if (jumpSumInDouble) {
+      power = f(f(0.42) * factor) + boost
+    } else {
+      power = f(f(f(0.42) * factor) + boost)
+    }
+    vel.y = jumpKeepsHigherMotion ? Math.max(power, vel.y) : power
+    if (entity.isSprinting) {
+      const { sin, cos } = yawSinCos(entity.yaw, false)
+      if (sprintJumpInDouble) {
+        vel.x += -sin * 0.2
+        vel.z += cos * 0.2
+      } else {
+        vel.x += f(-sin * f(0.2))
+        vel.z += f(cos * f(0.2))
+      }
+    }
+  }
+
+  // Entity.getBlockJumpFactor (1.15+): the block at the feet, or the one below when that one's is 1; honey is 0.5F
+  function blockJumpFactor (entity, world) {
+    if (!blockJumpFactorFeature || honeyblockId === -1) return 1
+    const factorOf = block => block && block.type === honeyblockId ? Math.fround(0.5) : 1
+    const own = factorOf(world.getBlock(entity.pos.floored()))
+    if (own !== 1) return own
+    return factorOf(world.getBlock(new Vec3(entity.pos.x, entity.pos.y - 0.5000001, entity.pos.z).floored()))
+  }
+
+  // `round` rounds each operation, Math.fround where vanilla computes it in float (moveRelative before 1.14).
+  function inputToWorld (strafe, forward, yaw, round = x => x) {
+    const { sin, cos } = yawSinCos(yaw, headingAnglePiOver180)
     return { x: -round(round(strafe * cos) + round(forward * sin)), z: round(round(forward * cos) - round(strafe * sin)) }
   }
 
@@ -499,6 +545,13 @@ function Physics (mcData, world) {
   const climbableTrapdoorFeature = supportFeature('climbableTrapdoor')
   const sprintSurvivesMinorCollision = supportFeature('sprintSurvivesMinorCollision')
   const headingAnglePiOver180 = supportFeature('headingAnglePiOver180')
+  // LivingEntity.jumpFromGround by version
+  const blockJumpFactorFeature = mcData.version['>=']('1.15')
+  const jumpSumInDouble = mcData.version['<']('1.14') || (mcData.version['>=']('1.17') && mcData.version['<']('1.20'))
+  const jumpStrengthAttribute = mcData.version['>=']('1.20.5')
+  const jumpStrengthResource = mcData.attributesByName.jumpStrength?.resource
+  const jumpKeepsHigherMotion = mcData.version['>=']('1.21.2')
+  const sprintJumpInDouble = mcData.version['>=']('1.20.5')
   const positionFromBox = supportFeature('positionFromBox')
   const moveThreshold = supportFeature('moveThreshold')
   const appliesUnobstructedTinyMove = mcData.version['>=']('1.21.2') // Entity.move: changed within 1.21
@@ -1018,16 +1071,7 @@ function Physics (mcData, world) {
       if (entity.isInWater || entity.isInLava) {
         vel.y += 0.04
       } else if (entity.onGround && entity.jumpTicks === 0) {
-        const blockBelow = world.getBlock(entity.pos.floored().offset(0, -0.5, 0))
-        vel.y = Math.fround(0.42) * ((blockBelow && blockBelow.type === honeyblockId) ? physics.honeyblockJumpSpeed : 1)
-        if (entity.jumpBoost > 0) {
-          vel.y += 0.1 * entity.jumpBoost
-        }
-        if (entity.isSprinting) {
-          const yaw = Math.PI - entity.yaw
-          vel.x -= Math.sin(yaw) * 0.2
-          vel.z += Math.cos(yaw) * 0.2
-        }
+        jumpFromGround(entity, world)
         entity.jumpTicks = physics.autojumpCooldown
       }
     } else {
