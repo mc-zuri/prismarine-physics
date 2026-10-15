@@ -74,8 +74,8 @@ function Physics (mcData, world) {
     honeyblockJumpSpeed: 0.4,
     ladderMaxSpeed: 0.15,
     ladderClimbSpeed: 0.2,
-    playerHalfWidth: 0.3,
-    playerHeight: 1.8,
+    playerHalfWidth: Math.fround(0.3), // EntityDimensions: (double)(0.6F / 2.0F)
+    playerHeight: Math.fround(1.8), // EntityDimensions: 1.8F
     waterInertia: 0.8,
     lavaInertia: 0.5,
     liquidAcceleration: 0.02,

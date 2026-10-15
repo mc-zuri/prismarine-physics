@@ -44,8 +44,8 @@ function corridor (ceilingOverPlayer) {
 function walkWest (world, ticks) {
   const player = {
     entity: {
-      // x=0.3 puts the player's west face on 0.0, flush with the carpet.
-      position: new Vec3(0.3, 61, 0.5),
+      // x = 0.3F, the half-width of the box, puts the player's west face on 0.0, flush with the carpet.
+      position: new Vec3(Math.fround(0.3), 61, 0.5),
       velocity: new Vec3(0, 0, 0),
       onGround: true,
       isInWater: false,
