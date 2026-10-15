@@ -125,6 +125,7 @@ describe('Basic tests', () => {
     const player = fakePlayer(new Vec3(0.5, 60.5, 0.5))
     player.version = ver
     player.entity.velocity.y = 0.1
+    player.entity.isInLava = true // on 1.14 and 1.15 the flag the last move set (the player is already in it)
     const state = new PlayerState(player, { forward: false, back: false, left: false, right: false, jump: false, sprint: false, sneak: false })
     physics.simulatePlayer(state, world).apply(player)
     return { inLava: player.entity.isInLava, vy: player.entity.velocity.y }

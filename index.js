@@ -1341,6 +1341,8 @@ function Physics (mcData, world) {
   const fluidHeightFromFeet = supportFeature('fluidHeightFromFeet')
   const waterAfterMove = mcData.version.minecraftVersion !== '1.21.4'
   const lavaAfterMove = mcData.version['>=']('26.1')
+  const lavaByHeight = mcData.version['>=']('1.16')
+  const lavaFlagFromMove = mcData.version['>=']('1.14') && !lavaByHeight
   const shallowLavaMovement = supportFeature('shallowLavaMovement')
 
   function isWaterBlock (block) {
@@ -1417,11 +1419,14 @@ function Physics (mcData, world) {
     entity.movesThisTick = blockEffectsAfterTravel ? [] : null
 
     updateInWater(entity, world, getPlayerBB(pos))
-    if (fluidHeightFromFeet) {
+    // Entity.isInLava: up to 1.13 any lava in the box shrunk by (0.1, 0.4, 0.1), looked up whenever it is asked; on 1.14
+    // and 1.15 a flag the move sets when the box (shrunk by 0.001) touches lava, read on the next tick; from 1.16 the
+    // lava's height above the feet, like water's
+    if (lavaByHeight) {
       const lava = scanFluid(world, getPlayerBB(pos).contract(0.001, 0.001, 0.001), (block) => block && lavaIds.includes(block.type))
       entity.isInLava = lava.blocks.length > 0
       entity.lavaHeight = lava.height
-    } else {
+    } else if (!lavaFlagFromMove) {
       entity.isInLava = isMaterialInBB(world, getPlayerBB(pos).contract(0.1, 0.4, 0.1), lavaIds)
     }
 
@@ -1504,6 +1509,9 @@ function Physics (mcData, world) {
       const moves = entity.movesThisTick.length ? entity.movesThisTick : [{ from: tickStart, to: pos.clone() }]
       applyInsideBlocksAlongMoves(entity, world, moves)
     }
+    // Up to 1.15 the lava state is the moved box's: looked up again (up to 1.13), or the flag the move set (1.14, 1.15)
+    if (lavaFlagFromMove) entity.isInLava = isMaterialInBB(world, (entity.box ?? getPlayerBB(pos)).clone().contract(0.001, 0.001, 0.001), lavaIds)
+    else if (!lavaByHeight) entity.isInLava = isMaterialInBB(world, getPlayerBB(pos).contract(0.1, 0.4, 0.1), lavaIds)
 
     return entity
   }

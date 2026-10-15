@@ -92,7 +92,8 @@ describe('jumping in fluids', () => {
       }
     }
     const bot = {
-      entity: { position: new Vec3(0.5, 60, 0.5), velocity: new Vec3(0, 0, 0), onGround: true, isInWater: false, isInLava: false, isInWeb: false, isCollidedHorizontally: false, isCollidedVertically: false, elytraFlying: false, yaw: Math.PI, pitch: 0, effects: {} },
+      // isInLava: on 1.14 and 1.15 the flag the last move set, standing in the lava
+      entity: { position: new Vec3(0.5, 60, 0.5), velocity: new Vec3(0, 0, 0), onGround: true, isInWater: false, isInLava: fluid === 'lava', isInWeb: false, isCollidedHorizontally: false, isCollidedVertically: false, elytraFlying: false, yaw: Math.PI, pitch: 0, effects: {} },
       jumpTicks: 0,
       jumpQueued: false,
       fireworkRocketDuration: 0,
