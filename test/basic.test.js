@@ -277,21 +277,40 @@ describe('Sprint state', () => {
     expect(player.entity.isSprinting).toBe(false)
     tick(physics, world, player, { forward: true, sprint: true })
     expect(player.entity.isSprinting).toBe(true)
-    tick(physics, world, player, { forward: true, sprint: false }) // releasing the key stops at once (control contract)
+    tick(physics, world, player, { forward: true, sprint: false }) // releasing the sprint key does not stop a sprint
+    expect(player.entity.isSprinting).toBe(true)
+    tick(physics, world, player, { forward: false, sprint: false }) // releasing forward does
     expect(player.entity.isSprinting).toBe(false)
   })
 
-  it('sneaking prevents a sprint from starting and, before 1.14, stops one', () => {
-    for (const [version, stops] of [['26.1', false], ['1.8.8', true]]) {
-      const { data, world } = makeWorld(version, () => false)
+  it('sneaking keeps a sprint from starting and, before 1.14, stops one', () => {
+    // up to 1.13 the sneak key slows the forward impulse below 0.8 in the tick it goes down
+    {
+      const { data, world } = makeWorld('1.8.8', () => false)
       const physics = Physics(data, world)
-      const player = makePlayer(version, new Vec3(0.5, 60, 0.5))
+      const player = makePlayer('1.8.8', new Vec3(0.5, 60, 0.5))
       tick(physics, world, player, { forward: true, sprint: true, sneak: true })
       expect(player.entity.isSprinting).toBe(false)
       tick(physics, world, player, { forward: true, sprint: true })
       expect(player.entity.isSprinting).toBe(true)
       tick(physics, world, player, { forward: true, sprint: true, sneak: true })
-      expect(player.entity.isSprinting).toBe(!stops)
+      expect(player.entity.isSprinting).toBe(false)
+    }
+    // since 1.15 crouching follows the key a tick late, and since 1.21.5 crouching blocks a start but stops no sprint
+    {
+      const { data, world } = makeWorld('26.1', () => false)
+      const physics = Physics(data, world)
+      const player = makePlayer('26.1', new Vec3(0.5, 60, 0.5))
+      tick(physics, world, player, { forward: true, sneak: true })
+      tick(physics, world, player, { forward: true, sprint: true, sneak: true })
+      expect(player.entity.isSprinting).toBe(false) // crouching
+      tick(physics, world, player, { forward: true, sprint: true })
+      expect(player.entity.isSprinting).toBe(false) // still crouching from the tick before's key
+      tick(physics, world, player, { forward: true, sprint: true })
+      expect(player.entity.isSprinting).toBe(true)
+      tick(physics, world, player, { forward: true, sprint: true, sneak: true })
+      tick(physics, world, player, { forward: true, sprint: true, sneak: true })
+      expect(player.entity.isSprinting).toBe(true)
     }
   })
 })

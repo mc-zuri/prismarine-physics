@@ -509,8 +509,14 @@ function Physics (mcData, world) {
   // Mth.sin(double) indexes the table in double from 1.21.11. features.json lists major versions only, and this
   // splits 1.21, so it is a version check.
   const sinTableDoubleIndex = mcData.version['>=']('1.21.11')
-  const sneakStopsSprinting = supportFeature('sneakStopsSprinting')
   const sneakSlowsWithKey = supportFeature('sneakSlowsWithKey')
+  // LocalPlayer's sprint rules by version (updateSprinting)
+  const sprintNeedsImpulse08 = mcData.version['<']('1.14')
+  const sprintWaterRules = mcData.version['>=']('1.13')
+  const sneakResetsSprintTrigger = mcData.version['>=']('1.16')
+  const elytraBlocksSprintStart = mcData.version['>=']('1.19.4')
+  const sprintStopsWhenSlowed = mcData.version['==']('1.21.4')
+  const sprintPossibleWhileFlying = mcData.version['>=']('1.21.9')
   // LocalPlayer's input scaling order changed within 1.21
   const itemUseBeforeSneak = mcData.version['>=']('1.21.4')
   const inputScalesFirst = mcData.version['>=']('1.21.5')
@@ -559,24 +565,57 @@ function Physics (mcData, world) {
     return angle < physics.minorCollisionAngle
   }
 
-  // LocalPlayer.aiStep: the sprint key only starts a sprint with forward input and while not sneaking; a
-  // sprint stops when the forward input ends, when sneaking (before 1.14: forward impulse below 0.8), or
-  // after the previous tick's move hit something horizontally (a minor brush against a wall no longer
-  // counts since 1.18). A held key starts the sprint again on the next tick that allows it. One
-  // deliberate difference: the client keeps sprinting after the key is released until the forward input
-  // ends, here releasing the key stops at once, which is what control.sprint has always meant.
-  function updateSprinting (entity) {
-    const hasForwardImpulse = entity.control.forward && !entity.control.back
-    if (!entity.control.sprint) {
-      entity.isSprinting = false
+  // LocalPlayer.aiStep's sprint logic, after the input and before travel. The sprint key, or a second press of forward
+  // within 6 ticks of the first (sprintTriggerTime), starts a sprint when the player may sprint; releasing the sprint
+  // key does not stop one. `impulse` is the tick's forward impulse as aiStep reads it; entity.forwardImpulse and
+  // entity.shiftKeyDown hold the tick before's.
+  // - 1.8 to 1.13: a forward impulse of at least 0.8 (after the sneak and item scaling) starts and keeps a sprint.
+  //   From 1.13 shallow water stops it, and under water a double tap needs no ground.
+  // - 1.14 to 1.21.4: hasEnoughImpulseToStartSprinting starts it (any forward impulse under water); any forward
+  //   impulse keeps it. From 1.16 sneaking resets the double tap, from 1.19.4 elytra flight blocks a start, and 1.21.4
+  //   stops a sprint while gliding, blind, slowed or using an item, and starts none while slowed.
+  // - From 1.21.5: canStartSprinting and shouldStopRunSprinting on the raw forward key; a double tap needs no ground.
+  function updateSprinting (entity, impulse) {
+    const control = entity.control
+    const lastImpulse = entity.forwardImpulse
+    const wasSneaking = entity.shiftKeyDown
+    const underWater = entity.isUnderWater
+    const shallowWater = entity.isInWater && !underWater
+    const enoughFood = entity.food > 6 || entity.mayFly
+    const blind = entity.blindness > 0
+    const slowed = isMovingSlowly(entity)
+    const collided = entity.isCollidedHorizontally && !(sprintSurvivesMinorCollision && entity.minorHorizontalCollision)
+    if (entity.sprintTriggerTime > 0) entity.sprintTriggerTime--
+
+    if (inputScalesFirst) {
+      if (wasSneaking || entity.usingItem || control.back) entity.sprintTriggerTime = 0
+      const hasImpulse = impulse > 1.0e-5
+      const possible = !blind && enoughFood && (sprintPossibleWhileFlying ? entity.flying || !shallowWater : !shallowWater)
+      if (!entity.isSprinting && hasImpulse && possible && !entity.usingItem && (!entity.elytraFlying || underWater) && (!slowed || underWater)) {
+        if (!(lastImpulse > 1.0e-5)) {
+          if (entity.sprintTriggerTime > 0) entity.isSprinting = true
+          else entity.sprintTriggerTime = 7
+        }
+        if (control.sprint) entity.isSprinting = true
+      }
+      if (entity.isSprinting && (!possible || !hasImpulse || collided)) entity.isSprinting = false
       return
     }
-    if (!entity.isSprinting && entity.control.sprint && hasForwardImpulse && !entity.control.sneak) {
-      entity.isSprinting = true
+
+    const legacy = sprintNeedsImpulse08
+    if (sprintStopsWhenSlowed && (entity.elytraFlying || blind || slowed || (entity.usingItem && !underWater))) entity.isSprinting = false
+    if (entity.usingItem || (sneakResetsSprintTrigger && wasSneaking)) entity.sprintTriggerTime = 0
+    const enough = value => !legacy && underWater ? value > 1.0e-5 : value >= 0.8
+    const canStart = !entity.isSprinting && enough(impulse) && enoughFood && !entity.usingItem && !blind &&
+      !(elytraBlocksSprintStart && entity.elytraFlying) && !(sprintStopsWhenSlowed && slowed && !underWater)
+    if ((entity.onGround || (sprintWaterRules && underWater)) && !wasSneaking && !enough(lastImpulse) && canStart) {
+      if (entity.sprintTriggerTime <= 0 && !control.sprint) entity.sprintTriggerTime = 7
+      else entity.isSprinting = true
     }
+    if ((!sprintWaterRules || !shallowWater) && canStart && control.sprint) entity.isSprinting = true
     if (entity.isSprinting) {
-      const collided = entity.isCollidedHorizontally && !(sprintSurvivesMinorCollision && entity.minorHorizontalCollision)
-      if (!hasForwardImpulse || collided || (sneakStopsSprinting && entity.control.sneak)) entity.isSprinting = false
+      const noImpulse = legacy ? impulse < 0.8 : !(impulse > 1.0e-5)
+      if (noImpulse || !enoughFood || collided || (sprintWaterRules && shallowWater)) entity.isSprinting = false
     }
   }
 
@@ -584,10 +623,12 @@ function Physics (mcData, world) {
   // divides the slowdown back out. On 1.14 while the key is down or was down the tick before (the sneaking pose), and
   // flight divides it out while the key is down. From 1.15 while crouching (LocalPlayer.isMovingSlowly), which aiStep
   // decides before reading the keys, from the tick before's key, and never while flying (from 1.20.2 nor riding).
-  function isMovingSlowly (entity) {
+  // `beforeFlight`: the slowdown before flight divides it out, which the sprint logic reads (1.9 to 1.14)
+  function isMovingSlowly (entity, beforeFlight = false) {
     const flying = entity.flying
-    if (sneakSlowsWithKey) return entity.control.sneak && !(flying && flightUndoesSneakSlow)
-    if (sneakSlowsWithKeyOrPose) return (entity.control.sneak || (entity.shiftKeyDown && !flying)) && !(flying && entity.control.sneak)
+    const undone = flying && flightUndoesSneakSlow && !beforeFlight
+    if (sneakSlowsWithKey) return entity.control.sneak && !undone
+    if (sneakSlowsWithKeyOrPose) return (entity.control.sneak || (entity.shiftKeyDown && !flying)) && !(undone && entity.control.sneak)
     return entity.shiftKeyDown && !flying
   }
 
@@ -610,8 +651,18 @@ function Physics (mcData, world) {
     const slow = isMovingSlowly(entity) ? sneakingSpeed(entity) : 1
     const use = entity.usingItem ? Math.fround(0.2) : 1
     const order = inputScalesFirst ? [Math.fround(0.98), use, slow] : itemUseBeforeSneak ? [use, slow, Math.fround(0.98)] : [slow, use, Math.fround(0.98)]
-    const scale = impulse => order.reduce((value, factor) => Math.fround(value * factor), impulse)
-    return { strafe: scale(entity.control.right - entity.control.left), forward: scale(entity.control.forward - entity.control.back) }
+    const scale = (impulse, factors) => factors.reduce((value, factor) => Math.fround(value * factor), impulse)
+    const forwardKeys = entity.control.forward - entity.control.back
+    // The forward impulse the sprint logic reads: from 1.21.5 the raw key; before, before 0.98F. On 1.9 to 1.14
+    // creative flight divides the sneak slowdown out only after the sprint logic, so that reads the slowed impulse, and
+    // the next tick the restored one.
+    const sprintSlow = flightUndoesSneakSlow && isMovingSlowly(entity, true) ? sneakingSpeed(entity) : slow
+    return {
+      strafe: scale(entity.control.right - entity.control.left, order),
+      forward: scale(forwardKeys, order),
+      impulse: inputScalesFirst ? forwardKeys : scale(forwardKeys, [sprintSlow, use]),
+      nextImpulse: inputScalesFirst ? forwardKeys : scale(forwardKeys, order.slice(0, 2))
+    }
   }
 
   function moveEntityWithHeading (entity, world, strafe, forward) {
@@ -956,7 +1007,8 @@ function Physics (mcData, world) {
     if (Math.abs(vel.y) < physics.negligeableVelocity) vel.y = 0
     if (Math.abs(vel.z) < physics.negligeableVelocity) vel.z = 0
 
-    updateSprinting(entity)
+    const input = movementInput(entity)
+    updateSprinting(entity, input.impulse)
 
     // Handle inputs
     // A flying player does not jump: LivingEntity.aiStep gates it on isAffectedByFluids, and
@@ -983,7 +1035,8 @@ function Physics (mcData, world) {
     }
     entity.jumpQueued = false
 
-    const { strafe, forward } = movementInput(entity)
+    const { strafe, forward } = input
+    entity.forwardImpulse = input.nextImpulse
     entity.shiftKeyDown = entity.control.sneak
     entity.inputStrafe = strafe
     entity.inputForward = forward
@@ -1066,6 +1119,12 @@ class PlayerState {
     // the sneak key as the tick before left it (Entity.isShiftKeyDown)
     this.shiftKeyDown = bot.entity.shiftKeyDown ?? false
     this.usingItem = bot.usingHeldItem ?? false
+    // the sprint logic's state as the tick before left it, and what it reads
+    this.sprintTriggerTime = bot.entity.sprintTriggerTime ?? 0
+    this.forwardImpulse = bot.entity.forwardImpulse ?? 0
+    this.isUnderWater = bot.entity.isUnderWater ?? false
+    this.food = bot.food ?? 20
+    this.mayFly = bot.abilities?.mayFly ?? false
     this.elytraFlying = bot.entity.elytraFlying
     this.jumpTicks = bot.jumpTicks
     this.jumpQueued = bot.jumpQueued
@@ -1086,6 +1145,7 @@ class PlayerState {
     this.jumpBoost = getEffectLevel(mcData, 'JumpBoost', effects)
     this.speed = getEffectLevel(mcData, 'Speed', effects)
     this.slowness = getEffectLevel(mcData, 'Slowness', effects)
+    this.blindness = getEffectLevel(mcData, 'Blindness', effects)
 
     this.dolphinsGrace = getEffectLevel(mcData, 'DolphinsGrace', effects)
     this.slowFalling = getEffectLevel(mcData, 'SlowFalling', effects)
@@ -1129,6 +1189,8 @@ class PlayerState {
     bot.entity.isCollidedVertically = this.isCollidedVertically
     bot.entity.isSprinting = this.isSprinting
     bot.entity.shiftKeyDown = this.shiftKeyDown
+    bot.entity.sprintTriggerTime = this.sprintTriggerTime
+    bot.entity.forwardImpulse = this.forwardImpulse
     bot.entity.elytraFlying = this.elytraFlying
     bot.jumpTicks = this.jumpTicks
     bot.jumpQueued = this.jumpQueued

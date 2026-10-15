@@ -88,8 +88,15 @@ Read / Write properties:
   the box is rebuilt from the position
 - shiftKeyDown : (boolean) the sneak key as the last tick left it; from 1.15 the sneak slowdown follows it, a tick after
   the key
+- isSprinting : (boolean) is the player sprinting? The sprint control starts a sprint, releasing it does not stop one
+- sprintTriggerTime : (integer) ticks left for a second press of forward to start a sprint (a double tap)
+- forwardImpulse : (number) the forward input the last tick's sprint logic read
 
 Read only properties:
+- isUnderWater : (boolean) were the player's eyes under water (bot.entity.isUnderWater)
+- food : (number) the food level (bot.food); 6 or less keeps a sprint from starting
+- mayFly : (boolean) may the player fly (bot.abilities.mayFly); then hunger does not keep it from sprinting
+- blindness : (integer) the blindness effect's level; blindness keeps a sprint from starting
 - yaw : (float) the yaw angle, in radians, of the player entity
 - pitch: (float) the pitch angle, in radians, of the player entity
 - usingItem : (boolean) is the player using its held item (bot.usingHeldItem)? It slows the input to 0.2F
