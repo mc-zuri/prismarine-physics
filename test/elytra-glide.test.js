@@ -76,6 +76,14 @@ describe('gliding', () => {
       expect(landed.elytraFlying).toBe(true)
     })
   }
+  // Block.updateEntityAfterFallOn stops the fall: = 0.0 up to 1.13, multiplied by 0.0 from 1.14, which leaves -0.0
+  for (const [version, zero] of [['1.12.2', 0], ['1.13.2', 0], ['1.14.4', -0], ['1.21.11', -0], ['26.1', -0]]) {
+    it(`${version}: a glide that lands ends its fall at ${Object.is(zero, -0) ? '-0' : '0'}`, () => {
+      const landed = glideOneTick(version, 0, [0, -0.5, 0.1], { blockAt: y => y < 60 ? 'stone' : 'air', y: 60.2 })
+      expect(landed.onGround).toBe(true)
+      expect(Object.is(landed.y, zero)).toBe(true)
+    })
+  }
   for (const [version, stops] of [['1.21.4', false], ['1.21.5', true], ['1.21.11', true]]) {
     it(`${version}: ${stops ? 'stops' : 'keeps'} gliding on a ladder`, () => {
       expect(glideOneTick(version, 0, [0, -0.3, 0.1], { blockAt: y => y === 130 ? 'ladder' : 'air' }).elytraFlying).toBe(!stops)

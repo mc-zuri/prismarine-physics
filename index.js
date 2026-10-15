@@ -344,7 +344,8 @@ function Physics (mcData, world) {
         // BedBlock.bounceUp: a fall turns into 0.66F of it upwards (a living entity keeps all of it); a rise is left as is
         if (vel.y < 0) vel.y = -vel.y * Math.fround(0.66)
       } else {
-        vel.y = 0
+        // Block.updateEntityAfterFallOn: = 0.0 up to 1.13; from 1.14 multiplied by 0.0, so a fall ends at -0.0
+        vel.y = fallStopMultiplies ? vel.y * 0 : 0
       }
     }
 
@@ -773,6 +774,7 @@ function Physics (mcData, world) {
   const climbableStopsGliding = mcData.version['>=']('1.21.5')
   // BedBlock.updateEntityAfterFallOn bounces from 1.12
   const bedBounces = mcData.version['>=']('1.12')
+  const fallStopMultiplies = mcData.version['>=']('1.14')
   const flightStopsGliding = mcData.version['<']('1.21.2')
   const glideCosineIsDouble = mcData.version['>=']('1.18.2')
   const legacyViewVector = mcData.version['<']('1.13')
