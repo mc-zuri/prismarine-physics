@@ -74,12 +74,10 @@ function Physics (mcData, world) {
     ladderClimbSpeed: 0.2,
     playerHalfWidth: Math.fround(0.3), // EntityDimensions: (double)(0.6F / 2.0F)
     playerHeight: Math.fround(1.8), // EntityDimensions: 1.8F
-    waterInertia: 0.8,
     lavaInertia: 0.5,
-    liquidAcceleration: 0.02,
     airborneInertia: Math.fround(0.91), // LivingEntity.travel: 0.91F in the air
     defaultSlipperiness: 0.6,
-    outOfLiquidImpulse: 0.3,
+    outOfLiquidImpulse: Math.fround(0.3),
     fluidJumpThreshold: 0.4, // LivingEntity.getFluidJumpThreshold for a standing player
     autojumpCooldown: 10, // ticks (0.5s)
     bubbleColumnSurfaceDrag: {
@@ -465,6 +463,49 @@ function Physics (mcData, world) {
     return Math.fround(0.025999999)
   }
 
+  // Player.getSpeed: the movement speed attribute (0.1F if the server synced none) with the sprint modifier as the
+  // client's sprint state has it (LivingEntity.setSprinting), as a float
+  function movementSpeed (entity) {
+    let speed
+    if (entity.attributes && entity.attributes[physics.movementSpeedAttribute]) {
+      speed = entity.attributes[physics.movementSpeedAttribute]
+    } else {
+      speed = attribute.createAttributeValue(physics.playerSpeed)
+    }
+    speed = attribute.deleteAttributeModifier(speed, physics.sprintingUUID)
+    if (entity.isSprinting) {
+      speed = attribute.addAttributeModifier(speed, { uuid: physics.sprintingUUID, amount: physics.sprintSpeed, operation: 2 })
+    }
+    return Math.fround(attribute.getAttributeValue(speed))
+  }
+
+  // LivingEntity.travel in water: the drag (0.8F; from 1.13 0.9F while sprinting and 0.96F with Dolphin's Grace) and the
+  // acceleration (0.02F), both moved towards the ground's by Depth Strider: up to 1.20 by its level (at most 3, halved
+  // off the ground) over 3, from 1.21 by the water_movement_efficiency attribute; all floats
+  function waterDragAndAcceleration (entity) {
+    const f = Math.fround
+    let drag = sprintSwimDrag && entity.isSprinting ? f(0.9) : f(0.8)
+    let acceleration = f(0.02)
+    if (waterEfficiencyResource) {
+      const synced = entity.attributes && entity.attributes[waterEfficiencyResource]
+      let efficiency = f(synced ? math.clamp(0, attribute.getAttributeValue(synced), 1) : 0)
+      if (!entity.onGround) efficiency = f(efficiency * f(0.5))
+      if (efficiency > 0) {
+        drag = f(drag + f(f(f(0.54600006) - drag) * efficiency))
+        acceleration = f(acceleration + f(f(movementSpeed(entity) - acceleration) * efficiency))
+      }
+    } else {
+      let strider = f(Math.min(entity.depthStrider, 3))
+      if (!entity.onGround) strider = f(strider * f(0.5))
+      if (strider > 0) {
+        drag = f(drag + f(f(f(f(0.54600006) - drag) * strider) / 3))
+        acceleration = f(acceleration + f(f(f(movementSpeed(entity) - acceleration) * strider) / 3))
+      }
+    }
+    if (dolphinsGraceFeature && entity.dolphinsGrace > 0) drag = f(0.96)
+    return { drag, acceleration }
+  }
+
   // LivingEntity.jumpFromGround. The jump power is 0.42F times the block jump factor (from 1.15: the block at the feet,
   // or the one below when that is 1; honey 0.5F), from 1.20.6 the jump_strength attribute instead of 0.42F, plus 0.1F per
   // Jump Boost level. The sum is in double up to 1.13 and on 1.17 to 1.19, in float otherwise. From 1.20.6 a power of
@@ -555,6 +596,13 @@ function Physics (mcData, world) {
   const climbableTrapdoorFeature = supportFeature('climbableTrapdoor')
   const sprintSurvivesMinorCollision = supportFeature('sprintSurvivesMinorCollision')
   const headingAnglePiOver180 = supportFeature('headingAnglePiOver180')
+  // LivingEntity.travel in water by version
+  const sprintSwimDrag = mcData.version['>=']('1.13')
+  const dolphinsGraceFeature = mcData.version['>=']('1.13')
+  const fallingAfterDrag = mcData.version.majorVersion === '1.13'
+  const waterClimbs = mcData.version['>=']('1.14')
+  const waterEfficiencyAttribute = mcData.attributesByName.waterMovementEfficiency
+  const waterEfficiencyResource = mcData.version['>=']('1.21') && waterEfficiencyAttribute ? waterEfficiencyAttribute.resource : null
   // Player's airborne speed by version (airborneSpeed)
   const airSpeedLagsSprint = mcData.version['<']('1.19.4')
   const airSprintSpeedFloatSum = mcData.version['>=']('1.18.2') && mcData.version['<']('1.19.4')
@@ -777,26 +825,15 @@ function Physics (mcData, world) {
     if (!entity.flying && (entity.isInWater || entity.isInLava)) {
       // Water / Lava movement
       const lastY = pos.y
-      let acceleration = physics.liquidAcceleration
-      const inertia = entity.isInWater ? physics.waterInertia : physics.lavaInertia
-      let horizontalInertia = inertia
-
-      if (entity.isInWater) {
-        let strider = Math.min(entity.depthStrider, 3)
-        if (!entity.onGround) {
-          strider *= 0.5
-        }
-        if (strider > 0) {
-          horizontalInertia += (0.546 - horizontalInertia) * strider / 3
-          acceleration += (0.7 - acceleration) * strider / 3
-        }
-
-        if (entity.dolphinsGrace > 0) horizontalInertia = 0.96
-      }
+      const { drag, acceleration } = entity.isInWater
+        ? waterDragAndAcceleration(entity)
+        : { drag: physics.lavaInertia, acceleration: Math.fround(0.02) }
 
       const isFalling = vel.y <= 0
       applyHeading(entity, strafe, forward, acceleration)
       moveEntity(entity, world, vel.x, vel.y, vel.z)
+      // from 1.14 a ladder or vine climbed against a wall in water lifts at 0.2
+      if (entity.isInWater && waterClimbs && entity.isCollidedHorizontally && isOnLadder(world, pos)) vel.y = 0.2
       if (fluidHeightFromFeet) {
         // LivingEntity.travelInWater / travelInLava (1.13+)
         const gravity = physics.gravity * gravityMultiplier
@@ -805,21 +842,23 @@ function Physics (mcData, world) {
           // (LivingEntity.checkFallDamage), so the lava regime below sees the moved box
           entity.lavaHeight = scanFluid(world, getPlayerBB(pos).contract(0.001, 0.001, 0.001), (block) => block && lavaIds.includes(block.type)).height
         }
-        // getFluidFallingAdjustedMovement: sink by gravity / 16, except the narrow band the game
-        // clamps to -0.003 so a floating player does not creep down
-        const fallingAdjusted = (y) => (isFalling && Math.abs(y - 0.005) >= 0.003 && Math.abs(y - gravity / 16) < 0.003) ? -0.003 : y - gravity / 16
+        // getFluidFallingAdjustedMovement: sink by gravity / 16, except the narrow band the game clamps to -0.003 so a
+        // floating player does not creep down; a sprinting player does not sink. 1.13 reads "falling" after the drag.
+        const fallingAdjusted = (y, falling) => entity.isSprinting
+          ? y
+          : (falling && Math.abs(y - 0.005) >= 0.003 && Math.abs(y - gravity / 16) < 0.003) ? -0.003 : y - gravity / 16
         if (entity.isInWater) {
-          vel.x *= horizontalInertia
-          vel.y *= physics.waterInertia
-          vel.z *= horizontalInertia
-          vel.y = fallingAdjusted(vel.y)
+          vel.x *= drag
+          vel.y *= Math.fround(0.8)
+          vel.z *= drag
+          vel.y = fallingAdjusted(vel.y, fallingAfterDrag ? vel.y <= 0 : isFalling)
         } else if (shallowLavaMovement && entity.lavaHeight <= physics.fluidJumpThreshold) {
           // Shallow-lava regime, 1.16+ only. Before 1.16 LivingEntity.travel has no shallow/deep split - lava always
           // takes the deep branch below (scale by lavaInertia, subtract gravity/4).
           vel.x *= physics.lavaInertia
-          vel.y *= 0.8
+          vel.y *= Math.fround(0.8)
           vel.z *= physics.lavaInertia
-          vel.y = fallingAdjusted(vel.y) - gravity / 4
+          vel.y = fallingAdjusted(vel.y, isFalling) - gravity / 4
         } else {
           vel.x *= physics.lavaInertia
           vel.y *= physics.lavaInertia
@@ -827,13 +866,14 @@ function Physics (mcData, world) {
           vel.y -= gravity / 4
         }
       } else {
-        vel.y *= inertia
+        vel.y *= entity.isInWater ? Math.fround(0.8) : physics.lavaInertia
         vel.y -= (entity.isInWater ? physics.waterGravity : physics.lavaGravity) * gravityMultiplier
-        vel.x *= horizontalInertia
-        vel.z *= horizontalInertia
+        vel.x *= drag
+        vel.z *= drag
       }
 
-      if (entity.isCollidedHorizontally && doesNotCollide(world, pos.offset(vel.x, vel.y + 0.6 - pos.y + lastY, vel.z))) {
+      // jump out of the fluid at its edge, if 0.6F higher is free (LivingEntity.travel, isFree)
+      if (entity.isCollidedHorizontally && doesNotCollide(world, pos.offset(vel.x, vel.y + Math.fround(0.6) - pos.y + lastY, vel.z))) {
         vel.y = physics.outOfLiquidImpulse // jump out of liquid
       }
     } else if (entity.elytraFlying) {
@@ -884,28 +924,7 @@ function Physics (mcData, world) {
       // started with, damped, so it is read before anything below touches it.
       const flightEntryVelY = vel.y
       if (entity.onGround && blockUnder) {
-        let playerSpeedAttribute
-        if (entity.attributes && entity.attributes[physics.movementSpeedAttribute]) {
-          // Use server-side player attributes
-          playerSpeedAttribute = entity.attributes[physics.movementSpeedAttribute]
-        } else {
-          // Create an attribute if the player does not have it
-          playerSpeedAttribute = attribute.createAttributeValue(physics.playerSpeed)
-        }
-        // Client-side sprinting (don't rely on server-side sprinting)
-        // setSprinting in LivingEntity.java
-        playerSpeedAttribute = attribute.deleteAttributeModifier(playerSpeedAttribute, physics.sprintingUUID) // always delete sprinting (if it exists)
-        if (entity.isSprinting) {
-          if (!attribute.checkAttributeModifier(playerSpeedAttribute, physics.sprintingUUID)) {
-            playerSpeedAttribute = attribute.addAttributeModifier(playerSpeedAttribute, {
-              uuid: physics.sprintingUUID,
-              amount: physics.sprintSpeed,
-              operation: 2
-            })
-          }
-        }
-        // Calculate what the speed is (0.1 if no modification); Player.getSpeed casts it to float
-        const attributeSpeed = Math.fround(attribute.getAttributeValue(playerSpeedAttribute))
+        const attributeSpeed = movementSpeed(entity)
         // LivingEntity.travel: the friction of the block under the player and the inertia, floats
         const friction = Math.fround(blockSlipperiness[blockUnder.type] || physics.defaultSlipperiness)
         inertia = Math.fround(friction * Math.fround(0.91))
