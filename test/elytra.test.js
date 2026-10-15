@@ -127,7 +127,7 @@ describe('Elytra tests', () => {
 
     // jump
     player.jumpQueued = true
-    passTicks(10, player, physics, fakeWorld, controls)
+    passTicks(5, player, physics, fakeWorld, controls)
     expect(player.entity.onGround).toBeFalsy()
 
     // fly
@@ -152,7 +152,7 @@ describe('Elytra tests', () => {
 
     // jump
     player.jumpQueued = true
-    passTicks(10, player, physics, fakeWorld, controls)
+    passTicks(5, player, physics, fakeWorld, controls)
 
     expect(player.entity.onGround).toBeFalsy()
 
@@ -198,7 +198,7 @@ describe('Elytra tests', () => {
 
     // jump
     player.jumpQueued = true
-    passTicks(10, player, physics, fakeWorld, controls)
+    passTicks(5, player, physics, fakeWorld, controls)
     expect(player.entity.onGround).toBeFalsy()
 
     // fly
@@ -223,7 +223,7 @@ describe('Elytra tests', () => {
 
     // jump
     player.jumpQueued = true
-    passTicks(10, player, physics, fakeWorld, controls)
+    passTicks(5, player, physics, fakeWorld, controls)
 
     expect(player.entity.onGround).toBeFalsy()
 
@@ -270,7 +270,7 @@ describe('Elytra tests', () => {
 
     // jump
     player.jumpQueued = true
-    passTicks(10, player, physics, fakeWorld, controls)
+    passTicks(5, player, physics, fakeWorld, controls)
     expect(player.entity.onGround).toBeFalsy()
 
     // fly
@@ -295,7 +295,7 @@ describe('Elytra tests', () => {
 
     // jump
     player.jumpQueued = true
-    passTicks(10, player, physics, fakeWorld, controls)
+    passTicks(5, player, physics, fakeWorld, controls)
 
     expect(player.entity.onGround).toBeFalsy()
 
@@ -442,7 +442,7 @@ describe('Elytra tests', () => {
 
     // jump
     player.jumpQueued = true
-    passTicks(10, player, physics, fakeWorld, controls)
+    passTicks(5, player, physics, fakeWorld, controls)
     expect(player.entity.onGround).toBeFalsy()
 
     // fly
@@ -451,7 +451,7 @@ describe('Elytra tests', () => {
 
     // boost
     player.fireworkRocketDuration = 20
-    passTicks(10, player, physics, fakeWorld, controls)
+    passTicks(5, player, physics, fakeWorld, controls)
     expect(player.entity.onGround).toBeFalsy()
 
     controls.jump = true
@@ -465,7 +465,7 @@ describe('Elytra tests', () => {
     expect(player.entity.elytraFlying).toBeFalsy()
 
     // let jump controls cause a jump
-    passTicks(10, player, physics, fakeWorld, controls)
+    passTicks(5, player, physics, fakeWorld, controls)
     expect(player.entity.onGround).toBeFalsy()
     expect(player.entity.elytraFlying).toBeFalsy()
   })
@@ -537,8 +537,9 @@ describe('Elytra tests', () => {
     // 1 / (30/20) = 2/3, so 1 tick should be enough to hit the wall
     passTicks(1, player, physics, fakeWallWorld, controls)
 
-    // it should have stopped in the x direction
-    expect(player.entity.velocity.x).toBeCloseTo(0)
+    // it should have stopped against the wall (the rocket, ticking after the player, boosts it again after the move)
+    expect(player.entity.isCollidedHorizontally).toBe(true)
+    expect(player.entity.position.x).toBeCloseTo(50.7) // the wall begins at x = 51
   })
 
   it('can flight straight up', () => {
@@ -648,7 +649,7 @@ describe('Elytra tests', () => {
 
     // jump
     player.jumpQueued = true
-    passTicks(10, player, physics, fakeWorld, controls)
+    passTicks(5, player, physics, fakeWorld, controls)
     expect(player.entity.onGround).toBeFalsy()
 
     // fly
@@ -674,7 +675,7 @@ describe('Elytra tests', () => {
 
     // jump
     player.jumpQueued = true
-    passTicks(10, player, physics, fakeWorld, controls)
+    passTicks(5, player, physics, fakeWorld, controls)
 
     expect(player.entity.onGround).toBeFalsy()
 

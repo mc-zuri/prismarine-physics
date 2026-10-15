@@ -1347,6 +1347,7 @@ function Physics (mcData, world) {
   const fluidHeightFromFeet = supportFeature('fluidHeightFromFeet')
   const waterAfterMove = mcData.version.minecraftVersion !== '1.21.4'
   const lavaAfterMove = mcData.version['>=']('26.1')
+  const rocketTicksAfterPlayer = !(mcData.version['>=']('1.14') && mcData.version['<']('1.17'))
   const lavaByHeight = mcData.version['>=']('1.16')
   const lavaFlagFromMove = mcData.version['>=']('1.14') && !lavaByHeight
   const shallowLavaMovement = supportFeature('shallowLavaMovement')
@@ -1416,6 +1417,24 @@ function Physics (mcData, world) {
       vel.z += acceleration.z / len * 0.014
     }
     return isInWater
+  }
+
+  // FireworkRocketEntity.tick: a firework the player rides boosts a glide along the look (Entity.getLookAngle, the view
+  // vector the glide uses). The client ticks it in its entity order: after the player, which it added first, up to 1.13
+  // (a list) and from 1.17 (EntityTickList), so the boost comes after the move; on 1.14 to 1.16 in the order of a hash map
+  // by entity id, so either way, and the engine boosts before the move there.
+  function boostByRocket (entity) {
+    const vel = entity.vel
+    if (entity.fireworkRocketDuration <= 0) return
+    if (!entity.elytraFlying) {
+      entity.fireworkRocketDuration = 0
+      return
+    }
+    const look = viewVector(entity)
+    vel.x += look.x * 0.1 + (look.x * 1.5 - vel.x) * 0.5
+    vel.y += look.y * 0.1 + (look.y * 1.5 - vel.y) * 0.5
+    vel.z += look.z * 0.1 + (look.z * 1.5 - vel.z) * 0.5
+    --entity.fireworkRocketDuration
   }
 
   physics.simulatePlayer = (entity, world) => {
@@ -1498,19 +1517,7 @@ function Physics (mcData, world) {
     const inFluid = !entity.flying && (entity.isInWater || entity.isInLava)
     if (entity.elytraFlying && climbableStopsGliding && !inFluid && isOnLadder(world, entity.pos)) entity.elytraFlying = false
 
-    if (entity.fireworkRocketDuration > 0) {
-      if (!entity.elytraFlying) {
-        entity.fireworkRocketDuration = 0
-      } else {
-        // FireworkRocketEntity.tick: the boost goes along the look (Entity.getLookAngle, the view vector the glide uses)
-        const look = viewVector(entity)
-        vel.x += look.x * 0.1 + (look.x * 1.5 - vel.x) * 0.5
-        vel.y += look.y * 0.1 + (look.y * 1.5 - vel.y) * 0.5
-        vel.z += look.z * 0.1 + (look.z * 1.5 - vel.z) * 0.5
-        --entity.fireworkRocketDuration
-      }
-    }
-
+    if (!rocketTicksAfterPlayer) boostByRocket(entity)
     moveEntityWithHeading(entity, world, strafe, forward)
     if (blockEffectsAfterTravel) {
       const moves = entity.movesThisTick.length ? entity.movesThisTick : [{ from: tickStart, to: pos.clone() }]
@@ -1519,6 +1526,8 @@ function Physics (mcData, world) {
     // Up to 1.15 the lava state is the moved box's: looked up again (up to 1.13), or the flag the move set (1.14, 1.15)
     if (lavaFlagFromMove) entity.isInLava = isMaterialInBB(world, (entity.box ?? getPlayerBB(pos)).clone().contract(0.001, 0.001, 0.001), lavaIds)
     else if (!lavaByHeight) entity.isInLava = isMaterialInBB(world, getPlayerBB(pos).contract(0.1, 0.4, 0.1), lavaIds)
+
+    if (rocketTicksAfterPlayer) boostByRocket(entity)
 
     return entity
   }

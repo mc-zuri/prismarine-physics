@@ -57,7 +57,7 @@ function glideOneTick (version, pitchDegrees, velocity, { blockAt = () => 'air',
   }
   const controls = { forward: false, back: false, left: false, right: false, jump: false, sprint: false, sneak: false }
   Physics(mcData, world).simulatePlayer(new PlayerState(bot, controls), world).apply(bot)
-  return Object.assign(bot.entity.velocity, { elytraFlying: bot.entity.elytraFlying, onGround: bot.entity.onGround })
+  return Object.assign(bot.entity.velocity, { elytraFlying: bot.entity.elytraFlying, onGround: bot.entity.onGround, pos: bot.entity.position })
 }
 
 describe('gliding', () => {
@@ -65,6 +65,18 @@ describe('gliding', () => {
   for (const version of ['1.13.2', '1.20.4', '1.21.11', '26.1']) {
     it(`${version}: a rocket boosts along the view vector`, () => {
       expect(glideOneTick(version, 0, [0, 0, 0.5], { rocket: 10 }).x).toBe(0)
+    })
+  }
+
+  // The client ticks the firework after the player up to 1.13 and from 1.17, so the boost comes after the move; on 1.14
+  // to 1.16 the engine boosts before it (the client's order there follows the entity ids)
+  for (const [version, after] of [['1.12.2', true], ['1.14.4', false], ['1.16.5', false], ['1.17.1', true], ['1.21.11', true]]) {
+    it(`${version}: a rocket boosts ${after ? 'after' : 'before'} the move`, () => {
+      const boosted = glideOneTick(version, 10, [0, -0.2, 0.5], { rocket: 10 })
+      const plain = glideOneTick(version, 10, [0, -0.2, 0.5])
+      if (after) expect(boosted.pos).toEqual(plain.pos)
+      else expect(boosted.pos.z).toBeGreaterThan(plain.pos.z)
+      expect(boosted.z).toBeGreaterThan(plain.z)
     })
   }
 
