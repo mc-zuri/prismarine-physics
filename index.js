@@ -566,7 +566,7 @@ function Physics (mcData, world) {
   // -0.08 + c * 0.06 up to 1.12 and gravity * (-1 + c * 0.75) from 1.13 (gravity 0.08, 0.01 falling with Slow Falling).
   // Falling turns into speed along the look, pulling up (xRot below 0, looking up) trades speed for lift, and the
   // motion turns towards the look; then 0.99F, 0.98F and 0.99F of it stay.
-  function glide (entity, gravityMultiplier) {
+  function glide (entity, gravity) {
     const vel = entity.vel
     const look = viewVector(entity)
     const xRot = Math.fround(-entity.pitch * 180 / Math.PI)
@@ -582,7 +582,7 @@ function Physics (mcData, world) {
       c = Math.fround(cos * cos)
     }
     if (glideLiftIsConstant) vel.y += -0.08 + c * 0.06
-    else vel.y += physics.gravity * gravityMultiplier * (-1.0 + c * 0.75)
+    else vel.y += gravity * (-1.0 + c * 0.75)
     if (vel.y < 0.0 && hLook > 0.0) {
       const q = vel.y * -0.1 * c
       vel.y += q
@@ -922,6 +922,16 @@ function Physics (mcData, world) {
   const blockSpeedFactorFeature = mcData.version['>=']('1.15')
   const soulSpeedIgnoresFactor = mcData.version['>=']('1.16') && mcData.version['<']('1.21')
   const onPosBelow = mcData.version['>=']('1.20')
+  // LivingEntity.getEffectiveGravity: 0.08; from 1.20.5 the gravity attribute. Falling with Slow Falling (1.13+) at most
+  // 0.01.
+  const gravityResource = mcData.attributesByName.gravity?.resource
+  const gravityAfterMove = mcData.version['>=']('1.21.2')
+  function effectiveGravity (entity) {
+    const synced = gravityResource && entity.attributes && entity.attributes[gravityResource]
+    const gravity = synced ? attribute.getAttributeValue(synced) : physics.gravity
+    return entity.vel.y <= 0 && entity.slowFalling > 0 ? Math.min(gravity, physics.gravity * physics.slowFalling) : gravity
+  }
+
   const movementEfficiencyAttribute = mcData.attributesByName.movementEfficiency
   const movementEfficiencyResource = mcData.version['>=']('1.21') && movementEfficiencyAttribute ? movementEfficiencyAttribute.resource : null
   // LivingEntity.travel in water by version
@@ -1149,6 +1159,7 @@ function Physics (mcData, world) {
     const pos = entity.pos
 
     const gravityMultiplier = (vel.y <= 0 && entity.slowFalling > 0) ? physics.slowFalling : 1
+    const gravity = effectiveGravity(entity)
 
     // Player.isAffectedByFluids is false while flying, so a flying player in water or lava takes
     // the flight movement below rather than the fluid one.
@@ -1168,7 +1179,6 @@ function Physics (mcData, world) {
       if (inWater && waterClimbs && entity.isCollidedHorizontally && isOnLadder(world, pos)) vel.y = 0.2
       if (fluidHeightFromFeet) {
         // LivingEntity.travelInWater / travelInLava (1.13+)
-        const gravity = physics.gravity * gravityMultiplier
         if (lavaAfterMove && !inWater) {
           // From 26.1 LivingEntity.checkFallDamage updates lava too after the move (Entity.updateFluidInteraction), so
           // the lava regime below sees the moved box; up to 1.21.11 it looks again for water only
@@ -1210,7 +1220,7 @@ function Physics (mcData, world) {
       }
     } else if (entity.elytraFlying) {
       const flightEntryVelY = vel.y
-      glide(entity, gravityMultiplier)
+      glide(entity, gravity)
       moveEntity(entity, world, vel.x, vel.y, vel.z)
       // Player.travel wraps the glide while creative flying: the vertical velocity the tick started with comes back
       // damped, and up to 1.21.1 the flight ends the glide on the client too (setSharedFlag(7, false))
@@ -1271,7 +1281,8 @@ function Physics (mcData, world) {
         if (entity.levitation > 0) {
           vel.y += (0.05 * entity.levitation - vel.y) * 0.2
         } else {
-          vel.y -= physics.gravity * gravityMultiplier
+          // from 1.21.2 travelInAir reads the gravity after the move, so Slow Falling sees the motion the move left
+          vel.y -= gravityAfterMove ? effectiveGravity(entity) : gravity
         }
         vel.y *= physics.airdrag
       }
