@@ -56,10 +56,13 @@ describe('movement input direction', () => {
         expect(firstTick(version, { yawDegrees: -90 }).z).toBe(0)
       })
 
+      // before 1.14 moveRelative rounds every step to float: the ratio is then good to about 1e-6, which still tells
+      // apart neighbouring entries (the ratio differs by about 1e-4)
+      const digits = require('minecraft-data')(version).version['<']('1.14') ? 5 : 12
       for (const [yaw, sin, cos] of entries) {
         it(`turns the input by the sine table's entries at yaw ${yaw}`, () => {
           const vel = firstTick(version, { yawDegrees: yaw })
-          expect(vel.x / vel.z).toBeCloseTo(-sin / cos, 12)
+          expect(vel.x / vel.z).toBeCloseTo(-sin / cos, digits)
         })
       }
     })

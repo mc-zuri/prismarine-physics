@@ -53,5 +53,25 @@
     "name": "headingAnglePiOver180",
     "description": "Entity.moveFlying turns the input by the angle yaw * 3.1415927F / 180.0F (two float roundings); since 1.9 by yaw * 0.017453292F",
     "versions": ["1.8"]
+  },
+  {
+    "name": "floatMoveRelative",
+    "description": "Entity.moveRelative (moveFlying) scales the input in float, cut off below 1.0E-4F and divided by max(1, length); since 1.14 getInputVector does it in double, cut off below 1.0E-7 and normalized only when longer than 1",
+    "versions": ["1.8", "1.9", "1.10", "1.11", "1.12", "1.13"]
+  },
+  {
+    "name": "floatLengthNormalize",
+    "description": "Vec3.normalize takes the length through Mth.sqrt, a float; since 1.17 Math.sqrt",
+    "versions": ["1.14", "1.15", "1.16"]
+  },
+  {
+    "name": "groundSpeedFromInertia",
+    "description": "LivingEntity's ground speed factor is 0.16277136F over the cube of friction * 0.91F; since 1.14 0.21600002F over the cube of the friction",
+    "versions": ["1.8", "1.9", "1.10", "1.11", "1.12", "1.13"]
+  },
+  {
+    "name": "groundSpeedConstantRoundedUp",
+    "description": "The ground speed factor's constant is 0.16277137F instead of 0.16277136F",
+    "versions": ["1.13"]
   }
 ]

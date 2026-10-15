@@ -199,16 +199,14 @@ describe('Sprint state', () => {
     const { data, world } = makeWorld('26.1', (pos) => pos.z === 5 && pos.y < 62)
     const physics = Physics(data, world)
     const player = makePlayer('26.1', new Vec3(0.5, 60, 3.5))
-    let moved
-    for (let i = 0; i < 20 && !player.entity.isCollidedHorizontally; i++) {
+    // Run into the wall until pressed against it. The tick that reaches the wall still moves forward; whether the
+    // client counts that as minor depends on rounding (acos of a ratio that can round above 1), so it is not checked.
+    let moved = new Vec3(0, 0, 1)
+    for (let i = 0; i < 20 && !(player.entity.isCollidedHorizontally && moved.z === 0); i++) {
+      const touching = player.entity.isCollidedHorizontally
       moved = tick(physics, world, player, { forward: true, sprint: true })
-      expect(player.entity.isSprinting).toBe(true)
+      if (!touching) expect(player.entity.isSprinting).toBe(true)
     }
-    // the first touch still moved forward a little, which the client counts as a minor collision
-    expect(player.entity.isCollidedHorizontally).toBe(true)
-    expect(player.entity.minorHorizontalCollision).toBe(true)
-    moved = tick(physics, world, player, { forward: true, sprint: true })
-    expect(player.entity.isSprinting).toBe(true)
     expect(moved.z).toBe(0) // pressed against the wall: this collision is not minor
     expect(player.entity.minorHorizontalCollision).toBe(false)
     world.wall = false // the way is clear again: the client still runs this tick without the sprint

@@ -426,34 +426,62 @@ function Physics (mcData, world) {
   // The sin and cos are Mth.sin and Mth.cos of the float yRot in radians, read from the sine table (lib/math.js).
   // yRot is recovered as degrees(PI - yaw), the value mineflayer sends. The table entry depends on the unwrapped
   // angle, so a yaw normalized to [0, 2PI) matches a client only while its yRot is within (-180, 180].
-  function inputToWorld (strafe, forward, yaw) {
+  // `round` rounds each operation, Math.fround where vanilla computes it in float (moveRelative before 1.14).
+  function inputToWorld (strafe, forward, yaw, round = x => x) {
     const yRot = Math.fround((Math.PI - yaw) * 180 / Math.PI)
     const radians = headingAnglePiOver180
       ? Math.fround(Math.fround(yRot * math.PI_F) / 180)
       : Math.fround(yRot * math.DEG_TO_RAD_F)
     const sin = math.mthSin(radians, sinTableDoubleIndex)
     const cos = math.mthCos(radians, sinTableDoubleIndex)
-    return { x: -(strafe * cos + forward * sin), z: forward * cos - strafe * sin }
+    return { x: -round(round(strafe * cos) + round(forward * sin)), z: round(round(forward * cos) - round(strafe * sin)) }
   }
 
+  // Entity.moveRelative: the input scaled to the float speed and turned by the yaw. Before 1.14 (moveFlying) all in
+  // float: cut off below 1.0E-4F and divided by max(1, length). Since 1.14 (getInputVector) in double: cut off below
+  // 1.0E-7 and normalized only when longer than 1, with a float length (Vec3.normalize, Mth.sqrt) until 1.17.
   function applyHeading (entity, strafe, forward, multiplier) {
-    let speed = Math.sqrt(strafe * strafe + forward * forward)
-    if (speed < 0.01) return new Vec3(0, 0, 0)
+    const speed = Math.fround(multiplier)
+    let dir
+    if (floatMoveRelative) {
+      let f = Math.fround(Math.fround(strafe * strafe) + Math.fround(forward * forward))
+      if (f < Math.fround(1.0e-4)) return
+      f = Math.fround(Math.sqrt(f))
+      if (f < 1) f = 1
+      f = Math.fround(speed / f)
+      dir = inputToWorld(Math.fround(strafe * f), Math.fround(forward * f), entity.yaw, Math.fround)
+    } else {
+      const lengthSqr = strafe * strafe + forward * forward
+      if (lengthSqr < 1.0e-7) return
+      if (lengthSqr > 1) {
+        const length = floatLengthNormalize ? Math.fround(Math.sqrt(lengthSqr)) : Math.sqrt(lengthSqr)
+        strafe /= length
+        forward /= length
+      }
+      dir = inputToWorld(strafe * speed, forward * speed, entity.yaw)
+    }
+    entity.vel.x += dir.x
+    entity.vel.z += dir.z
+  }
 
-    speed = multiplier / Math.max(speed, 1)
-
-    strafe *= speed
-    forward *= speed
-
-    const dir = inputToWorld(strafe, forward, entity.yaw)
-    const vel = entity.vel
-    vel.x += dir.x
-    vel.z += dir.z
+  // The walking speed's factor for the friction under the player, in float (1 on most blocks, less on ice). Before
+  // 1.14, inline in LivingEntity's travel: 0.16277136F (1.13: 0.16277137F) over the cube of friction * 0.91F. Since,
+  // LivingEntity.getFrictionInfluencedSpeed: 0.21600002F over the cube of the friction.
+  function groundSpeedFactor (friction, inertia) {
+    if (groundSpeedFromInertia) {
+      const constant = Math.fround(groundSpeedConstantRoundedUp ? 0.16277137 : 0.16277136)
+      return Math.fround(constant / Math.fround(Math.fround(inertia * inertia) * inertia))
+    }
+    return Math.fround(Math.fround(0.21600002) / Math.fround(Math.fround(friction * friction) * friction))
   }
 
   const climbableTrapdoorFeature = supportFeature('climbableTrapdoor')
   const sprintSurvivesMinorCollision = supportFeature('sprintSurvivesMinorCollision')
   const headingAnglePiOver180 = supportFeature('headingAnglePiOver180')
+  const floatMoveRelative = supportFeature('floatMoveRelative')
+  const floatLengthNormalize = supportFeature('floatLengthNormalize')
+  const groundSpeedFromInertia = supportFeature('groundSpeedFromInertia')
+  const groundSpeedConstantRoundedUp = supportFeature('groundSpeedConstantRoundedUp')
   // Mth.sin(double) indexes the table in double from 1.21.11. features.json lists major versions only, and this
   // splits 1.21, so it is a version check.
   const sinTableDoubleIndex = mcData.version['>=']('1.21.11')
@@ -657,10 +685,12 @@ function Physics (mcData, world) {
             })
           }
         }
-        // Calculate what the speed is (0.1 if no modification)
-        const attributeSpeed = attribute.getAttributeValue(playerSpeedAttribute)
-        inertia = (blockSlipperiness[blockUnder.type] || physics.defaultSlipperiness) * 0.91
-        acceleration = attributeSpeed * (0.1627714 / (inertia * inertia * inertia))
+        // Calculate what the speed is (0.1 if no modification); Player.getSpeed casts it to float
+        const attributeSpeed = Math.fround(attribute.getAttributeValue(playerSpeedAttribute))
+        // LivingEntity.travel: the friction of the block under the player and the inertia, floats
+        const friction = Math.fround(blockSlipperiness[blockUnder.type] || physics.defaultSlipperiness)
+        inertia = Math.fround(friction * Math.fround(0.91))
+        acceleration = Math.fround(attributeSpeed * groundSpeedFactor(friction, inertia))
         if (acceleration < 0) acceleration = 0 // acceleration should not be negative
       } else if (entity.flying) {
         // Player.getFlyingSpeed: creative flight accelerates at the abilities' flying speed,
@@ -886,8 +916,9 @@ function Physics (mcData, world) {
     }
     entity.jumpQueued = false
 
-    let strafe = (entity.control.right - entity.control.left) * 0.98
-    let forward = (entity.control.forward - entity.control.back) * 0.98
+    // LivingEntity.aiStep scales the input by 0.98F (from 1.21.5 LocalPlayer.modifyInput)
+    let strafe = (entity.control.right - entity.control.left) * Math.fround(0.98)
+    let forward = (entity.control.forward - entity.control.back) * Math.fround(0.98)
 
     if (entity.control.sneak) {
       strafe *= physics.sneakSpeed
