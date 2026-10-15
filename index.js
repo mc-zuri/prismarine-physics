@@ -1164,9 +1164,9 @@ function Physics (mcData, world) {
       if (fluidHeightFromFeet) {
         // LivingEntity.travelInWater / travelInLava (1.13+)
         const gravity = physics.gravity * gravityMultiplier
-        if (!inWater) {
-          // Entity.move refreshes the fluid state after moving when not in water
-          // (LivingEntity.checkFallDamage), so the lava regime below sees the moved box
+        if (lavaAfterMove && !inWater) {
+          // From 26.1 LivingEntity.checkFallDamage updates lava too after the move (Entity.updateFluidInteraction), so
+          // the lava regime below sees the moved box; up to 1.21.11 it looks again for water only
           entity.lavaHeight = scanFluid(world, getPlayerBB(pos).contract(0.001, 0.001, 0.001), (block) => block && lavaIds.includes(block.type)).height
         }
         // getFluidFallingAdjustedMovement: sink by gravity / 16, except the narrow band the game clamps to -0.003 so a
@@ -1340,6 +1340,7 @@ function Physics (mcData, world) {
   // the box was shrunk by 0.4 at the top and compared through ceil(maxY).
   const fluidHeightFromFeet = supportFeature('fluidHeightFromFeet')
   const waterAfterMove = mcData.version.minecraftVersion !== '1.21.4'
+  const lavaAfterMove = mcData.version['>=']('26.1')
   const shallowLavaMovement = supportFeature('shallowLavaMovement')
 
   function isWaterBlock (block) {
