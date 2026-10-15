@@ -705,6 +705,8 @@ function Physics (mcData, world) {
   const headingAnglePiOver180 = supportFeature('headingAnglePiOver180')
   // gliding by version
   const glideLiftIsConstant = mcData.version['<']('1.13')
+  const climbableStopsGliding = mcData.version['>=']('1.21.5')
+  const flightStopsGliding = mcData.version['<']('1.21.2')
   const glideCosineIsDouble = mcData.version['>=']('1.18.2')
   const legacyViewVector = mcData.version['<']('1.13')
   // starting to glide by version
@@ -1004,11 +1006,14 @@ function Physics (mcData, world) {
         vel.y = physics.outOfLiquidImpulse // jump out of liquid
       }
     } else if (entity.elytraFlying) {
+      const flightEntryVelY = vel.y
       glide(entity, gravityMultiplier)
       moveEntity(entity, world, vel.x, vel.y, vel.z)
-
-      if (entity.onGround) {
-        entity.elytraFlying = false
+      // Player.travel wraps the glide while creative flying: the vertical velocity the tick started with comes back
+      // damped, and up to 1.21.1 the flight ends the glide on the client too (setSharedFlag(7, false))
+      if (entity.flying) {
+        vel.y = flightEntryVelY * 0.6
+        if (flightStopsGliding) entity.elytraFlying = false
       }
     } else {
       // Normal movement
@@ -1260,8 +1265,12 @@ function Physics (mcData, world) {
     entity.inputStrafe = strafe
     entity.inputForward = forward
 
-    // the glide the server keeps (LivingEntity.updateFallFlying): off the ground with the elytra, from 1.16 not levitating
-    entity.elytraFlying = entity.elytraFlying && entity.elytraEquipped && !entity.onGround && !(levitationBlocksGliding && entity.levitation)
+    // The server ends a glide (LivingEntity.updateFallFlying), through the entity data the caller applies to
+    // elytraFlying; landing does not end it on the client. The client ends it itself only while creative flying up to
+    // 1.21.1 (in the glide above) and from 1.21.5 on a climbable block out of fluids (travelFallFlying,
+    // stopFallFlying), where that tick moves as in the air.
+    const inFluid = !entity.flying && (entity.isInWater || entity.isInLava)
+    if (entity.elytraFlying && climbableStopsGliding && !inFluid && isOnLadder(world, entity.pos)) entity.elytraFlying = false
 
     if (entity.fireworkRocketDuration > 0) {
       if (!entity.elytraFlying) {

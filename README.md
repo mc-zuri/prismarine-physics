@@ -80,7 +80,10 @@ Read / Write properties:
 - isCollidedHorizontally : (boolean) is the player collided horizontally with a solid block ?
 - isCollidedVertically : (boolean) is the player collided vertically with a solid block ?
 - elytraFlying : (boolean) is the player gliding with an elytra? From 1.15 the engine starts a glide when jump is
-  pressed in the air with an elytra that is not one use from breaking (bot.inventory slot 6)
+  pressed in the air with an elytra that is not one use from breaking (bot.inventory slot 6). As in the vanilla client,
+  landing does not end a glide: the server ends it with entity data, which the caller applies by clearing this flag
+  (mineflayer does). The engine ends a glide itself only while creative flying up to 1.21.1 and from 1.21.5 on a
+  climbable block. A simulation without a server should clear it when the player lands
 - wasJumping : (boolean) the jump key as the last tick left it; a glide starts on a press of jump, not while it is held
 - fallFlyingRequested : (boolean, set by each tick) did the client ask the server to start gliding on this tick (the
   START_FALL_FLYING command)? From 1.15 on the tick the engine starts a glide; up to 1.14, where only the server

@@ -78,10 +78,16 @@ function fakePlayer (pos) {
   }
 }
 
+// One tick, and what the server's entity data does after it: a glide ends on the ground (LivingEntity.updateFallFlying)
+function tick (physics, playerState, world) {
+  physics.simulatePlayer(playerState, world)
+  if (playerState.onGround) playerState.elytraFlying = false
+}
+
 function untilIdle (player, physics, world, controls) {
   const playerState = new PlayerState(player, controls)
   while (!playerState.onGround || playerState.vel.x !== 0 || playerState.vel.z !== 0) {
-    physics.simulatePlayer(playerState, world)
+    tick(physics, playerState, world)
   }
   playerState.apply(player)
 }
@@ -89,7 +95,7 @@ function untilIdle (player, physics, world, controls) {
 function passTicks (ticks, player, physics, world, controls) {
   const playerState = new PlayerState(player, controls)
   for (let i = 0; i < ticks; ++i) {
-    physics.simulatePlayer(playerState, world)
+    tick(physics, playerState, world)
   }
   playerState.apply(player)
 }
@@ -313,7 +319,7 @@ describe('Elytra tests', () => {
     expect(player.entity.position.z).toBeCloseTo(0)
   })
 
-  it('stops flight without elytra', () => {
+  it('glides until the server stops a flight without elytra', () => {
     const physics = Physics(mcData, fakeWorld)
     const controls = {
       forward: false,
@@ -334,7 +340,9 @@ describe('Elytra tests', () => {
     expect(player.fireworkRocketDuration).toEqual(19)
     player.inventory.slots[6] = undefined
     physics.simulatePlayer(new PlayerState(player, controls), fakeWorld).apply(player)
-    expect(player.entity.elytraFlying).toBeFalsy()
+    expect(player.entity.elytraFlying).toBeTruthy() // the client does not end a glide itself
+    player.entity.elytraFlying = false // the server's entity data does
+    physics.simulatePlayer(new PlayerState(player, controls), fakeWorld).apply(player)
     expect(player.fireworkRocketDuration).toEqual(0)
   })
 
@@ -450,7 +458,7 @@ describe('Elytra tests', () => {
     const playerState = new PlayerState(player, controls)
     while (!playerState.onGround) {
       expect(playerState.elytraFlying).toBeTruthy()
-      physics.simulatePlayer(playerState, fakeWorld)
+      tick(physics, playerState, fakeWorld)
     }
     playerState.apply(player)
     expect(player.entity.onGround).toBeTruthy()

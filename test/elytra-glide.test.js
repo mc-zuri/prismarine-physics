@@ -19,19 +19,21 @@ const TICKS = [
   ['1.21.11', 30, [0, -0.29554576472903166, 0.11845902984021583], [0, -0.2996397426537458, 0.13936316129128812]]
 ]
 
-function glideOneTick (version, pitchDegrees, velocity) {
+// `blockAt`: the block name at a y (air by default); `y`: the start height; `flying`: creative flying
+function glideOneTick (version, pitchDegrees, velocity, { blockAt = () => 'air', y = 130, flying = false } = {}) {
   const mcData = require('minecraft-data')(version)
   const Block = require('prismarine-block')(version)
   const world = {
     getBlock: (pos) => {
-      const b = new Block(mcData.blocksByName.air.id, 0, 0)
+      const info = mcData.blocksByName[blockAt(Math.floor(pos.y))]
+      const b = info.defaultState !== undefined ? Block.fromStateId(info.defaultState, 0) : new Block(info.id, 0, 0)
       b.position = pos
       return b
     }
   }
   const bot = {
     entity: {
-      position: new Vec3(0.5, 130, 0.5),
+      position: new Vec3(0.5, y, 0.5),
       velocity: new Vec3(...velocity),
       onGround: false,
       isInWater: false,
@@ -40,6 +42,8 @@ function glideOneTick (version, pitchDegrees, velocity) {
       isCollidedHorizontally: false,
       isCollidedVertically: false,
       elytraFlying: true,
+      flying,
+      flyingSpeed: 0.05,
       yaw: Math.PI, // south
       pitch: -pitchDegrees * Math.PI / 180,
       effects: {}
@@ -52,7 +56,7 @@ function glideOneTick (version, pitchDegrees, velocity) {
   }
   const controls = { forward: false, back: false, left: false, right: false, jump: false, sprint: false, sneak: false }
   Physics(mcData, world).simulatePlayer(new PlayerState(bot, controls), world).apply(bot)
-  return bot.entity.velocity
+  return Object.assign(bot.entity.velocity, { elytraFlying: bot.entity.elytraFlying, onGround: bot.entity.onGround })
 }
 
 describe('gliding', () => {
@@ -60,6 +64,32 @@ describe('gliding', () => {
     it(`${version}: glides at pitch ${pitch} as vanilla`, () => {
       const vel = glideOneTick(version, pitch, before)
       expect([vel.x, vel.y, vel.z]).toEqual(after)
+    })
+  }
+
+  // The server ends a glide, through entity data; the client ends it only while creative flying up to 1.21.1
+  // (Player.travel) and from 1.21.5 on a climbable block out of fluids (LivingEntity.travelFallFlying, stopFallFlying).
+  for (const version of ['1.12.2', '1.15.2', '1.21.4', '1.21.11']) {
+    it(`${version}: keeps gliding after touching the ground`, () => {
+      const landed = glideOneTick(version, 0, [0, -0.5, 0.1], { blockAt: y => y < 60 ? 'stone' : 'air', y: 60.2 })
+      expect(landed.onGround).toBe(true)
+      expect(landed.elytraFlying).toBe(true)
+    })
+  }
+  for (const [version, stops] of [['1.21.4', false], ['1.21.5', true], ['1.21.11', true]]) {
+    it(`${version}: ${stops ? 'stops' : 'keeps'} gliding on a ladder`, () => {
+      expect(glideOneTick(version, 0, [0, -0.3, 0.1], { blockAt: y => y === 130 ? 'ladder' : 'air' }).elytraFlying).toBe(!stops)
+    })
+  }
+  it('1.21.11: keeps gliding on a ladder in water', () => {
+    const inWater = glideOneTick('1.21.11', 0, [0, -0.3, 0.1], { blockAt: y => y === 130 ? 'ladder' : y === 131 ? 'water' : 'air' })
+    expect(inWater.elytraFlying).toBe(true)
+  })
+  for (const [version, stops] of [['1.12.2', true], ['1.20.4', true], ['1.21.1', true], ['1.21.4', false], ['1.21.11', false]]) {
+    it(`${version}: creative flight damps the glide's fall${stops ? ' and ends the glide' : ''}`, () => {
+      const flying = glideOneTick(version, 0, [0, -0.3, 0.1], { flying: true })
+      expect(flying.y).toBe(-0.3 * 0.6)
+      expect(flying.elytraFlying).toBe(!stops)
     })
   }
 })
