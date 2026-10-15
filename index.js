@@ -335,39 +335,9 @@ function Physics (mcData, world) {
       }
     }
 
-    // Finally, apply block collisions (web, soulsand...)
-    playerBB.contract(0.001, 0.001, 0.001)
-    const cursor = new Vec3(0, 0, 0)
-    for (cursor.y = Math.floor(playerBB.minY); cursor.y <= Math.floor(playerBB.maxY); cursor.y++) {
-      for (cursor.z = Math.floor(playerBB.minZ); cursor.z <= Math.floor(playerBB.maxZ); cursor.z++) {
-        for (cursor.x = Math.floor(playerBB.minX); cursor.x <= Math.floor(playerBB.maxX); cursor.x++) {
-          const block = world.getBlock(cursor)
-          if (block) {
-            if (supportFeature('velocityBlocksOnCollision')) {
-              if (block.type === soulsandId) {
-                vel.x *= physics.soulsandSpeed
-                vel.z *= physics.soulsandSpeed
-              } else if (block.type === honeyblockId) {
-                vel.x *= physics.honeyblockSpeed
-                vel.z *= physics.honeyblockSpeed
-              }
-            }
-            if (block.type === webId) {
-              entity.isInWeb = true
-            } else if (block.type === bubblecolumnId) {
-              const down = !block.metadata
-              const aboveBlock = world.getBlock(cursor.offset(0, 1, 0))
-              const bubbleDrag = (aboveBlock && aboveBlock.type === 0 /* air */) ? physics.bubbleColumnSurfaceDrag : physics.bubbleColumnDrag
-              if (down) {
-                vel.y = Math.max(bubbleDrag.maxDown, vel.y - bubbleDrag.down)
-              } else {
-                vel.y = Math.min(bubbleDrag.maxUp, vel.y + bubbleDrag.up)
-              }
-            }
-          }
-        }
-      }
-    }
+    // Up to 1.21.1 the blocks the player is in act during the move (Entity.checkInsideBlocks); from 1.21.2 after
+    // travel (LivingEntity.applyEffectsFromBlocks), so after gravity and drag
+    if (!blockEffectsAfterTravel) applyInsideBlocks(entity, world, playerBB)
     // From 1.15 Entity.move ends by scaling the horizontal motion by the block speed factor
     if (blockSpeedFactorFeature) {
       const factor = blockSpeedFactor(entity, world)
@@ -632,6 +602,44 @@ function Physics (mcData, world) {
     return entity.onGround || (inWater && height <= threshold) ? 'ground' : null
   }
 
+  // Entity.checkInsideBlocks: what the blocks the box is inside do to the player (soul sand up to 1.14, cobweb, bubble
+  // columns)
+  function applyInsideBlocks (entity, world, box) {
+    const vel = entity.vel
+    const playerBB = box.clone().contract(0.001, 0.001, 0.001)
+    const cursor = new Vec3(0, 0, 0)
+    for (cursor.y = Math.floor(playerBB.minY); cursor.y <= Math.floor(playerBB.maxY); cursor.y++) {
+      for (cursor.z = Math.floor(playerBB.minZ); cursor.z <= Math.floor(playerBB.maxZ); cursor.z++) {
+        for (cursor.x = Math.floor(playerBB.minX); cursor.x <= Math.floor(playerBB.maxX); cursor.x++) {
+          const block = world.getBlock(cursor)
+          if (block) {
+            if (supportFeature('velocityBlocksOnCollision')) {
+              if (block.type === soulsandId) {
+                vel.x *= physics.soulsandSpeed
+                vel.z *= physics.soulsandSpeed
+              } else if (block.type === honeyblockId) {
+                vel.x *= physics.honeyblockSpeed
+                vel.z *= physics.honeyblockSpeed
+              }
+            }
+            if (block.type === webId) {
+              entity.isInWeb = true
+            } else if (block.type === bubblecolumnId) {
+              const down = !block.metadata
+              const aboveBlock = world.getBlock(cursor.offset(0, 1, 0))
+              const bubbleDrag = (aboveBlock && aboveBlock.type === 0 /* air */) ? physics.bubbleColumnSurfaceDrag : physics.bubbleColumnDrag
+              if (down) {
+                vel.y = Math.max(bubbleDrag.maxDown, vel.y - bubbleDrag.down)
+              } else {
+                vel.y = Math.min(bubbleDrag.maxUp, vel.y + bubbleDrag.up)
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   // LivingEntity.jumpFromGround. The jump power is 0.42F times the block jump factor (from 1.15: the block at the feet,
   // or the one below when that is 1; honey 0.5F), from 1.20.6 the jump_strength attribute instead of 0.42F, plus 0.1F per
   // Jump Boost level. The sum is in double up to 1.13 and on 1.17 to 1.19, in float otherwise. From 1.20.6 a power of
@@ -722,6 +730,7 @@ function Physics (mcData, world) {
   const climbableTrapdoorFeature = supportFeature('climbableTrapdoor')
   const sprintSurvivesMinorCollision = supportFeature('sprintSurvivesMinorCollision')
   const headingAnglePiOver180 = supportFeature('headingAnglePiOver180')
+  const blockEffectsAfterTravel = mcData.version['>=']('1.21.2')
   // swimming up and down by version
   const sinksWithSneak = mcData.version['>=']('1.13')
   const sinkNeedsFluidEffect = mcData.version['>=']('1.16')
@@ -1314,6 +1323,7 @@ function Physics (mcData, world) {
     }
 
     moveEntityWithHeading(entity, world, strafe, forward)
+    if (blockEffectsAfterTravel) applyInsideBlocks(entity, world, getPlayerBB(pos))
 
     return entity
   }
