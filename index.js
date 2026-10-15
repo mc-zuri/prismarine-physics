@@ -37,6 +37,9 @@ function Physics (mcData, world) {
   const ladderId = blocksByName.ladder.id
   const vineId = blocksByName.vine.id
   const scaffoldingId = blocksByName.scaffolding ? blocksByName.scaffolding.id : -1 // 1.14+
+  // the climbable tag's vines (1.16+ weeping and twisting, 1.17+ cave)
+  const vineLikeIds = new Set(['weeping_vines', 'weeping_vines_plant', 'twisting_vines', 'twisting_vines_plant', 'cave_vines', 'cave_vines_plant']
+    .filter(name => blocksByName[name]).map(name => blocksByName[name].id))
 
   // NOTE: Copper trapdoors is coming in 1.21.
   const trapdoorIds = new Set()
@@ -71,7 +74,6 @@ function Physics (mcData, world) {
     stepHeight: 0.6, // how much height can the bot step on without jump
     soulsandSpeed: 0.4,
     honeyblockSpeed: 0.4,
-    ladderMaxSpeed: 0.15,
     ladderClimbSpeed: 0.2,
     playerHalfWidth: Math.fround(0.3), // EntityDimensions: (double)(0.6F / 2.0F)
     playerHeight: Math.fround(1.8), // EntityDimensions: 1.8F
@@ -620,6 +622,8 @@ function Physics (mcData, world) {
   const climbableTrapdoorFeature = supportFeature('climbableTrapdoor')
   const sprintSurvivesMinorCollision = supportFeature('sprintSurvivesMinorCollision')
   const headingAnglePiOver180 = supportFeature('headingAnglePiOver180')
+  // climbing by version
+  const climbLimitIsFloat = mcData.version['>=']('1.14')
   // LivingEntity.aiStep's negligible motion by version
   const negligibleVelocity = mcData.version.majorVersion === '1.8' ? 0.005 : 0.003
   const horizontalMotionStopsTogether = mcData.version['>=']('1.21.5')
@@ -672,10 +676,12 @@ function Physics (mcData, world) {
   const swiftSneakFeature = supportFeature('swiftSneak')
   const sneakingSpeedAttribute = mcData.attributesByName.sneakingSpeed ?? mcData.attributesByName.playerSneakingSpeed
   const sneakingSpeedResource = supportFeature('sneakingSpeedAttribute') && sneakingSpeedAttribute ? sneakingSpeedAttribute.resource : null
+  // LivingEntity.onClimbable: the feet block is a ladder or vine; from 1.14 scaffolding, from 1.16 the climbable tag's
+  // weeping and twisting vines, from 1.17 its cave vines.
   function isOnLadder (world, pos) {
     const block = world.getBlock(pos)
     if (!block) { return false }
-    if (block.type === ladderId || block.type === vineId) { return true }
+    if (block.type === ladderId || block.type === vineId || vineLikeIds.has(block.type)) { return true }
     if (scaffoldingId !== -1 && block.type === scaffoldingId) { return true }
 
     // Since 1.9, when a trapdoor satisfies the following conditions, it also becomes climbable:
@@ -976,9 +982,14 @@ function Physics (mcData, world) {
       applyHeading(entity, strafe, forward, acceleration)
 
       if (!entity.flying && isOnLadder(world, pos)) {
-        vel.x = math.clamp(-physics.ladderMaxSpeed, vel.x, physics.ladderMaxSpeed)
-        vel.z = math.clamp(-physics.ladderMaxSpeed, vel.z, physics.ladderMaxSpeed)
-        vel.y = Math.max(vel.y, entity.control.sneak ? 0 : -physics.ladderMaxSpeed)
+        // LivingEntity.handleOnClimbable: at most 0.15F across; down at most 0.15 up to 1.13, 0.15F since; holding sneak
+        // stops a fall (from 1.14 not on scaffolding)
+        const limit = Math.fround(0.15)
+        vel.x = math.clamp(-limit, vel.x, limit)
+        vel.z = math.clamp(-limit, vel.z, limit)
+        vel.y = Math.max(vel.y, climbLimitIsFloat ? -limit : -0.15)
+        const onScaffolding = climbLimitIsFloat && scaffoldingId !== -1 && world.getBlock(pos)?.type === scaffoldingId
+        if (vel.y < 0 && entity.control.sneak && !onScaffolding) vel.y = 0
       }
 
       moveEntity(entity, world, vel.x, vel.y, vel.z)
