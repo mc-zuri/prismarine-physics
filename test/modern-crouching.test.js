@@ -1,11 +1,11 @@
+/* eslint-env mocha */
 const assert = require('node:assert/strict')
-const { test } = require('node:test')
-const { data } = require('../lib/session-data')()
+const data = require('minecraft-data')
 const { Physics, PlayerState } = require('../index.js')
 const { Vec3 } = require('vec3')
 
 for (const version of ['1.20.5', '1.21.4', '1.21.11', '26.1', '26.2', '26.3']) {
-  test(`${version}: gliding keeps shift input and crouches on the following tick`, () => {
+  it(`${version}: gliding keeps shift input and crouches on the following tick`, () => {
     const registry = data(version)
     const world = { getBlock: () => null }
     const state = new PlayerState({

@@ -1,11 +1,11 @@
+/* eslint-env mocha */
 const assert = require('node:assert/strict')
-const { test } = require('node:test')
-const { data } = require('../lib/session-data')()
+const data = require('minecraft-data')
 const { Physics, PlayerState } = require('../index')
 const { Vec3 } = require('vec3')
 
 for (const version of ['1.17', '1.18', '1.19.1', '1.19.2']) {
-  test(`${version}: a spontaneous rearing input stops movement once, animates the rider, then expires`, () => {
+  it(`${version}: a spontaneous rearing input stops movement once, animates the rider, then expires`, () => {
     const registry = data(version)
     const Block = require('prismarine-block')(registry)
     const world = {

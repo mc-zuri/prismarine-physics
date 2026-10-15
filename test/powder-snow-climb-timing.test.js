@@ -1,10 +1,10 @@
+/* eslint-env mocha */
 const assert = require('node:assert/strict')
-const { test } = require('node:test')
 const { Physics, PlayerState } = require('../index.js')
 const { Vec3 } = require('vec3')
 
 for (const version of ['1.21.4', '1.21.5']) {
-  test(`${version}: powder-snow climb uses the native contact source`, () => {
+  it(`${version}: powder-snow climb uses the native contact source`, () => {
     const registry = require('minecraft-data')(version)
     const Block = require('prismarine-block')(version)
     const world = {
