@@ -149,7 +149,7 @@ function Physics (mcData, world) {
           const block = world.getBlock(cursor)
           if (block) {
             const blockPos = block.position
-            const shapes = block.type === scaffoldingId ? scaffoldingShapes(block, blockPos, entity) : block.shapes
+            const shapes = shapesFor(block, blockPos, entity)
             for (const shape of shapes) {
               const blockBB = new AABB(shape[0], shape[1], shape[2], shape[3], shape[4], shape[5])
               blockBB.offset(blockPos.x, blockPos.y, blockPos.z)
@@ -160,6 +160,26 @@ function Physics (mcData, world) {
       }
     }
     return surroundingBBs
+  }
+
+  // The collision shapes of a block as the player's collision context sees them
+  function shapesFor (block, blockPos, entity) {
+    if (block.type === scaffoldingId) return scaffoldingShapes(block, blockPos, entity)
+    if (block.type === powderSnowId) return powderSnowShapes(blockPos, entity)
+    return block.shapes
+  }
+
+  // PowderSnowBlock.getCollisionShape (1.17+): under a player whose fall distance is over 2.5 a 0.9 tall box
+  // (FALLING_COLLISION_SHAPE); under one wearing leather boots (canEntityWalkOnPowderSnow) who is above the block
+  // (EntityCollisionContext.isAbove: the bottom over its top, less 1.0E-5F) and not descending (the sneak key) a full
+  // block; otherwise nothing.
+  const POWDER_SNOW_FALLING = [[0, 0, 0, 1, 0.8999999761581421, 1]]
+  const FULL_BLOCK = [[0, 0, 0, 1, 1, 1]]
+  function powderSnowShapes (blockPos, entity) {
+    if (!entity) return []
+    if (entity.fallDistance > 2.5) return POWDER_SNOW_FALLING
+    if (entity.leatherBoots && entity.pos.y > blockPos.y + 1 - 9.999999747378752e-6 && !entity.control.sneak) return FULL_BLOCK
+    return []
   }
 
   // ScaffoldingBlock.getCollisionShape (1.14+): its top and legs when the player stands above it (the bottom over the
@@ -510,7 +530,7 @@ function Physics (mcData, world) {
         for (cursor.x = Math.floor(box.minX); cursor.x <= Math.floor(box.maxX); cursor.x++) {
           const block = world.getBlock(cursor)
           if (!block) continue
-          const shapes = block.type === scaffoldingId ? scaffoldingShapes(block, cursor, entity) : block.shapes
+          const shapes = shapesFor(block, cursor, entity)
           if (!shapes.some(s => s[3] + cursor.x > box.minX && s[0] + cursor.x < box.maxX && s[4] + cursor.y > box.minY &&
             s[1] + cursor.y < box.maxY && s[5] + cursor.z > box.minZ && s[2] + cursor.z < box.maxZ)) continue
           const dx = cursor.x + 0.5 - pos.x
@@ -1948,6 +1968,8 @@ class PlayerState {
     // armour enchantments
     const boots = bot.inventory.slots[8]
     this.depthStrider = itemEnchantmentLevel(mcData, boots, 'depth_strider')
+    // PowderSnowBlock.canEntityWalkOnPowderSnow
+    this.leatherBoots = boots?.name === 'leather_boots'
     this.soulSpeed = itemEnchantmentLevel(mcData, boots, 'soul_speed')
 
     // Swift Sneak on the leggings (1.19 and 1.20)
