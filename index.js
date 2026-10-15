@@ -17,6 +17,7 @@ function Physics (mcData, world) {
   // https://www.mcpk.wiki/w/index.php?title=Slipperiness
   const blockSlipperiness = {}
   const slimeBlockId = blocksByName.slime_block ? blocksByName.slime_block.id : blocksByName.slime.id
+  const bedIds = new Set(Object.values(blocksByName).filter(block => block.name === 'bed' || block.name.endsWith('_bed')).map(block => block.id))
   blockSlipperiness[slimeBlockId] = 0.8
   blockSlipperiness[blocksByName.ice.id] = 0.98
   blockSlipperiness[blocksByName.packed_ice.id] = 0.98
@@ -335,6 +336,9 @@ function Physics (mcData, world) {
     if (dy !== oldVelY) {
       if (blockAtFeet && blockAtFeet.type === slimeBlockId && !entity.control.sneak) {
         vel.y = -vel.y
+      } else if (bedBounces && blockAtFeet && bedIds.has(blockAtFeet.type) && !entity.control.sneak) {
+        // BedBlock.bounceUp: a fall turns into 0.66F of it upwards (a living entity keeps all of it); a rise is left as is
+        if (vel.y < 0) vel.y = -vel.y * Math.fround(0.66)
       } else {
         vel.y = 0
       }
@@ -763,6 +767,8 @@ function Physics (mcData, world) {
   // gliding by version
   const glideLiftIsConstant = mcData.version['<']('1.13')
   const climbableStopsGliding = mcData.version['>=']('1.21.5')
+  // BedBlock.updateEntityAfterFallOn bounces from 1.12
+  const bedBounces = mcData.version['>=']('1.12')
   const flightStopsGliding = mcData.version['<']('1.21.2')
   const glideCosineIsDouble = mcData.version['>=']('1.18.2')
   const legacyViewVector = mcData.version['<']('1.13')
