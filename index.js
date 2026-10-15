@@ -706,16 +706,51 @@ function Physics (mcData, world) {
     const order = inputScalesFirst ? [Math.fround(0.98), use, slow] : itemUseBeforeSneak ? [use, slow, Math.fround(0.98)] : [slow, use, Math.fround(0.98)]
     const scale = (impulse, factors) => factors.reduce((value, factor) => Math.fround(value * factor), impulse)
     const forwardKeys = entity.control.forward - entity.control.back
-    // The forward impulse the sprint logic reads: from 1.21.5 the raw key; before, before 0.98F. On 1.9 to 1.14
-    // creative flight divides the sneak slowdown out only after the sprint logic, so that reads the slowed impulse, and
-    // the next tick the restored one.
+    if (inputScalesFirst) {
+      const input = squareMovementInput(entity.control.left - entity.control.right, forwardKeys, order)
+      return { ...input, nextImpulse: input.impulse }
+    }
+    // The forward impulse the sprint logic reads, before 0.98F. On 1.9 to 1.14 creative flight divides the sneak
+    // slowdown out only after the sprint logic, so that reads the slowed impulse, and the next tick the restored one.
     const sprintSlow = flightUndoesSneakSlow && isMovingSlowly(entity, true) ? sneakingSpeed(entity) : slow
     return {
       strafe: scale(entity.control.right - entity.control.left, order),
       forward: scale(forwardKeys, order),
-      impulse: inputScalesFirst ? forwardKeys : scale(forwardKeys, [sprintSlow, use]),
-      nextImpulse: inputScalesFirst ? forwardKeys : scale(forwardKeys, order.slice(0, 2))
+      impulse: scale(forwardKeys, [sprintSlow, use]),
+      nextImpulse: scale(forwardKeys, order.slice(0, 2))
     }
+  }
+
+  // From 1.21.5 the input is a Vec2 of floats (left, forward): KeyboardInput normalizes the keys' vector, and
+  // LocalPlayer.modifyInput scales it (`factors`) and stretches it towards the unit square
+  // (modifyInputSpeedForSquareMovement), so a diagonal is as fast as a straight line. The sprint logic reads the
+  // normalized forward.
+  function squareMovementInput (left, forwardKeys, factors) {
+    const f = Math.fround
+    const length = (x, y) => f(Math.sqrt(f(f(x * x) + f(y * y))))
+    const keyLength = length(left, forwardKeys)
+    if (keyLength < f(1.0e-4)) return { strafe: 0, forward: 0, impulse: 0 }
+    let x = f(left / keyLength)
+    let y = f(forwardKeys / keyLength)
+    const impulse = y
+    for (const factor of factors) {
+      x = f(x * factor)
+      y = f(y * factor)
+    }
+    const scaledLength = length(x, y)
+    if (scaledLength > 0) {
+      const inverse = f(1 / scaledLength)
+      x = f(x * inverse)
+      y = f(y * inverse)
+      const ax = Math.abs(x)
+      const ay = Math.abs(y)
+      const ratio = ay > ax ? f(ax / ay) : f(ay / ax)
+      const toSquare = f(Math.sqrt(f(1 + f(ratio * ratio))))
+      const stretch = Math.min(f(scaledLength * toSquare), 1)
+      x = f(x * stretch)
+      y = f(y * stretch)
+    }
+    return { strafe: 0 - x, forward: y, impulse } // strafe is to the right; 0 - x keeps a zero positive
   }
 
   function moveEntityWithHeading (entity, world, strafe, forward) {

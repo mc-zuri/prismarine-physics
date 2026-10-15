@@ -30,7 +30,9 @@ const SPRINT = {
 const DIAGONAL = {
   float: 0.038608028381237336,
   floatLength: 0.03860803453293311,
-  double: 0.03860803531251473
+  double: 0.03860803531251473,
+  // 1.21.5+: the keys' vector normalized, scaled by 0.98F and stretched to the unit square (LocalPlayer.modifyInput)
+  square: 0.03860803139735231
 }
 
 const VERSIONS = [
@@ -44,9 +46,9 @@ const VERSIONS = [
   ['1.20.4', STRAIGHT.frictionFactor, SPRINT.frictionFactor, DIAGONAL.double],
   ['1.21.1', STRAIGHT.frictionFactor, SPRINT.frictionFactor, DIAGONAL.double],
   ['1.21.4', STRAIGHT.frictionFactor, SPRINT.frictionFactor, DIAGONAL.double],
-  // 1.21.5+ normalizes a diagonal input before scaling it (not covered here)
-  ['1.21.11', STRAIGHT.frictionFactor, SPRINT.frictionFactor, null],
-  ['26.1', STRAIGHT.frictionFactor, SPRINT.frictionFactor, null]
+  ['1.21.5', STRAIGHT.frictionFactor, SPRINT.frictionFactor, DIAGONAL.square],
+  ['1.21.11', STRAIGHT.frictionFactor, SPRINT.frictionFactor, DIAGONAL.square],
+  ['26.1', STRAIGHT.frictionFactor, SPRINT.frictionFactor, DIAGONAL.square]
 ]
 
 // forward and left, off the axes, where every float rounding of moveRelative shows: [version, floor, yaw, x, z]
@@ -73,13 +75,11 @@ describe('walking from rest', () => {
         })
       }
 
-      if (diagonal !== null) {
-        it('walks forward and left at vanilla\'s speed', () => {
-          const vel = firstTick(version, { controls: { forward: true, left: true } })
-          expect(vel.x).toBe(diagonal)
-          expect(vel.z).toBe(diagonal)
-        })
-      }
+      it('walks forward and left at vanilla\'s speed', () => {
+        const vel = firstTick(version, { controls: { forward: true, left: true } })
+        expect(vel.x).toBe(diagonal)
+        expect(vel.z).toBe(diagonal)
+      })
     })
   }
 
