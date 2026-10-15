@@ -18,6 +18,14 @@ const STRAIGHT = {
   frictionFactor: { stone: 0.053508008053839436, ice: 0.02005714406293894, packed_ice: 0.02005714406293894, blue_ice: 0.019693761928400874 }
 }
 
+// facing east, forward and sprinting: velocity x. The speed is (float)(0.1F * (1 + 0.3F)), the player's base movement
+// speed and the sprint modifier as Player and LivingEntity declare them, floats widened to double.
+const SPRINT = {
+  inertiaFactor: { stone: 0.06956039771757005, ice: 0.02607428907331566 },
+  inertiaFactor113: { stone: 0.06956040585360501, ice: 0.02607429405663675, blue_ice: 0.025601895741796388 },
+  frictionFactor: { stone: 0.0695604148553142, ice: 0.026074288584128563, blue_ice: 0.02560189214975598 }
+}
+
 // facing south, forward and left: velocity x and z (the same)
 const DIAGONAL = {
   float: 0.038608028381237336,
@@ -26,19 +34,19 @@ const DIAGONAL = {
 }
 
 const VERSIONS = [
-  ['1.8.8', STRAIGHT.inertiaFactor, DIAGONAL.float],
-  ['1.9.4', STRAIGHT.inertiaFactor, DIAGONAL.float],
-  ['1.12.2', STRAIGHT.inertiaFactor, DIAGONAL.float],
-  ['1.13.2', STRAIGHT.inertiaFactor113, DIAGONAL.float],
-  ['1.14.4', STRAIGHT.frictionFactor, DIAGONAL.floatLength],
-  ['1.16.5', STRAIGHT.frictionFactor, DIAGONAL.floatLength],
-  ['1.17.1', STRAIGHT.frictionFactor, DIAGONAL.double],
-  ['1.20.4', STRAIGHT.frictionFactor, DIAGONAL.double],
-  ['1.21.1', STRAIGHT.frictionFactor, DIAGONAL.double],
-  ['1.21.4', STRAIGHT.frictionFactor, DIAGONAL.double],
+  ['1.8.8', STRAIGHT.inertiaFactor, SPRINT.inertiaFactor, DIAGONAL.float],
+  ['1.9.4', STRAIGHT.inertiaFactor, SPRINT.inertiaFactor, DIAGONAL.float],
+  ['1.12.2', STRAIGHT.inertiaFactor, SPRINT.inertiaFactor, DIAGONAL.float],
+  ['1.13.2', STRAIGHT.inertiaFactor113, SPRINT.inertiaFactor113, DIAGONAL.float],
+  ['1.14.4', STRAIGHT.frictionFactor, SPRINT.frictionFactor, DIAGONAL.floatLength],
+  ['1.16.5', STRAIGHT.frictionFactor, SPRINT.frictionFactor, DIAGONAL.floatLength],
+  ['1.17.1', STRAIGHT.frictionFactor, SPRINT.frictionFactor, DIAGONAL.double],
+  ['1.20.4', STRAIGHT.frictionFactor, SPRINT.frictionFactor, DIAGONAL.double],
+  ['1.21.1', STRAIGHT.frictionFactor, SPRINT.frictionFactor, DIAGONAL.double],
+  ['1.21.4', STRAIGHT.frictionFactor, SPRINT.frictionFactor, DIAGONAL.double],
   // 1.21.5+ normalizes a diagonal input before scaling it (not covered here)
-  ['1.21.11', STRAIGHT.frictionFactor, null],
-  ['26.1', STRAIGHT.frictionFactor, null]
+  ['1.21.11', STRAIGHT.frictionFactor, SPRINT.frictionFactor, null],
+  ['26.1', STRAIGHT.frictionFactor, SPRINT.frictionFactor, null]
 ]
 
 // forward and left, off the axes, where every float rounding of moveRelative shows: [version, floor, yaw, x, z]
@@ -51,11 +59,17 @@ const OFF_AXIS = [
 ]
 
 describe('walking from rest', () => {
-  for (const [version, straight, diagonal] of VERSIONS) {
+  for (const [version, straight, sprint, diagonal] of VERSIONS) {
     describe(version, () => {
       for (const [floor, x] of Object.entries(straight)) {
         it(`walks east on ${floor} at vanilla's speed`, () => {
           expect(firstTick(version, { floor, yawDegrees: -90 }).x).toBe(x)
+        })
+      }
+
+      for (const [floor, x] of Object.entries(sprint)) {
+        it(`sprints east on ${floor} at vanilla's speed`, () => {
+          expect(firstTick(version, { floor, yawDegrees: -90, controls: { forward: true, sprint: true } }).x).toBe(x)
         })
       }
 

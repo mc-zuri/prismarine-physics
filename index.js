@@ -63,8 +63,8 @@ function Physics (mcData, world) {
     airdrag: Math.fround(1 - 0.02), // actually (1 - drag)
     yawSpeed: 3.0,
     pitchSpeed: 3.0,
-    playerSpeed: 0.1,
-    sprintSpeed: 0.3,
+    playerSpeed: Math.fround(0.1), // Player's MOVEMENT_SPEED, 0.1F widened to double
+    sprintSpeed: Math.fround(0.3), // LivingEntity's sprinting speed modifier, 0.3F widened to double
     minorCollisionAngle: Math.fround(0.13962634), // LocalPlayer.MINOR_COLLISION_ANGLE_THRESHOLD_RADIAN (8 degrees)
     sneakSpeed: 0.3,
     stepHeight: 0.6, // how much height can the bot step on without jump
