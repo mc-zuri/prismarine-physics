@@ -23,8 +23,9 @@ const VERSIONS = [
   ['26.1', false, true]
 ]
 
-// `ticks` ticks with no keys held, from a stone floor, moving east at `vx`; a stone wall fills x >= wallX if given
-function slide (version, x, vx, wallX, ticks = 1) {
+// `ticks` ticks with no keys held, from a stone floor, moving east at `vx` (and south at `vz`); a stone wall fills
+// x >= wallX if given
+function slide (version, x, vx, wallX, ticks = 1, vz = 0) {
   const mcData = require('minecraft-data')(version)
   const Block = require('prismarine-block')(version)
   const world = {
@@ -38,7 +39,7 @@ function slide (version, x, vx, wallX, ticks = 1) {
   const player = {
     entity: {
       position: new Vec3(x, 60, 0.5),
-      velocity: new Vec3(vx, 0, 0),
+      velocity: new Vec3(vx, 0, vz),
       onGround: true,
       isInWater: false,
       isInLava: false,
@@ -93,4 +94,21 @@ describe('position after a move', () => {
       })
     })
   }
+
+  // LivingEntity.aiStep stops a negligible motion before the move: each axis under 0.005 on 1.8 and under 0.003 up to
+  // 1.21.4; from 1.21.5 a player's horizontal motion as a whole when x² + z² < 9.0E-6
+  describe('negligible motion', () => {
+    const moves = (version, vx, vz) => slide(version, 0.5, vx, undefined, 1, vz) !== 0.5
+    it('stops each axis under 0.005 on 1.8 and under 0.003 later', () => {
+      expect(moves('1.8.8', 0.004, 0)).toBe(false)
+      expect(moves('1.9.4', 0.004, 0)).toBe(true)
+      expect(moves('1.21.4', 0.0025, 0.0025)).toBe(false)
+    })
+    it('from 1.21.5 stops the horizontal motion when x² + z² < 9.0E-6', () => {
+      for (const version of ['1.21.5', '1.21.11', '26.1']) {
+        expect(moves(version, 0.0025, 0.0025)).toBe(true) // 1.25e-5
+        expect(moves(version, 0.0029, 0)).toBe(false) // 8.41e-6
+      }
+    })
+  })
 })

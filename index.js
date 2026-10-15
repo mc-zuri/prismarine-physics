@@ -69,7 +69,6 @@ function Physics (mcData, world) {
     sprintSpeed: Math.fround(0.3), // LivingEntity's sprinting speed modifier, 0.3F widened to double
     minorCollisionAngle: Math.fround(0.13962634), // LocalPlayer.MINOR_COLLISION_ANGLE_THRESHOLD_RADIAN (8 degrees)
     stepHeight: 0.6, // how much height can the bot step on without jump
-    negligeableVelocity: 0.003, // actually 0.005 for 1.8, but seems fine
     soulsandSpeed: 0.4,
     honeyblockSpeed: 0.4,
     ladderMaxSpeed: 0.15,
@@ -621,6 +620,9 @@ function Physics (mcData, world) {
   const climbableTrapdoorFeature = supportFeature('climbableTrapdoor')
   const sprintSurvivesMinorCollision = supportFeature('sprintSurvivesMinorCollision')
   const headingAnglePiOver180 = supportFeature('headingAnglePiOver180')
+  // LivingEntity.aiStep's negligible motion by version
+  const negligibleVelocity = mcData.version.majorVersion === '1.8' ? 0.005 : 0.003
+  const horizontalMotionStopsTogether = mcData.version['>=']('1.21.5')
   // Entity.getBlockSpeedFactor by version
   const blockSpeedFactorFeature = mcData.version['>=']('1.15')
   const soulSpeedIgnoresFactor = mcData.version['>=']('1.16') && mcData.version['<']('1.21')
@@ -1149,9 +1151,18 @@ function Physics (mcData, world) {
     }
 
     // Reset velocity component if it falls under the threshold
-    if (Math.abs(vel.x) < physics.negligeableVelocity) vel.x = 0
-    if (Math.abs(vel.y) < physics.negligeableVelocity) vel.y = 0
-    if (Math.abs(vel.z) < physics.negligeableVelocity) vel.z = 0
+    // LivingEntity.aiStep stops a negligible motion: each axis under 0.005 on 1.8 and under 0.003 up to 1.21.4; from
+    // 1.21.5 a player's horizontal motion as a whole when x² + z² < 9.0E-6, and the vertical under 0.003
+    if (horizontalMotionStopsTogether) {
+      if (vel.x * vel.x + vel.z * vel.z < 9.0e-6) {
+        vel.x = 0
+        vel.z = 0
+      }
+    } else {
+      if (Math.abs(vel.x) < negligibleVelocity) vel.x = 0
+      if (Math.abs(vel.z) < negligibleVelocity) vel.z = 0
+    }
+    if (Math.abs(vel.y) < negligibleVelocity) vel.y = 0
 
     const input = movementInput(entity)
     entity.wasSprinting = entity.isSprinting
