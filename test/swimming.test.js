@@ -7,7 +7,7 @@ const expect = require('expect')
 // From 1.13 a sprinter with the eyes under water starts swimming (Entity.updateSwimming), and a swimmer's vertical
 // motion turns towards the look, by 0.06 looking level (Player.travel). One tick sprinting forward deep in water,
 // sinking at -0.004 and looking level.
-function sprintInWater (version, { swimming, eyeInWater = true }) {
+function sprintInWater (version, { swimming, eyeInWater = true, collided = false, food = 20 }) {
   const mcData = require('minecraft-data')(version)
   const Block = require('prismarine-block')(version)
   const world = {
@@ -19,13 +19,13 @@ function sprintInWater (version, { swimming, eyeInWater = true }) {
     }
   }
   const bot = {
-    entity: { position: new Vec3(0.5, 60, 0.5), velocity: new Vec3(0, -0.004, 0), onGround: false, isInWater: true, isInLava: false, isInWeb: false, isCollidedHorizontally: false, isCollidedVertically: false, elytraFlying: false, yaw: Math.PI, pitch: 0, effects: {}, isSprinting: true, isSwimming: swimming, eyeInWater },
+    entity: { position: new Vec3(0.5, 60, 0.5), velocity: new Vec3(0, -0.004, 0), onGround: false, isInWater: true, isInLava: false, isInWeb: false, isCollidedHorizontally: collided, isCollidedVertically: false, elytraFlying: false, yaw: Math.PI, pitch: 0, effects: {}, isSprinting: true, isSwimming: swimming, eyeInWater },
     jumpTicks: 0,
     jumpQueued: false,
     fireworkRocketDuration: 0,
     version,
     inventory: { slots: [] },
-    food: 20
+    food
   }
   const controls = { forward: true, back: false, left: false, right: false, jump: false, sprint: true, sneak: false }
   Physics(mcData, world).simulatePlayer(new PlayerState(bot, controls), world).apply(bot)
@@ -39,6 +39,22 @@ describe('swimming', () => {
     })
     it(`${version}: a swimmer's vertical motion turns towards a level look`, () => {
       expect(sprintInWater(version, { swimming: true }).velocity.y).toBe((-0.004 + 0.004 * 0.06) * Math.fround(0.8))
+    })
+  }
+
+  // a swimmer with too little food (6 or less) stops sprinting
+  for (const version of ['1.16.5', '1.21.4', '1.21.11']) {
+    it(`${version}: a swimmer with too little food stops sprinting`, () => {
+      expect(sprintInWater(version, { swimming: true, food: 6 }).isSprinting).toBe(false)
+    })
+  }
+
+  // LocalPlayer (1.13+): a swimmer keeps sprinting against a wall; a sprinter that does not swim stops
+  for (const version of ['1.13.2', '1.20.4', '1.21.11', '26.1']) {
+    it(`${version}: a swimmer keeps sprinting against a wall`, () => {
+      expect(sprintInWater(version, { swimming: true, collided: true }).isSprinting).toBe(true)
+      // from 1.16 the eyes lag a tick, so this sprinter does not swim yet
+      if (version !== '1.13.2') expect(sprintInWater(version, { swimming: false, eyeInWater: false, collided: true }).isSprinting).toBe(false)
     })
   }
 })

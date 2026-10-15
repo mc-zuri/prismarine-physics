@@ -1166,6 +1166,12 @@ function Physics (mcData, world) {
         }
         if (control.sprint) entity.isSprinting = true
       }
+      // LocalPlayer.shouldStopSwimSprinting: a swimmer keeps sprinting against a wall, and stops out of water, idle in
+      // the water (not on the ground, not sneaking), blinded or with too little food
+      if (entity.isSwimming) {
+        if (entity.isSprinting && (!entity.isInWater || (!hasImpulse && !entity.onGround && !control.sneak) || blind || !enoughFood)) entity.isSprinting = false
+        return
+      }
       if (entity.isSprinting && (!possible || !hasImpulse || collided)) entity.isSprinting = false
       return
     }
@@ -1183,7 +1189,11 @@ function Physics (mcData, world) {
     if ((!sprintWaterRules || !shallowWater) && canStart && control.sprint) entity.isSprinting = true
     if (entity.isSprinting) {
       const noImpulse = legacy ? impulse < 0.8 : !(impulse > 1.0e-5)
-      if (noImpulse || !enoughFood || collided || (sprintWaterRules && shallowWater)) entity.isSprinting = false
+      // LocalPlayer.aiStep (1.13+): a swimmer keeps sprinting against a wall, and stops out of water or idle in the
+      // water (not on the ground, not sneaking)
+      if (sprintWaterRules && entity.isSwimming) {
+        if ((!entity.onGround && !control.sneak && (noImpulse || !enoughFood)) || !entity.isInWater) entity.isSprinting = false
+      } else if (noImpulse || !enoughFood || collided || (sprintWaterRules && shallowWater)) entity.isSprinting = false
     }
   }
 
