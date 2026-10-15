@@ -79,7 +79,13 @@ Read / Write properties:
 - isInWeb : (boolean) is the player in a web ?
 - isCollidedHorizontally : (boolean) is the player collided horizontally with a solid block ?
 - isCollidedVertically : (boolean) is the player collided vertically with a solid block ?
-- elytraFlying : (boolean) is the player elytra flying ?
+- elytraFlying : (boolean) is the player gliding with an elytra? From 1.15 the engine starts a glide when jump is
+  pressed in the air with an elytra that is not one use from breaking (bot.inventory slot 6)
+- wasJumping : (boolean) the jump key as the last tick left it; a glide starts on a press of jump, not while it is held
+- fallFlyingRequested : (boolean, set by each tick) did the client ask the server to start gliding on this tick (the
+  START_FALL_FLYING command)? From 1.15 on the tick the engine starts a glide; up to 1.14, where only the server
+  starts it, on a press of jump while falling with a usable elytra. A caller that talks to a server sends the command
+  then, or the server never starts the glide
 - jumpTicks : (integer) number of ticks before the player can auto-jump again
 - jumpQueued : (boolean) true if the jump control state was true between the last tick and the current one
 - fireworkRocketDuration : (number) how many ticks of firework boost are remaining ?

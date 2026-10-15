@@ -532,6 +532,24 @@ function Physics (mcData, world) {
     return { drag, acceleration }
   }
 
+  // LocalPlayer.aiStep asks the server to start gliding (START_FALL_FLYING) when jump is pressed (not held from the tick
+  // before) in the air with a usable elytra, not creative flying. Up to 1.14 it asks only while falling (the motion the
+  // tick started with), and the server's entity data starts the glide later. From 1.15 it starts the glide at once, and
+  // asks, when also not on a ladder, not in water and from 1.16 not levitating (Player.tryToStartFallFlying).
+  function tryToStartFallFlying (entity, world, startVelY) {
+    entity.fallFlyingRequested = false
+    if (!entity.control.jump || entity.wasJumping || entity.flying || entity.onGround || entity.elytraFlying) return
+    if (!entity.elytraEquipped) return
+    if (!clientStartsGliding) {
+      entity.fallFlyingRequested = startVelY < 0
+      return
+    }
+    if (entity.isInWater || isOnLadder(world, entity.pos)) return
+    if (levitationBlocksGliding && entity.levitation > 0) return
+    entity.elytraFlying = true
+    entity.fallFlyingRequested = true
+  }
+
   // LivingEntity.jumpFromGround. The jump power is 0.42F times the block jump factor (from 1.15: the block at the feet,
   // or the one below when that is 1; honey 0.5F), from 1.20.6 the jump_strength attribute instead of 0.42F, plus 0.1F per
   // Jump Boost level. The sum is in double up to 1.13 and on 1.17 to 1.19, in float otherwise. From 1.20.6 a power of
@@ -622,6 +640,9 @@ function Physics (mcData, world) {
   const climbableTrapdoorFeature = supportFeature('climbableTrapdoor')
   const sprintSurvivesMinorCollision = supportFeature('sprintSurvivesMinorCollision')
   const headingAnglePiOver180 = supportFeature('headingAnglePiOver180')
+  // starting to glide by version
+  const clientStartsGliding = mcData.version['>=']('1.15')
+  const levitationBlocksGliding = mcData.version['>=']('1.16')
   // climbing by version
   const climbLimitIsFloat = mcData.version['>=']('1.14')
   // LivingEntity.aiStep's negligible motion by version
@@ -1154,6 +1175,7 @@ function Physics (mcData, world) {
       entity.isInLava = isMaterialInBB(world, lavaBB, lavaIds)
     }
 
+    const startVelY = vel.y
     if (entity.flying) {
       // LocalPlayer.aiStep: jump and sneak climb and descend at three times the flying speed,
       // added before the move so Player.travel damps it with the rest of the vertical velocity.
@@ -1178,6 +1200,8 @@ function Physics (mcData, world) {
     const input = movementInput(entity)
     entity.wasSprinting = entity.isSprinting
     updateSprinting(entity, input.impulse)
+    tryToStartFallFlying(entity, world, startVelY)
+    entity.wasJumping = entity.control.jump
 
     // Handle inputs
     // A flying player does not jump: LivingEntity.aiStep gates it on isAffectedByFluids, and
@@ -1201,7 +1225,8 @@ function Physics (mcData, world) {
     entity.inputStrafe = strafe
     entity.inputForward = forward
 
-    entity.elytraFlying = entity.elytraFlying && entity.elytraEquipped && !entity.onGround && !entity.levitation
+    // the glide the server keeps (LivingEntity.updateFallFlying): off the ground with the elytra, from 1.16 not levitating
+    entity.elytraFlying = entity.elytraFlying && entity.elytraEquipped && !entity.onGround && !(levitationBlocksGliding && entity.levitation)
 
     if (entity.fireworkRocketDuration > 0) {
       if (!entity.elytraFlying) {
@@ -1288,6 +1313,9 @@ class PlayerState {
     this.isSprinting = bot.entity.isSprinting ?? false
     // the sneak key as the tick before left it (Entity.isShiftKeyDown)
     this.shiftKeyDown = bot.entity.shiftKeyDown ?? false
+    // the jump key as the tick before left it
+    this.wasJumping = bot.entity.wasJumping ?? false
+    this.fallFlyingRequested = false
     this.usingItem = bot.usingHeldItem ?? false
     // the sprint logic's state as the tick before left it, and what it reads
     this.sprintTriggerTime = bot.entity.sprintTriggerTime ?? 0
@@ -1330,9 +1358,11 @@ class PlayerState {
     const leggings = bot.inventory.slots[7]
     this.swiftSneak = itemEnchantmentLevel(mcData, leggings, 'swift_sneak')
 
-    // extra elytra requirements
+    // An elytra on the chest that is not one use from breaking (ElytraItem.isFlyEnabled; from 1.21.3
+    // LivingEntity.canGlideUsing, !nextDamageWillBreak)
     const item = bot.inventory.slots[6]
-    this.elytraEquipped = item != null && item.name === 'elytra'
+    this.elytraEquipped = item != null && item.name === 'elytra' &&
+      !(item.maxDurability > 0 && item.durabilityUsed >= item.maxDurability - 1)
   }
 
   apply (bot) {
@@ -1349,6 +1379,7 @@ class PlayerState {
     bot.entity.isCollidedVertically = this.isCollidedVertically
     bot.entity.isSprinting = this.isSprinting
     bot.entity.shiftKeyDown = this.shiftKeyDown
+    bot.entity.wasJumping = this.wasJumping
     bot.entity.sprintTriggerTime = this.sprintTriggerTime
     bot.entity.forwardImpulse = this.forwardImpulse
     bot.entity.elytraFlying = this.elytraFlying
