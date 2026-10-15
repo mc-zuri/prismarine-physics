@@ -120,7 +120,8 @@ function Physics (mcData, world) {
     return new AABB(-w, 0, -w, w, physics.playerHeight, w).offset(pos.x, pos.y, pos.z)
   }
 
-  function getSurroundingBBs (world, queryBB) {
+  // The collision boxes around queryBB. `entity`: the player whose collision context shapes some blocks (scaffolding)
+  function getSurroundingBBs (world, queryBB, entity) {
     const surroundingBBs = []
     const cursor = new Vec3(0, 0, 0)
     for (cursor.y = Math.floor(queryBB.minY) - 1; cursor.y <= Math.floor(queryBB.maxY); cursor.y++) {
@@ -129,7 +130,8 @@ function Physics (mcData, world) {
           const block = world.getBlock(cursor)
           if (block) {
             const blockPos = block.position
-            for (const shape of block.shapes) {
+            const shapes = block.type === scaffoldingId ? scaffoldingShapes(block, blockPos, entity) : block.shapes
+            for (const shape of shapes) {
               const blockBB = new AABB(shape[0], shape[1], shape[2], shape[3], shape[4], shape[5])
               blockBB.offset(blockPos.x, blockPos.y, blockPos.z)
               surroundingBBs.push(blockBB)
@@ -139,6 +141,22 @@ function Physics (mcData, world) {
       }
     }
     return surroundingBBs
+  }
+
+  // ScaffoldingBlock.getCollisionShape (1.14+): its top and legs when the player stands above it (the bottom over the
+  // block's top, less 1.0E-5F) and is not descending (the sneak key); a bottom scaffold held up by others (distance over
+  // 0) only its bottom slab when the player is above its base; otherwise nothing, so the player walks into it. Without a
+  // player (an empty collision context) the top and legs.
+  const SCAFFOLDING_STABLE = [[0, 0.875, 0, 1, 1, 1], [0, 0, 0, 0.125, 1, 0.125], [0.875, 0, 0, 1, 1, 0.125],
+    [0, 0, 0.875, 0.125, 1, 1], [0.875, 0, 0.875, 1, 1, 1]]
+  const SCAFFOLDING_UNSTABLE_BOTTOM = [[0, 0, 0, 1, 0.125, 1]]
+  function scaffoldingShapes (block, blockPos, entity) {
+    if (!entity) return SCAFFOLDING_STABLE
+    const above = height => entity.pos.y > blockPos.y + height - 9.999999747378752e-6
+    if (above(1) && !entity.control.sneak) return SCAFFOLDING_STABLE
+    const props = block.getProperties()
+    if (Number(props.distance) !== 0 && props.bottom && above(0)) return SCAFFOLDING_UNSTABLE_BOTTOM
+    return []
   }
 
   physics.adjustPositionHeight = (pos) => {
@@ -178,19 +196,19 @@ function Physics (mcData, world) {
       const step = 0.05
 
       // In the 3 loops bellow, y offset should be -1, but that doesnt reproduce vanilla behavior.
-      for (; dx !== 0 && getSurroundingBBs(world, getPlayerBB(pos).offset(dx, 0, 0)).length === 0; oldVelX = dx) {
+      for (; dx !== 0 && getSurroundingBBs(world, getPlayerBB(pos).offset(dx, 0, 0), entity).length === 0; oldVelX = dx) {
         if (dx < step && dx >= -step) dx = 0
         else if (dx > 0) dx -= step
         else dx += step
       }
 
-      for (; dz !== 0 && getSurroundingBBs(world, getPlayerBB(pos).offset(0, 0, dz)).length === 0; oldVelZ = dz) {
+      for (; dz !== 0 && getSurroundingBBs(world, getPlayerBB(pos).offset(0, 0, dz), entity).length === 0; oldVelZ = dz) {
         if (dz < step && dz >= -step) dz = 0
         else if (dz > 0) dz -= step
         else dz += step
       }
 
-      while (dx !== 0 && dz !== 0 && getSurroundingBBs(world, getPlayerBB(pos).offset(dx, 0, dz)).length === 0) {
+      while (dx !== 0 && dz !== 0 && getSurroundingBBs(world, getPlayerBB(pos).offset(dx, 0, dz), entity).length === 0) {
         if (dx < step && dx >= -step) dx = 0
         else if (dx > 0) dx -= step
         else dx += step
@@ -207,7 +225,7 @@ function Physics (mcData, world) {
     // Up to 1.16 the box carries the player from tick to tick and the position is read from it
     let playerBB = positionFromBox && entity.box ? entity.box.clone() : getPlayerBB(pos)
     const queryBB = playerBB.clone().extend(dx, dy, dz)
-    const surroundingBBs = getSurroundingBBs(world, queryBB)
+    const surroundingBBs = getSurroundingBBs(world, queryBB, entity)
     const oldBB = playerBB.clone()
 
     for (const blockBB of surroundingBBs) {
@@ -237,7 +255,7 @@ function Physics (mcData, world) {
 
       dy = physics.stepHeight
       const queryBB = oldBB.clone().extend(oldVelX, dy, oldVelZ)
-      const surroundingBBs = getSurroundingBBs(world, queryBB)
+      const surroundingBBs = getSurroundingBBs(world, queryBB, entity)
 
       const BB1 = oldBB.clone()
       const BB2 = oldBB.clone()
@@ -968,9 +986,9 @@ function Physics (mcData, world) {
     return false
   }
 
-  function doesNotCollide (world, pos) {
+  function doesNotCollide (world, pos, entity) {
     const pBB = getPlayerBB(pos)
-    return !getSurroundingBBs(world, pBB).some(x => pBB.intersects(x)) && getWaterInBB(world, pBB).length === 0
+    return !getSurroundingBBs(world, pBB, entity).some(x => pBB.intersects(x)) && getWaterInBB(world, pBB).length === 0
   }
 
   // LocalPlayer.isHorizontalCollisionMinor: a collision counts as minor when the move that survived it still
@@ -1182,7 +1200,7 @@ function Physics (mcData, world) {
       }
 
       // jump out of the fluid at its edge, if 0.6F higher is free (LivingEntity.travel, isFree)
-      if (entity.isCollidedHorizontally && doesNotCollide(world, pos.offset(vel.x, vel.y + Math.fround(0.6) - pos.y + lastY, vel.z))) {
+      if (entity.isCollidedHorizontally && doesNotCollide(world, pos.offset(vel.x, vel.y + Math.fround(0.6) - pos.y + lastY, vel.z), entity)) {
         vel.y = physics.outOfLiquidImpulse // jump out of liquid
       }
     } else if (entity.elytraFlying) {
