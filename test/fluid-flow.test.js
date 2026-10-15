@@ -44,3 +44,14 @@ describe('fluid flow', () => {
     })
   }
 })
+
+// From 1.13 (Entity.updateFluidHeightAndDoFluidPushing) the push of a player is the flows' average times 0.014, each
+// flow scaled by the fluid's height over the bottom of the box while that is under 0.4; up to 1.12 the flows' sum,
+// normalized. Higher in the water (0.29 deep) the push is weaker.
+describe('fluid push', () => {
+  for (const version of ['1.13.2', '1.16.5', '1.21.11']) {
+    it(`${version}: shallow water pushes less`, () => {
+      expect(tickInWater(version, { y: 60.6 }).velocity.x).toBeLessThan(tickInWater(version, { y: 60.2 }).velocity.x)
+    })
+  }
+})

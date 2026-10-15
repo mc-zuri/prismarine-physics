@@ -1424,6 +1424,9 @@ function Physics (mcData, world) {
   // the box was shrunk by 0.4 at the top and compared through ceil(maxY).
   const fluidHeightFromFeet = supportFeature('fluidHeightFromFeet')
   const fluidStates = mcData.version['>=']('1.13')
+  const heightUnderSameFluid = mcData.version['>=']('1.14')
+  const minimumFluidPush = mcData.version['>=']('1.16')
+  const unifiedFluidInteraction = mcData.version['>=']('26.1')
   const normalizeFloatSqrt = mcData.version['<']('1.17')
   const waterAfterMove = mcData.version.minecraftVersion !== '1.21.4'
   const lavaAfterMove = mcData.version['>=']('26.1')
@@ -1471,10 +1474,10 @@ function Physics (mcData, world) {
   // how high (1.13+), and its current's push. Player.isPushedByFluid is false while flying, so currents leave a flying
   // player alone.
   function updateInWater (entity, world, box) {
-    if (fluidHeightFromFeet) {
-      const fluidBB = box.clone().contract(0.001, 0.001, 0.001)
-      entity.isInWater = isInWaterApplyCurrent(world, fluidBB, entity.vel, !entity.flying)
-      entity.waterHeight = scanFluid(world, fluidBB, isWaterBlock).height
+    if (fluidStates) {
+      const water = updateFluidPush(entity, world, box, 'water', 0.014)
+      entity.isInWater = water.found
+      entity.waterHeight = water.height
     } else {
       entity.isInWater = isInWaterApplyCurrent(world, box.clone().contract(0.001, 0.401, 0.001), entity.vel, !entity.flying)
     }
@@ -1490,13 +1493,66 @@ function Physics (mcData, world) {
       acceleration.add(flow)
     }
 
-    const len = acceleration.norm()
-    if (len > 0) {
-      vel.x += acceleration.x / len * 0.014
-      vel.y += acceleration.y / len * 0.014
-      vel.z += acceleration.z / len * 0.014
+    // the sum of the flows, normalized (Entity.handleMaterialAcceleration, up to 1.12)
+    if (acceleration.norm() > 0) {
+      const push = normalizeVec(acceleration)
+      vel.x += push.x * 0.014
+      vel.y += push.y * 0.014
+      vel.z += push.z * 0.014
     }
     return isInWater
+  }
+
+  // Entity.updateFluidHeightAndDoFluidPushing (1.13+): whether the fluid reaches the box (deflated by 0.001), how high
+  // above its bottom, and the current's push. Cells x, then y, then z: a fluid whose surface ((float)(y + height), the
+  // height 1 under the same fluid from 1.14) is at or above the bottom counts; while the highest so far is under 0.4 its
+  // flow is scaled by it. A player's push is the flows' average times `speed`, not normalized; from 1.16 an entity
+  // nearly at rest is pushed at least 0.0045. Player.isPushedByFluid is false while flying. From 26.1
+  // (EntityFluidInteraction) the surface is a double, the height is from the undeflated bottom, the fluid counts only when
+  // it is above that bottom, and a current under 1.0E-5 (squared) does not push.
+  function updateFluidPush (entity, world, box, kind, speed) {
+    const bottom = box.minY
+    const bb = box.clone().contract(0.001, 0.001, 0.001)
+    const pushed = !entity.flying
+    let height = 0
+    let found = false
+    let flow = new Vec3(0, 0, 0)
+    let count = 0
+    const cursor = new Vec3(0, 0, 0)
+    for (cursor.x = Math.floor(bb.minX); cursor.x < Math.ceil(bb.maxX); cursor.x++) {
+      for (cursor.y = Math.floor(bb.minY); cursor.y < Math.ceil(bb.maxY); cursor.y++) {
+        for (cursor.z = Math.floor(bb.minZ); cursor.z < Math.ceil(bb.maxZ); cursor.z++) {
+          const fluid = fluidOf(world.getBlock(cursor), kind)
+          if (!fluid) continue
+          const surface = heightUnderSameFluid && fluidOf(world.getBlock(cursor.offset(0, 1, 0)), kind) ? 1 : ownHeight(fluid)
+          const top = unifiedFluidInteraction ? cursor.y + surface : Math.fround(cursor.y + surface)
+          if (top < bb.minY) continue
+          found = true
+          height = Math.max(top - (unifiedFluidInteraction ? bottom : bb.minY), height)
+          if (!pushed) continue
+          let push = fluidFlow(world, cursor.clone(), fluid, kind)
+          if (height < 0.4) push = push.scaled(height)
+          flow = flow.plus(push)
+          count++
+        }
+      }
+    }
+    if (unifiedFluidInteraction) found = height > 0
+    const flowing = unifiedFluidInteraction
+      ? count !== 0 && !(flow.x * flow.x + flow.y * flow.y + flow.z * flow.z < 9.999999747378752e-6)
+      : flow.norm() > 0
+    if (flowing) {
+      if (count > 0) flow = flow.scaled(1 / count)
+      flow = flow.scaled(speed)
+      const vel = entity.vel
+      if (minimumFluidPush && Math.abs(vel.x) < 0.003 && Math.abs(vel.z) < 0.003 && flow.norm() < 0.0045000000000000005) {
+        flow = normalizeVec(flow).scaled(0.0045000000000000005)
+      }
+      vel.x += flow.x
+      vel.y += flow.y
+      vel.z += flow.z
+    }
+    return { found, height }
   }
 
   // FireworkRocketEntity.tick: a firework the player rides boosts a glide along the look (Entity.getLookAngle, the view
