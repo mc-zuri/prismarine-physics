@@ -1178,6 +1178,16 @@ function Physics (mcData, world) {
     const vel = entity.vel
     const pos = entity.pos
 
+    // Player.travel (1.13+): swimming turns the vertical motion towards the look, by 0.085 when looking down past -0.2,
+    // else 0.06, when looking level or down, jumping, or with fluid just under the head
+    if (fluidStates && entity.isSwimming) {
+      const lookY = viewVector(entity).y
+      const head = world.getBlock(new Vec3(pos.x, pos.y + 1.0 - 0.1, pos.z).floored())
+      if (lookY <= 0 || entity.control.jump || fluidOf(head, 'water') || fluidOf(head, 'lava')) {
+        vel.y += (lookY - vel.y) * (lookY < -0.2 ? 0.085 : 0.06)
+      }
+    }
+
     const gravityMultiplier = (vel.y <= 0 && entity.slowFalling > 0) ? physics.slowFalling : 1
     const gravity = effectiveGravity(entity)
 
@@ -1456,6 +1466,7 @@ function Physics (mcData, world) {
   const fluidHeightFromFeet = supportFeature('fluidHeightFromFeet')
   const fluidStates = mcData.version['>=']('1.13')
   const eyesLagATick = mcData.version['>=']('1.16')
+  const swimNeedsWaterAtFeet = mcData.version['>=']('1.17')
   const eyeFluidOffset = mcData.version['>=']('1.16') && mcData.version['<']('1.20.5')
   const crouchEyes = mcData.version['>=']('1.14')
 
@@ -1650,6 +1661,11 @@ function Physics (mcData, world) {
       const was = eyesLagATick ? entity.eyeInWater : eyes
       entity.eyeInWater = eyes
       entity.isUnderWater = eyesLagATick ? !!was && entity.isInWater : eyes
+      // Entity.updateSwimming (Player: never while flying): a swimmer keeps swimming while sprinting in water; a sprinter
+      // starts under water, from 1.17 with water at the feet too
+      if (entity.flying) entity.isSwimming = false
+      else if (entity.isSwimming) entity.isSwimming = entity.isSprinting && entity.isInWater
+      else entity.isSwimming = entity.isSprinting && entity.isUnderWater && (!swimNeedsWaterAtFeet || !!fluidOf(world.getBlock(pos.floored()), 'water'))
     }
     // Entity.isInLava: up to 1.13 any lava in the box shrunk by (0.1, 0.4, 0.1), looked up whenever it is asked; on 1.14
     // and 1.15 a flag the move sets when the box (shrunk by 0.001) touches lava, read on the next tick; from 1.16 the
@@ -1822,6 +1838,8 @@ class PlayerState {
     this.isUnderWater = bot.entity.isUnderWater ?? false
     // whether the eyes were in water as the last tick found them (1.13+)
     this.eyeInWater = bot.entity.eyeInWater ?? this.isUnderWater
+    // whether the player swims (1.13+, Entity.isSwimming), as the last tick left it
+    this.isSwimming = bot.entity.isSwimming ?? false
     this.food = bot.food ?? 20
     this.mayFly = bot.abilities?.mayFly ?? false
     this.elytraFlying = bot.entity.elytraFlying
@@ -1877,6 +1895,7 @@ class PlayerState {
     bot.entity.lavaHeight = this.lavaHeight
     bot.entity.isUnderWater = this.isUnderWater
     bot.entity.eyeInWater = this.eyeInWater
+    bot.entity.isSwimming = this.isSwimming
     bot.entity.supportingBlockPos = this.supportingBlockPos
     bot.entity.onGroundNoBlocks = this.onGroundNoBlocks
     bot.entity.isInWeb = this.isInWeb

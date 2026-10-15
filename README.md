@@ -102,6 +102,7 @@ Read / Write properties:
 - sprintTriggerTime : (integer) ticks left for a second press of forward to start a sprint (a double tap)
 - forwardImpulse : (number) the forward input the last tick's sprint logic read
 - eyeInWater : (boolean) from 1.13, whether the eyes were in water as the last tick found them
+- isSwimming : (boolean) from 1.13, whether the player swims (a sprint under water), as the last tick left it
 - isUnderWater : (boolean) whether the player is under water for this tick's sprint logic: from 1.16 the eyes of the tick
   before while in water, on 1.13 to 1.15 the eyes now (the engine sets it from 1.13)
 - supportingBlockPos : (vec3 or null) from 1.20, the block holding the player up as the last move found it
