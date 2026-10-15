@@ -1455,6 +1455,29 @@ function Physics (mcData, world) {
   // the box was shrunk by 0.4 at the top and compared through ceil(maxY).
   const fluidHeightFromFeet = supportFeature('fluidHeightFromFeet')
   const fluidStates = mcData.version['>=']('1.13')
+  const eyesLagATick = mcData.version['>=']('1.16')
+  const eyeFluidOffset = mcData.version['>=']('1.16') && mcData.version['<']('1.20.5')
+  const crouchEyes = mcData.version['>=']('1.14')
+
+  // The eye height (1.62F; crouching from 1.14 1.27F, the pose the last tick left; from 1.20.5 times the scale) against
+  // the water in the block at the eyes: up to 1.15 under its surface plus 0.11111111F (Entity.isUnderLiquid); from 1.16
+  // below its surface, the eyes taken 0.11111111 lower up to 1.20.4 (Entity.updateFluidOnEyes). The surface is
+  // (float)(y + height), the height 1 under more water from 1.14.
+  function eyesInWater (entity, world) {
+    const f = Math.fround
+    const pos = entity.pos
+    const synced = scaleResource && entity.attributes && entity.attributes[scaleResource]
+    const scale = synced ? f(attribute.getAttributeValue(synced)) : 1
+    const eyeHeight = f((crouchEyes && entity.shiftKeyDown ? f(1.27) : f(1.62)) * scale)
+    let eyeY = pos.y + eyeHeight
+    if (eyeFluidOffset) eyeY -= 0.1111111119389534
+    const cell = new Vec3(Math.floor(pos.x), Math.floor(eyeY), Math.floor(pos.z))
+    const fluid = fluidOf(world.getBlock(cell), 'water')
+    if (!fluid) return false
+    const height = heightUnderSameFluid && fluidOf(world.getBlock(cell.offset(0, 1, 0)), 'water') ? 1 : ownHeight(fluid)
+    if (!eyesLagATick) return eyeY < f(f(cell.y + height) + f(0.11111111))
+    return f(cell.y + height) > eyeY
+  }
   const heightUnderSameFluid = mcData.version['>=']('1.14')
   const minimumFluidPush = mcData.version['>=']('1.16')
   const unifiedFluidInteraction = mcData.version['>=']('26.1')
@@ -1620,6 +1643,14 @@ function Physics (mcData, world) {
     entity.movesThisTick = blockEffectsAfterTravel ? [] : null
 
     updateInWater(entity, world, getPlayerBB(pos))
+    // Entity.updateFluidOnEyes (1.13+): whether the eyes are in water. From 1.16 isUnderWater is the eyes of the tick
+    // before (wasEyeInWater) while in water; on 1.13 to 1.15 the eyes now.
+    if (fluidStates) {
+      const eyes = eyesInWater(entity, world)
+      const was = eyesLagATick ? entity.eyeInWater : eyes
+      entity.eyeInWater = eyes
+      entity.isUnderWater = eyesLagATick ? !!was && entity.isInWater : eyes
+    }
     // Entity.isInLava: up to 1.13 any lava in the box shrunk by (0.1, 0.4, 0.1), looked up whenever it is asked; on 1.14
     // and 1.15 a flag the move sets when the box (shrunk by 0.001) touches lava, read on the next tick; from 1.16 the
     // lava's height above the feet, like water's
@@ -1789,6 +1820,8 @@ class PlayerState {
     this.sprintTriggerTime = bot.entity.sprintTriggerTime ?? 0
     this.forwardImpulse = bot.entity.forwardImpulse ?? 0
     this.isUnderWater = bot.entity.isUnderWater ?? false
+    // whether the eyes were in water as the last tick found them (1.13+)
+    this.eyeInWater = bot.entity.eyeInWater ?? this.isUnderWater
     this.food = bot.food ?? 20
     this.mayFly = bot.abilities?.mayFly ?? false
     this.elytraFlying = bot.entity.elytraFlying
@@ -1842,6 +1875,8 @@ class PlayerState {
     bot.entity.isInWater = this.isInWater
     bot.entity.isInLava = this.isInLava
     bot.entity.lavaHeight = this.lavaHeight
+    bot.entity.isUnderWater = this.isUnderWater
+    bot.entity.eyeInWater = this.eyeInWater
     bot.entity.supportingBlockPos = this.supportingBlockPos
     bot.entity.onGroundNoBlocks = this.onGroundNoBlocks
     bot.entity.isInWeb = this.isInWeb

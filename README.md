@@ -101,12 +101,14 @@ Read / Write properties:
 - isSprinting : (boolean) is the player sprinting? The sprint control starts a sprint, releasing it does not stop one
 - sprintTriggerTime : (integer) ticks left for a second press of forward to start a sprint (a double tap)
 - forwardImpulse : (number) the forward input the last tick's sprint logic read
+- eyeInWater : (boolean) from 1.13, whether the eyes were in water as the last tick found them
+- isUnderWater : (boolean) whether the player is under water for this tick's sprint logic: from 1.16 the eyes of the tick
+  before while in water, on 1.13 to 1.15 the eyes now (the engine sets it from 1.13)
 - supportingBlockPos : (vec3 or null) from 1.20, the block holding the player up as the last move found it
   (Entity.mainSupportingBlockPos); the blocks under the player that affect its movement are found from it
 - onGroundNoBlocks : (boolean) from 1.20, whether the last move found no supporting block while on the ground
 
 Read only properties:
-- isUnderWater : (boolean) were the player's eyes under water (bot.entity.isUnderWater)
 - food : (number) the food level (bot.food); 6 or less keeps a sprint from starting
 - mayFly : (boolean) may the player fly (bot.abilities.mayFly); then hunger does not keep it from sprinting
 - blindness : (integer) the blindness effect's level; blindness keeps a sprint from starting
