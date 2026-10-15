@@ -350,12 +350,14 @@ function Physics (mcData, world) {
     entity.minorHorizontalCollision = entity.isCollidedHorizontally && isHorizontalCollisionMinor(entity, dx, dz)
     entity.isCollidedVertically = dy !== oldVelY
     entity.onGround = entity.isCollidedVertically && oldVelY < 0
+    if (onPosBelow) checkSupportingBlock(entity, world, positionFromBox ? entity.box : getPlayerBB(pos), new Vec3(dx, movedY, dz))
 
     // Entity.move then checkFallDamage: LivingEntity looks for water again around the moved box when the player was not
     // in it, before the collided axes stop (not on 1.21.4, where the local player skips checkFallDamage in move)
     if (waterAfterMove && !entity.isInWater) updateInWater(entity, world, positionFromBox ? entity.box : getPlayerBB(pos))
 
-    const blockAtFeet = world.getBlock(pos.offset(0, -0.2, 0))
+    // the block landed on: Entity.getOnPosLegacy, 0.2F under the position (from 1.20 by the supporting block)
+    const blockAtFeet = world.getBlock(onPosBelow ? onPos(entity, world, Math.fround(0.2)) : pos.offset(0, -0.2, 0))
 
     if (dx !== oldVelX) vel.x = 0
     if (dz !== oldVelZ) vel.z = 0
@@ -392,7 +394,7 @@ function Physics (mcData, world) {
     const pos = entity.pos
     const factorOf = block => block && (block.type === soulsandId || block.type === honeyblockId) ? Math.fround(0.4) : 1
     const feet = world.getBlock(pos.floored())
-    const below = world.getBlock(blockPosBelowAffectingMovement(pos))
+    const below = world.getBlock(blockPosBelowAffectingMovement(entity, world))
     let factor = factorOf(feet)
     if (factor === 1 && !(feet && (waterIds.includes(feet.type) || feet.type === bubblecolumnId))) factor = factorOf(below)
     if (soulSpeedIgnoresFactor && entity.soulSpeed > 0 && below && (below.type === soulsandId || below.type === soulsoilId)) return 1
@@ -404,11 +406,72 @@ function Physics (mcData, world) {
     return factor
   }
 
-  // Entity.getBlockPosBelowThatAffectsMyMovement: the block under the box's bottom by 0.5000001 (1.15 to 1.19), by
-  // (double)0.500001F under the position from 1.20 (getOnPos; the supporting block is not tracked)
-  function blockPosBelowAffectingMovement (pos) {
-    const depth = onPosBelow ? Math.fround(0.500001) : 0.5000001
-    return new Vec3(Math.floor(pos.x), Math.floor(pos.y - depth), Math.floor(pos.z))
+  // Entity.getBlockPosBelowThatAffectsMyMovement: the block under the box's bottom by 0.5000001 (1.15 to 1.19), from
+  // 1.20 getOnPos(0.500001F)
+  function blockPosBelowAffectingMovement (entity, world) {
+    if (onPosBelow) return onPos(entity, world, Math.fround(0.500001))
+    const pos = entity.pos
+    return new Vec3(Math.floor(pos.x), Math.floor(pos.y - 0.5000001), Math.floor(pos.z))
+  }
+
+  // Entity.getOnPos (1.20+): with a supporting block, its x and z and the y `depth` under the position (a wall or a fence
+  // gate itself, and a fence itself within 0.5); otherwise the block `depth` under the position
+  function onPos (entity, world, depth) {
+    const pos = entity.pos
+    const support = entity.supportingBlockPos
+    if (!support) return new Vec3(Math.floor(pos.x), Math.floor(pos.y - depth), Math.floor(pos.z))
+    const name = world.getBlock(support)?.name ?? ''
+    if (name.endsWith('_wall') || name.endsWith('_fence_gate') || (depth <= 0.5 && name.endsWith('_fence'))) return support.clone()
+    return new Vec3(support.x, Math.floor(pos.y - depth), support.z)
+  }
+
+  // Entity.checkSupportingBlock (1.20+), after each move: on the ground, among the blocks whose collision touches a
+  // 1.0E-6 slab under the box, the one whose centre is closest to the position (ties to the greater by y, z, x); with
+  // none, the one under where the box was before the horizontal move, unless none was found on the tick before either.
+  function checkSupportingBlock (entity, world, box, movement) {
+    if (!entity.onGround) {
+      entity.onGroundNoBlocks = false
+      entity.supportingBlockPos = null
+      return
+    }
+    const underside = new AABB(box.minX, box.minY - 1.0e-6, box.minZ, box.maxX, box.minY, box.maxZ)
+    let found = findSupportingBlock(entity, world, underside)
+    if (found || entity.onGroundNoBlocks) {
+      entity.supportingBlockPos = found
+    } else if (movement) {
+      found = findSupportingBlock(entity, world, underside.clone().offset(-movement.x, 0, -movement.z))
+      entity.supportingBlockPos = found
+    }
+    entity.onGroundNoBlocks = !found
+  }
+
+  // CollisionGetter.findSupportingBlock
+  function findSupportingBlock (entity, world, box) {
+    let best = null
+    let bestDistance = Number.MAX_VALUE
+    const pos = entity.pos
+    const cursor = new Vec3(0, 0, 0)
+    for (cursor.y = Math.floor(box.minY) - 1; cursor.y <= Math.floor(box.maxY); cursor.y++) {
+      for (cursor.z = Math.floor(box.minZ); cursor.z <= Math.floor(box.maxZ); cursor.z++) {
+        for (cursor.x = Math.floor(box.minX); cursor.x <= Math.floor(box.maxX); cursor.x++) {
+          const block = world.getBlock(cursor)
+          if (!block) continue
+          const shapes = block.type === scaffoldingId ? scaffoldingShapes(block, cursor, entity) : block.shapes
+          if (!shapes.some(s => s[3] + cursor.x > box.minX && s[0] + cursor.x < box.maxX && s[4] + cursor.y > box.minY &&
+            s[1] + cursor.y < box.maxY && s[5] + cursor.z > box.minZ && s[2] + cursor.z < box.maxZ)) continue
+          const dx = cursor.x + 0.5 - pos.x
+          const dy = cursor.y + 0.5 - pos.y
+          const dz = cursor.z + 0.5 - pos.z
+          const distance = dx * dx + dy * dy + dz * dz
+          const greater = best && (best.y !== cursor.y ? best.y < cursor.y : best.z !== cursor.z ? best.z < cursor.z : best.x < cursor.x)
+          if (distance < bestDistance || (distance === bestDistance && (!best || greater))) {
+            best = cursor.clone()
+            bestDistance = distance
+          }
+        }
+      }
+    }
+    return best
   }
 
   function getLookingVector (entity) {
@@ -838,7 +901,7 @@ function Physics (mcData, world) {
     const factorOf = block => block && block.type === honeyblockId ? Math.fround(0.5) : 1
     const own = factorOf(world.getBlock(entity.pos.floored()))
     if (own !== 1) return own
-    return factorOf(world.getBlock(new Vec3(entity.pos.x, entity.pos.y - 0.5000001, entity.pos.z).floored()))
+    return factorOf(world.getBlock(onPosBelow ? blockPosBelowAffectingMovement(entity, world) : new Vec3(entity.pos.x, entity.pos.y - 0.5000001, entity.pos.z).floored()))
   }
 
   // `round` rounds each operation, Math.fround where vanilla computes it in float (moveRelative before 1.14).
@@ -1217,7 +1280,8 @@ function Physics (mcData, world) {
       // Normal movement
       let acceleration = 0.0
       let inertia = 0.0
-      const blockUnder = world.getBlock(pos.offset(0, -1, 0))
+      // the friction's block: from 1.20 the one under the supporting block (getBlockPosBelowThatAffectsMyMovement)
+      const blockUnder = world.getBlock(onPosBelow ? blockPosBelowAffectingMovement(entity, world) : pos.offset(0, -1, 0))
       // Player.travel wraps the move while flying and puts back the vertical velocity the tick
       // started with, damped, so it is read before anything below touches it.
       const flightEntryVelY = vel.y
@@ -1577,6 +1641,9 @@ class PlayerState {
     this.isInWater = bot.entity.isInWater
     this.isInLava = bot.entity.isInLava
     this.lavaHeight = bot.entity.lavaHeight ?? 0
+    // Entity.mainSupportingBlockPos and onGroundNoBlocks (1.20+), as the last move left them
+    this.supportingBlockPos = bot.entity.supportingBlockPos ?? null
+    this.onGroundNoBlocks = bot.entity.onGroundNoBlocks ?? false
     this.isInWeb = bot.entity.isInWeb
     // the multiplier the block the player is stuck in set (a cobweb's when only isInWeb is known)
     this.stuckSpeedMultiplier = bot.entity.stuckSpeedMultiplier ?? null
@@ -1647,6 +1714,8 @@ class PlayerState {
     bot.entity.isInWater = this.isInWater
     bot.entity.isInLava = this.isInLava
     bot.entity.lavaHeight = this.lavaHeight
+    bot.entity.supportingBlockPos = this.supportingBlockPos
+    bot.entity.onGroundNoBlocks = this.onGroundNoBlocks
     bot.entity.isInWeb = this.isInWeb
     bot.entity.stuckSpeedMultiplier = this.stuckSpeedMultiplier
     bot.entity.isCollidedHorizontally = this.isCollidedHorizontally

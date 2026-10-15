@@ -101,6 +101,9 @@ Read / Write properties:
 - isSprinting : (boolean) is the player sprinting? The sprint control starts a sprint, releasing it does not stop one
 - sprintTriggerTime : (integer) ticks left for a second press of forward to start a sprint (a double tap)
 - forwardImpulse : (number) the forward input the last tick's sprint logic read
+- supportingBlockPos : (vec3 or null) from 1.20, the block holding the player up as the last move found it
+  (Entity.mainSupportingBlockPos); the blocks under the player that affect its movement are found from it
+- onGroundNoBlocks : (boolean) from 1.20, whether the last move found no supporting block while on the ground
 
 Read only properties:
 - isUnderWater : (boolean) were the player's eyes under water (bot.entity.isUnderWater)
