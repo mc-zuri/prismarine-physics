@@ -808,6 +808,33 @@ function Physics (mcData, world) {
     return cells
   }
 
+  // HoneyBlock.isSlidingDown (1.15+): in the air, the position no higher than 0.9375 - 1.0E-7 above the block's bottom,
+  // falling faster than 0.08, and against one of its sides (the position farther than 0.4375 plus half the width from
+  // its centre on x or z, + 1.0E-7). From 1.21.2 the block acts after travel, so the fall it reads is the one before
+  // gravity and drag (getOldDeltaY: y / 0.98F + 0.08).
+  const honeyOldY = y => blockEffectsAfterTravel ? y / 0.9800000190734863 + 0.08 : y
+  function honeySlidesDown (entity, blockPos) {
+    const pos = entity.pos
+    if (entity.onGround || pos.y > blockPos.y + 0.9375 - 1.0e-7 || honeyOldY(entity.vel.y) >= -0.08) return false
+    const reach = 0.4375 + (playerDims ? playerDims.halfWidth : physics.playerHalfWidth)
+    return Math.abs(blockPos.x + 0.5 - pos.x) + 1.0e-7 > reach || Math.abs(blockPos.z + 0.5 - pos.z) + 1.0e-7 > reach
+  }
+
+  // HoneyBlock.doSlideMovement: the fall becomes 0.05 down, a faster one than 0.13 scaling the horizontal motion by
+  // 0.05 over it, and the fall distance resets. From 1.21.2 on the fall before gravity and drag, and the new one has
+  // them applied (getNewDeltaY: (y - 0.08) * 0.98F).
+  function slideDownHoney (entity) {
+    const vel = entity.vel
+    const oldY = honeyOldY(vel.y)
+    if (oldY < -0.13) {
+      const scale = -0.05 / oldY
+      vel.x *= scale
+      vel.z *= scale
+    }
+    vel.y = blockEffectsAfterTravel ? (-0.05 - 0.08) * 0.9800000190734863 : -0.05
+    entity.fallDistance = 0
+  }
+
   // What a block the player is in does to it. `touches`: whether a bubble column acts (1.21.10+, see above).
   function insideBlock (entity, world, cursor, block, touches) {
     const vel = entity.vel
@@ -820,6 +847,7 @@ function Physics (mcData, world) {
         vel.z *= physics.honeyblockSpeed
       }
     }
+    if (block.type === honeyblockId && honeySlidesDown(entity, cursor)) slideDownHoney(entity)
     const stuck = stuckMultiplier(entity, world, block)
     if (stuck) {
       entity.isInWeb = true
