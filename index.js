@@ -329,6 +329,10 @@ function Physics (mcData, world) {
     entity.isCollidedVertically = dy !== oldVelY
     entity.onGround = entity.isCollidedVertically && oldVelY < 0
 
+    // Entity.move then checkFallDamage: LivingEntity looks for water again around the moved box when the player was not
+    // in it, before the collided axes stop (not on 1.21.4, where the local player skips checkFallDamage in move)
+    if (waterAfterMove && !entity.isInWater) updateInWater(entity, world, positionFromBox ? entity.box : getPlayerBB(pos))
+
     const blockAtFeet = world.getBlock(pos.offset(0, -0.2, 0))
 
     if (dx !== oldVelX) vel.x = 0
@@ -1020,16 +1024,18 @@ function Physics (mcData, world) {
       const { drag, acceleration } = entity.isInWater
         ? waterDragAndAcceleration(entity)
         : { drag: physics.lavaInertia, acceleration: Math.fround(0.02) }
+      // the fluid the tick travels in, chosen before the move (Entity.move may find water again after it)
+      const inWater = entity.isInWater
 
       const isFalling = vel.y <= 0
       applyHeading(entity, strafe, forward, acceleration)
       moveEntity(entity, world, vel.x, vel.y, vel.z)
       // from 1.14 a ladder or vine climbed against a wall in water lifts at 0.2
-      if (entity.isInWater && waterClimbs && entity.isCollidedHorizontally && isOnLadder(world, pos)) vel.y = 0.2
+      if (inWater && waterClimbs && entity.isCollidedHorizontally && isOnLadder(world, pos)) vel.y = 0.2
       if (fluidHeightFromFeet) {
         // LivingEntity.travelInWater / travelInLava (1.13+)
         const gravity = physics.gravity * gravityMultiplier
-        if (!entity.isInWater) {
+        if (!inWater) {
           // Entity.move refreshes the fluid state after moving when not in water
           // (LivingEntity.checkFallDamage), so the lava regime below sees the moved box
           entity.lavaHeight = scanFluid(world, getPlayerBB(pos).contract(0.001, 0.001, 0.001), (block) => block && lavaIds.includes(block.type)).height
@@ -1039,7 +1045,7 @@ function Physics (mcData, world) {
         const fallingAdjusted = (y, falling) => entity.isSprinting
           ? y
           : (falling && Math.abs(y - 0.005) >= 0.003 && Math.abs(y - gravity / 16) < 0.003) ? -0.003 : y - gravity / 16
-        if (entity.isInWater) {
+        if (inWater) {
           vel.x *= drag
           vel.y *= Math.fround(0.8)
           vel.z *= drag
@@ -1058,8 +1064,8 @@ function Physics (mcData, world) {
           vel.y -= gravity / 4
         }
       } else {
-        vel.y *= entity.isInWater ? Math.fround(0.8) : physics.lavaInertia
-        vel.y -= (entity.isInWater ? physics.waterGravity : physics.lavaGravity) * gravityMultiplier
+        vel.y *= inWater ? Math.fround(0.8) : physics.lavaInertia
+        vel.y -= (inWater ? physics.waterGravity : physics.lavaGravity) * gravityMultiplier
         vel.x *= drag
         vel.z *= drag
       }
@@ -1204,6 +1210,7 @@ function Physics (mcData, world) {
   // is above the bottom of the box deflated by 0.001; before that (handleMaterialAcceleration)
   // the box was shrunk by 0.4 at the top and compared through ceil(maxY).
   const fluidHeightFromFeet = supportFeature('fluidHeightFromFeet')
+  const waterAfterMove = mcData.version.minecraftVersion !== '1.21.4'
   const shallowLavaMovement = supportFeature('shallowLavaMovement')
 
   function isWaterBlock (block) {
@@ -1241,6 +1248,19 @@ function Physics (mcData, world) {
     return { blocks, height }
   }
 
+  // Entity.updateInWaterStateAndDoWaterCurrentPushing (handleWaterMovement up to 1.12): whether water reaches the box,
+  // how high (1.13+), and its current's push. Player.isPushedByFluid is false while flying, so currents leave a flying
+  // player alone.
+  function updateInWater (entity, world, box) {
+    if (fluidHeightFromFeet) {
+      const fluidBB = box.clone().contract(0.001, 0.001, 0.001)
+      entity.isInWater = isInWaterApplyCurrent(world, fluidBB, entity.vel, !entity.flying)
+      entity.waterHeight = scanFluid(world, fluidBB, isWaterBlock).height
+    } else {
+      entity.isInWater = isInWaterApplyCurrent(world, box.clone().contract(0.001, 0.401, 0.001), entity.vel, !entity.flying)
+    }
+  }
+
   function isInWaterApplyCurrent (world, bb, vel, pushed) {
     const acceleration = new Vec3(0, 0, 0)
     const waterBlocks = getWaterInBB(world, bb)
@@ -1264,19 +1284,13 @@ function Physics (mcData, world) {
     const vel = entity.vel
     const pos = entity.pos
 
-    // Player.isPushedByFluid is false while flying, so currents leave a flying player alone.
+    updateInWater(entity, world, getPlayerBB(pos))
     if (fluidHeightFromFeet) {
-      const fluidBB = getPlayerBB(pos).contract(0.001, 0.001, 0.001)
-      entity.isInWater = isInWaterApplyCurrent(world, fluidBB, vel, !entity.flying)
-      entity.waterHeight = scanFluid(world, fluidBB, isWaterBlock).height
-      const lava = scanFluid(world, fluidBB, (block) => block && lavaIds.includes(block.type))
+      const lava = scanFluid(world, getPlayerBB(pos).contract(0.001, 0.001, 0.001), (block) => block && lavaIds.includes(block.type))
       entity.isInLava = lava.blocks.length > 0
       entity.lavaHeight = lava.height
     } else {
-      const waterBB = getPlayerBB(pos).contract(0.001, 0.401, 0.001)
-      const lavaBB = getPlayerBB(pos).contract(0.1, 0.4, 0.1)
-      entity.isInWater = isInWaterApplyCurrent(world, waterBB, vel, !entity.flying)
-      entity.isInLava = isMaterialInBB(world, lavaBB, lavaIds)
+      entity.isInLava = isMaterialInBB(world, getPlayerBB(pos).contract(0.1, 0.4, 0.1), lavaIds)
     }
 
     const startVelY = vel.y
