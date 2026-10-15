@@ -3,6 +3,7 @@ const AABB = require('./lib/aabb')
 const math = require('./lib/math')
 const features = require('./lib/features')
 const attribute = require('./lib/attribute')
+const nbt = require('prismarine-nbt')
 
 function makeSupportFeature (mcData) {
   return feature => features.some(({ name, versions }) => name === feature && versions.includes(mcData.version.majorVersion))
@@ -1182,6 +1183,17 @@ function getEffectLevel (mcData, effectName, effects) {
   return effectInfo.amplifier + 1
 }
 
+// The level of an enchantment on an item: from 1.20.5 in its enchantments component (prismarine-item's componentMap,
+// entries { id, level }), before in its NBT (Enchantments, before 1.13 ench)
+function itemEnchantmentLevel (mcData, item, enchantmentName) {
+  if (!item) return 0
+  const component = item.componentMap?.get('enchantments')?.data?.enchantments
+  if (component) return getEnchantmentLevel(mcData, enchantmentName, component.map(e => ({ id: e.id, lvl: e.level })))
+  if (!item.nbt) return 0
+  const simplifiedNbt = nbt.simplify(item.nbt)
+  return getEnchantmentLevel(mcData, enchantmentName, simplifiedNbt.Enchantments ?? simplifiedNbt.ench ?? [])
+}
+
 function getEnchantmentLevel (mcData, enchantmentName, enchantments) {
   const enchantmentDescriptor = mcData.enchantmentsByName[enchantmentName]
   if (!enchantmentDescriptor) {
@@ -1206,7 +1218,6 @@ class PlayerState {
     // is redundant on Java and picks the wrong edition on Bedrock (its version is a bare id). Fall back to minecraft-data
     // for bare, non-mineflayer callers that construct a PlayerState without a registry.
     const mcData = bot.registry ?? require('minecraft-data')(bot.version)
-    const nbt = require('prismarine-nbt')
 
     // Input / Outputs
     this.pos = bot.entity.position.clone()
@@ -1260,22 +1271,11 @@ class PlayerState {
 
     // armour enchantments
     const boots = bot.inventory.slots[8]
-    if (boots && boots.nbt) {
-      const simplifiedNbt = nbt.simplify(boots.nbt)
-      const enchantments = simplifiedNbt.Enchantments ?? simplifiedNbt.ench ?? []
-      this.depthStrider = getEnchantmentLevel(mcData, 'depth_strider', enchantments)
-    } else {
-      this.depthStrider = 0
-    }
+    this.depthStrider = itemEnchantmentLevel(mcData, boots, 'depth_strider')
 
     // Swift Sneak on the leggings (1.19 and 1.20)
     const leggings = bot.inventory.slots[7]
-    if (leggings && leggings.nbt) {
-      const simplifiedNbt = nbt.simplify(leggings.nbt)
-      this.swiftSneak = getEnchantmentLevel(mcData, 'swift_sneak', simplifiedNbt.Enchantments ?? simplifiedNbt.ench ?? [])
-    } else {
-      this.swiftSneak = 0
-    }
+    this.swiftSneak = itemEnchantmentLevel(mcData, leggings, 'swift_sneak')
 
     // extra elytra requirements
     const item = bot.inventory.slots[6]

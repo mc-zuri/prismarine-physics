@@ -20,7 +20,8 @@ const VERSIONS = [
   ['26.1', DOUBLE_MOVE, -0.005]
 ]
 
-function walkInWater (version, { sprint = false, efficiency } = {}) {
+// `boots`: the item in the boots slot
+function walkInWater (version, { sprint = false, efficiency, boots } = {}) {
   const mcData = require('minecraft-data')(version)
   const Block = require('prismarine-block')(version)
   const world = {
@@ -54,7 +55,7 @@ function walkInWater (version, { sprint = false, efficiency } = {}) {
     jumpQueued: false,
     fireworkRocketDuration: 0,
     version,
-    inventory: { slots: [] }
+    inventory: { slots: Object.assign([], { 8: boots }) }
   }
   const controls = { forward: true, back: false, left: false, right: false, jump: false, sprint, sneak: false }
   Physics(mcData, world).simulatePlayer(new PlayerState(bot, controls), world).apply(bot)
@@ -85,4 +86,19 @@ describe('water', () => {
       expect(walkInWater('1.21.11', { efficiency }).position.x - 0.5).toBeCloseTo(moved, 15)
     })
   }
+
+  // Depth Strider III on the ground: the drag becomes 0.54600006F and the acceleration the walking speed, each
+  // f + (target - f) * 3F / 3F in float. Before 1.20.5 the boots carry it in their NBT, from 1.20.5 in their
+  // enchantments component (as prismarine-item keeps it, in componentMap).
+  it('reads Depth Strider from the boots, as NBT before 1.20.5 and as a component since', () => {
+    const f = Math.fround
+    const towards = (from, to) => f(from + f(f(f(to - from) * 3) / 3))
+    const expected = (f(0.98) * towards(f(0.02), f(0.1))) * towards(f(0.8), f(0.54600006))
+    const nbt = require('prismarine-nbt')
+    const nbtBoots = { nbt: nbt.comp({ Enchantments: nbt.list(nbt.comp([{ id: nbt.string('minecraft:depth_strider'), lvl: nbt.short(3) }])) }) }
+    expect(walkInWater('1.20.4', { boots: nbtBoots }).velocity.x).toBe(expected)
+    const id = require('minecraft-data')('1.20.6').enchantmentsByName.depth_strider.id
+    const componentBoots = { componentMap: new Map([['enchantments', { type: 'enchantments', data: { enchantments: [{ id, level: 3 }], showTooltip: true } }]]) }
+    expect(walkInWater('1.20.6', { boots: componentBoots }).velocity.x).toBe(expected)
+  })
 })
