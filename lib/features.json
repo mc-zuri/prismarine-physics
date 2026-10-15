@@ -83,5 +83,30 @@
     "name": "moveThreshold",
     "description": "Entity.move drops a collided move whose squared length is 1.0E-7 or less; before 1.14 every move is applied",
     "versions": ["1.14", "1.15", "1.16", "1.17", "1.18", "1.19", "1.20", "1.21", "26.1", "26.2"]
+  },
+  {
+    "name": "sneakSlowsWithKey",
+    "description": "KeyboardInput slows the input by 0.3 while the sneak key is down; since 1.14 the sneaking pose or crouching decides",
+    "versions": ["1.8", "1.9", "1.10", "1.11", "1.12", "1.13"]
+  },
+  {
+    "name": "sneakSlowsWithKeyOrPose",
+    "description": "KeyboardInput slows the input while the sneak key is down or the player is visually sneaking (the tick before's key); since 1.15 only while crouching",
+    "versions": ["1.14"]
+  },
+  {
+    "name": "flightUndoesSneakSlow",
+    "description": "LocalPlayer divides the sneak slowdown back out of the input while creative flying with the sneak key down",
+    "versions": ["1.9", "1.10", "1.11", "1.12", "1.13", "1.14"]
+  },
+  {
+    "name": "swiftSneak",
+    "description": "The sneak slowdown is 0.3F plus 0.15F per Swift Sneak level on the leggings, at most 1",
+    "versions": ["1.19", "1.20"]
+  },
+  {
+    "name": "sneakingSpeedAttribute",
+    "description": "The sneak slowdown is the sneaking_speed attribute",
+    "versions": ["1.21", "26.1", "26.2"]
   }
 ]

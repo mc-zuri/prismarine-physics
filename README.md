@@ -86,10 +86,13 @@ Read / Write properties:
 - box : (AABB or null) up to 1.16, the player's box as the last move left it; the position is read from it. It is kept on
   the entity as `physicsBox` ({ box, position }) and used only while the entity is still at that position, otherwise
   the box is rebuilt from the position
+- shiftKeyDown : (boolean) the sneak key as the last tick left it; from 1.15 the sneak slowdown follows it, a tick after
+  the key
 
 Read only properties:
 - yaw : (float) the yaw angle, in radians, of the player entity
 - pitch: (float) the pitch angle, in radians, of the player entity
+- swiftSneak : (integer) the Swift Sneak level of the leggings (bot.inventory slot 7), which lessens the sneak slowdown on 1.19 and 1.20
 - control : (object) control states vector with properties:
   - forward
   - back

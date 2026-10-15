@@ -3,8 +3,8 @@ const { Vec3 } = require('vec3')
 
 // One tick of a player at rest on a flat floor (the block below y = 60), or `airborne` high above it with no
 // velocity, with the given keys held, facing yRot `yawDegrees` (vanilla's degrees: 0 south, -90 east). Returns the
-// velocity after the tick.
-function firstTick (version, { floor = 'stone', yawDegrees = 0, controls = { forward: true }, airborne = false } = {}) {
+// velocity after the tick. `state` holds other entity fields as the tick before left them.
+function firstTick (version, { floor = 'stone', yawDegrees = 0, controls = { forward: true }, airborne = false, state } = {}) {
   const mcData = require('minecraft-data')(version)
   const Block = require('prismarine-block')(version)
   const world = {
@@ -27,7 +27,8 @@ function firstTick (version, { floor = 'stone', yawDegrees = 0, controls = { for
       elytraFlying: false,
       yaw: Math.PI - yawDegrees * Math.PI / 180,
       pitch: 0,
-      effects: {}
+      effects: {},
+      ...state
     },
     jumpTicks: 0,
     jumpQueued: false,

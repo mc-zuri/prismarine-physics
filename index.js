@@ -66,7 +66,6 @@ function Physics (mcData, world) {
     playerSpeed: Math.fround(0.1), // Player's MOVEMENT_SPEED, 0.1F widened to double
     sprintSpeed: Math.fround(0.3), // LivingEntity's sprinting speed modifier, 0.3F widened to double
     minorCollisionAngle: Math.fround(0.13962634), // LocalPlayer.MINOR_COLLISION_ANGLE_THRESHOLD_RADIAN (8 degrees)
-    sneakSpeed: 0.3,
     stepHeight: 0.6, // how much height can the bot step on without jump
     negligeableVelocity: 0.003, // actually 0.005 for 1.8, but seems fine
     soulsandSpeed: 0.4,
@@ -510,6 +509,12 @@ function Physics (mcData, world) {
   // splits 1.21, so it is a version check.
   const sinTableDoubleIndex = mcData.version['>=']('1.21.11')
   const sneakStopsSprinting = supportFeature('sneakStopsSprinting')
+  const sneakSlowsWithKey = supportFeature('sneakSlowsWithKey')
+  const sneakSlowsWithKeyOrPose = supportFeature('sneakSlowsWithKeyOrPose')
+  const flightUndoesSneakSlow = supportFeature('flightUndoesSneakSlow')
+  const swiftSneakFeature = supportFeature('swiftSneak')
+  const sneakingSpeedAttribute = mcData.attributesByName.sneakingSpeed ?? mcData.attributesByName.playerSneakingSpeed
+  const sneakingSpeedResource = supportFeature('sneakingSpeedAttribute') && sneakingSpeedAttribute ? sneakingSpeedAttribute.resource : null
   function isOnLadder (world, pos) {
     const block = world.getBlock(pos)
     if (!block) { return false }
@@ -569,6 +574,28 @@ function Physics (mcData, world) {
       const collided = entity.isCollidedHorizontally && !(sprintSurvivesMinorCollision && entity.minorHorizontalCollision)
       if (!hasForwardImpulse || collided || (sneakStopsSprinting && entity.control.sneak)) entity.isSprinting = false
     }
+  }
+
+  // Whether sneaking slows the input. Up to 1.13 while the sneak key is down (KeyboardInput); from 1.9 creative flight
+  // divides the slowdown back out. On 1.14 while the key is down or was down the tick before (the sneaking pose), and
+  // flight divides it out while the key is down. From 1.15 while crouching (LocalPlayer.isMovingSlowly), which aiStep
+  // decides before reading the keys, from the tick before's key, and never while flying (from 1.20.2 nor riding).
+  function isMovingSlowly (entity) {
+    const flying = entity.flying
+    if (sneakSlowsWithKey) return entity.control.sneak && !(flying && flightUndoesSneakSlow)
+    if (sneakSlowsWithKeyOrPose) return (entity.control.sneak || (entity.shiftKeyDown && !flying)) && !(flying && entity.control.sneak)
+    return entity.shiftKeyDown && !flying
+  }
+
+  // The sneaking slowdown: (float)(0.3D) up to 1.18; 0.3F plus 0.15F per Swift Sneak level on 1.19 and 1.20; from 1.21
+  // the sneaking_speed attribute
+  function sneakingSpeed (entity) {
+    if (sneakingSpeedResource) {
+      const synced = entity.attributes && entity.attributes[sneakingSpeedResource]
+      return Math.fround(synced ? math.clamp(0, attribute.getAttributeValue(synced), 1) : 0.3) // a RangedAttribute, 0 to 1
+    }
+    if (swiftSneakFeature) return math.clamp(0, Math.fround(Math.fround(0.3) + Math.fround(entity.swiftSneak * Math.fround(0.15))), 1)
+    return Math.fround(0.3)
   }
 
   function moveEntityWithHeading (entity, world, strafe, forward) {
@@ -940,14 +967,12 @@ function Physics (mcData, world) {
     }
     entity.jumpQueued = false
 
-    // LivingEntity.aiStep scales the input by 0.98F (from 1.21.5 LocalPlayer.modifyInput)
-    let strafe = (entity.control.right - entity.control.left) * Math.fround(0.98)
-    let forward = (entity.control.forward - entity.control.back) * Math.fround(0.98)
-
-    if (entity.control.sneak) {
-      strafe *= physics.sneakSpeed
-      forward *= physics.sneakSpeed
-    }
+    // The key impulses, slowed while sneaking, then scaled by 0.98F in LivingEntity.aiStep (from 1.21.5
+    // LocalPlayer.modifyInput), all floats
+    const slow = isMovingSlowly(entity) ? sneakingSpeed(entity) : 1
+    const strafe = Math.fround(Math.fround((entity.control.right - entity.control.left) * slow) * Math.fround(0.98))
+    const forward = Math.fround(Math.fround((entity.control.forward - entity.control.back) * slow) * Math.fround(0.98))
+    entity.shiftKeyDown = entity.control.sneak
     entity.inputStrafe = strafe
     entity.inputForward = forward
 
@@ -1026,6 +1051,8 @@ class PlayerState {
     this.minorHorizontalCollision = bot.entity.minorHorizontalCollision ?? false
     this.isCollidedVertically = bot.entity.isCollidedVertically
     this.isSprinting = bot.entity.isSprinting ?? false
+    // the sneak key as the tick before left it (Entity.isShiftKeyDown)
+    this.shiftKeyDown = bot.entity.shiftKeyDown ?? false
     this.elytraFlying = bot.entity.elytraFlying
     this.jumpTicks = bot.jumpTicks
     this.jumpQueued = bot.jumpQueued
@@ -1061,6 +1088,15 @@ class PlayerState {
       this.depthStrider = 0
     }
 
+    // Swift Sneak on the leggings (1.19 and 1.20)
+    const leggings = bot.inventory.slots[7]
+    if (leggings && leggings.nbt) {
+      const simplifiedNbt = nbt.simplify(leggings.nbt)
+      this.swiftSneak = getEnchantmentLevel(mcData, 'swift_sneak', simplifiedNbt.Enchantments ?? simplifiedNbt.ench ?? [])
+    } else {
+      this.swiftSneak = 0
+    }
+
     // extra elytra requirements
     const item = bot.inventory.slots[6]
     this.elytraEquipped = item != null && item.name === 'elytra'
@@ -1079,6 +1115,7 @@ class PlayerState {
     bot.entity.minorHorizontalCollision = this.minorHorizontalCollision
     bot.entity.isCollidedVertically = this.isCollidedVertically
     bot.entity.isSprinting = this.isSprinting
+    bot.entity.shiftKeyDown = this.shiftKeyDown
     bot.entity.elytraFlying = this.elytraFlying
     bot.jumpTicks = this.jumpTicks
     bot.jumpQueued = this.jumpQueued
