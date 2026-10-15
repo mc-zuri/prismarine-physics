@@ -79,7 +79,7 @@ function Physics (mcData, world) {
     waterInertia: 0.8,
     lavaInertia: 0.5,
     liquidAcceleration: 0.02,
-    airborneInertia: 0.91,
+    airborneInertia: Math.fround(0.91), // LivingEntity.travel: 0.91F in the air
     airborneAcceleration: 0.02,
     defaultSlipperiness: 0.6,
     outOfLiquidImpulse: 0.3,

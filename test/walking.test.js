@@ -90,4 +90,12 @@ describe('walking from rest', () => {
       expect(vel.z).toBe(z)
     })
   }
+
+  // In the air the input accelerates by 0.02F and the motion keeps 0.91F of itself (LivingEntity.travel): one tick
+  // forward from rest, facing east, before 1.14 in float (moveFlying), since in double.
+  for (const [version, x] of [['1.8.8', 0.017836000725567347], ['1.13.2', 0.017836000725567347], ['1.14.4', 0.017836000462502232], ['1.21.11', 0.017836000462502232], ['26.1', 0.017836000462502232]]) {
+    it(`${version}: moves forward in the air at vanilla's speed`, () => {
+      expect(firstTick(version, { yawDegrees: -90, airborne: true }).x).toBe(x)
+    })
+  }
 })
