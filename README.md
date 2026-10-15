@@ -101,6 +101,11 @@ Read only properties:
 - pitch: (float) the pitch angle, in radians, of the player entity
 - usingItem : (boolean) is the player using its held item (bot.usingHeldItem)? It slows the input to 0.2F
 - swiftSneak : (integer) the Swift Sneak level of the leggings (bot.inventory slot 7), which lessens the sneak slowdown on 1.19 and 1.20
+- soulSpeed : (integer) the Soul Speed level of the boots (bot.inventory slot 8), which cancels the slowdown of soul sand
+  and soul soil on 1.16 to 1.20
+- attributes : (object) the synced attributes (bot.entity.attributes), keyed by the registry's resource name
+  (`registry.attributesByName[name].resource`), each `{ value, modifiers }`. The engine reads movement speed and, on the
+  versions that have them, sneaking speed, jump strength and the movement and water movement efficiencies
 - control : (object) control states vector with properties:
   - forward
   - back

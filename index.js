@@ -29,6 +29,7 @@ function Physics (mcData, world) {
 
   // Block ids
   const soulsandId = blocksByName.soul_sand.id
+  const soulsoilId = blocksByName.soul_soil ? blocksByName.soul_soil.id : -1 // 1.16+
   const honeyblockId = blocksByName.honey_block ? blocksByName.honey_block.id : -1 // 1.15+
   const webId = blocksByName.cobweb ? blocksByName.cobweb.id : blocksByName.web.id
   const waterIds = [blocksByName.water.id, blocksByName.flowing_water ? blocksByName.flowing_water.id : -1]
@@ -366,18 +367,41 @@ function Physics (mcData, world) {
         }
       }
     }
-    if (supportFeature('velocityBlocksOnTop')) {
-      const blockBelow = world.getBlock(entity.pos.floored().offset(0, -0.5, 0))
-      if (blockBelow) {
-        if (blockBelow.type === soulsandId) {
-          vel.x *= physics.soulsandSpeed
-          vel.z *= physics.soulsandSpeed
-        } else if (blockBelow.type === honeyblockId) {
-          vel.x *= physics.honeyblockSpeed
-          vel.z *= physics.honeyblockSpeed
-        }
+    // From 1.15 Entity.move ends by scaling the horizontal motion by the block speed factor
+    if (blockSpeedFactorFeature) {
+      const factor = blockSpeedFactor(entity, world)
+      if (factor !== 1) {
+        vel.x *= factor
+        vel.z *= factor
       }
     }
+  }
+
+  // Entity.getBlockSpeedFactor (1.15+): the feet block's speed factor, or when that is 1 (and the feet are not in water
+  // or a bubble column) the one of the block below that affects movement; soul sand and honey 0.4F. On 1.16 to 1.20
+  // LivingEntity ignores it on soul sand or soul soil with Soul Speed; from 1.21 it lerps it towards 1 by the
+  // movement_efficiency attribute (Mth.lerp, floats).
+  function blockSpeedFactor (entity, world) {
+    const pos = entity.pos
+    const factorOf = block => block && (block.type === soulsandId || block.type === honeyblockId) ? Math.fround(0.4) : 1
+    const feet = world.getBlock(pos.floored())
+    const below = world.getBlock(blockPosBelowAffectingMovement(pos))
+    let factor = factorOf(feet)
+    if (factor === 1 && !(feet && (waterIds.includes(feet.type) || feet.type === bubblecolumnId))) factor = factorOf(below)
+    if (soulSpeedIgnoresFactor && entity.soulSpeed > 0 && below && (below.type === soulsandId || below.type === soulsoilId)) return 1
+    if (movementEfficiencyResource) {
+      const synced = entity.attributes && entity.attributes[movementEfficiencyResource]
+      const efficiency = Math.fround(synced ? math.clamp(0, attribute.getAttributeValue(synced), 1) : 0)
+      factor = Math.fround(factor + Math.fround(efficiency * Math.fround(1 - factor)))
+    }
+    return factor
+  }
+
+  // Entity.getBlockPosBelowThatAffectsMyMovement: the block under the box's bottom by 0.5000001 (1.15 to 1.19), by
+  // (double)0.500001F under the position from 1.20 (getOnPos; the supporting block is not tracked)
+  function blockPosBelowAffectingMovement (pos) {
+    const depth = onPosBelow ? Math.fround(0.500001) : 0.5000001
+    return new Vec3(Math.floor(pos.x), Math.floor(pos.y - depth), Math.floor(pos.z))
   }
 
   function getLookingVector (entity) {
@@ -597,6 +621,12 @@ function Physics (mcData, world) {
   const climbableTrapdoorFeature = supportFeature('climbableTrapdoor')
   const sprintSurvivesMinorCollision = supportFeature('sprintSurvivesMinorCollision')
   const headingAnglePiOver180 = supportFeature('headingAnglePiOver180')
+  // Entity.getBlockSpeedFactor by version
+  const blockSpeedFactorFeature = mcData.version['>=']('1.15')
+  const soulSpeedIgnoresFactor = mcData.version['>=']('1.16') && mcData.version['<']('1.21')
+  const onPosBelow = mcData.version['>=']('1.20')
+  const movementEfficiencyAttribute = mcData.attributesByName.movementEfficiency
+  const movementEfficiencyResource = mcData.version['>=']('1.21') && movementEfficiencyAttribute ? movementEfficiencyAttribute.resource : null
   // LivingEntity.travel in water by version
   const sprintSwimDrag = mcData.version['>=']('1.13')
   const dolphinsGraceFeature = mcData.version['>=']('1.13')
@@ -1272,6 +1302,7 @@ class PlayerState {
     // armour enchantments
     const boots = bot.inventory.slots[8]
     this.depthStrider = itemEnchantmentLevel(mcData, boots, 'depth_strider')
+    this.soulSpeed = itemEnchantmentLevel(mcData, boots, 'soul_speed')
 
     // Swift Sneak on the leggings (1.19 and 1.20)
     const leggings = bot.inventory.slots[7]
