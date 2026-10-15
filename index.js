@@ -1306,45 +1306,125 @@ function Physics (mcData, world) {
     return meta >= 8 ? 0 : meta
   }
 
+  const HORIZONTAL = [[0, -1], [1, 0], [0, 1], [-1, 0]] // north, east, south, west (Direction.Plane.HORIZONTAL)
+
+  // Vec3.normalize: zero under a length of 1.0E-4; the length through the float Mth.sqrt before 1.17
+  function normalizeVec (v) {
+    const lengthSqr = v.x * v.x + v.y * v.y + v.z * v.z
+    const length = normalizeFloatSqrt ? Math.fround(Math.sqrt(lengthSqr)) : Math.sqrt(lengthSqr)
+    return length < 1.0e-4 ? new Vec3(0, 0, 0) : new Vec3(v.x / length, v.y / length, v.z / length)
+  }
+
+  // The direction a fluid flows in a block, a unit vector (or zero): BlockLiquid.getFlow up to 1.12, FlowingFluid.getFlow
+  // from 1.13. Each is the sum of the drops to the four sides (to the fluid under a side that does not block movement
+  // when the side has none), turned down by 6 for falling fluid beside a solid face, normalized.
   function getFlow (world, block) {
-    const curlevel = getRenderedDepth(block)
-    const flow = new Vec3(0, 0, 0)
-    for (const [dx, dz] of [[0, 1], [-1, 0], [0, -1], [1, 0]]) {
-      const adjBlock = world.getBlock(block.position.offset(dx, 0, dz))
-      const adjLevel = getRenderedDepth(adjBlock)
-      if (adjLevel < 0) {
-        if (adjBlock && adjBlock.boundingBox !== 'empty') {
-          const adjLevel = getRenderedDepth(world.getBlock(block.position.offset(dx, -1, dz)))
-          if (adjLevel >= 0) {
-            const f = adjLevel - (curlevel - 8)
-            flow.x += dx * f
-            flow.z += dz * f
+    return fluidStates ? fluidFlow(world, block.position, fluidOf(block, 'water'), 'water') : legacyFlow(world, block)
+  }
+
+  // BlockLiquid.getFlowVector (up to 1.12): the levels are integers (getEffectiveFlowDecay)
+  function legacyFlow (world, block) {
+    const pos = block.position
+    const depth = b => b && waterIds.includes(b.type) ? (b.metadata >= 8 ? 0 : b.metadata) : -1
+    const current = depth(block)
+    let flow = new Vec3(0, 0, 0)
+    for (const [dx, dz] of HORIZONTAL) {
+      const side = world.getBlock(pos.offset(dx, 0, dz))
+      const level = depth(side)
+      if (level < 0) {
+        if (!side || side.boundingBox === 'empty') {
+          const below = depth(world.getBlock(pos.offset(dx, -1, dz)))
+          if (below >= 0) {
+            flow.x += dx * (below - (current - 8))
+            flow.z += dz * (below - (current - 8))
           }
         }
       } else {
-        const f = adjLevel - curlevel
-        flow.x += dx * f
-        flow.z += dz * f
+        flow.x += dx * (level - current)
+        flow.z += dz * (level - current)
       }
     }
-
     if (block.metadata >= 8) {
-      for (const [dx, dz] of [[0, 1], [-1, 0], [0, -1], [1, 0]]) {
-        const adjBlock = world.getBlock(block.position.offset(dx, 0, dz))
-        const adjUpBlock = world.getBlock(block.position.offset(dx, 1, dz))
-        if ((adjBlock && adjBlock.boundingBox !== 'empty') || (adjUpBlock && adjUpBlock.boundingBox !== 'empty')) {
-          flow.normalize().translate(0, -6, 0)
+      for (const [dx, dz] of HORIZONTAL) {
+        if (isSolidFace(world, pos.offset(dx, 0, dz), 'water') || isSolidFace(world, pos.offset(dx, 1, dz), 'water')) {
+          flow = normalizeVec(flow).translate(0, -6, 0)
+          break
         }
       }
     }
+    return normalizeVec(flow)
+  }
 
-    return flow.normalize()
+  // FlowingFluid.getFlow (1.13+): the heights are floats
+  function fluidFlow (world, pos, fluid, kind) {
+    const f = Math.fround
+    let x = 0
+    let z = 0
+    const own = ownHeight(fluid)
+    for (const [dx, dz] of HORIZONTAL) {
+      const sidePos = pos.offset(dx, 0, dz)
+      const sideBlock = world.getBlock(sidePos)
+      const side = fluidOf(sideBlock, kind)
+      if (!side && isOtherFluid(sideBlock, kind)) continue // affectsFlow: the same fluid or none
+      let height = ownHeight(side)
+      let drop = 0
+      if (height === 0) {
+        if (!sideBlock || sideBlock.boundingBox === 'empty') {
+          const belowBlock = world.getBlock(sidePos.offset(0, -1, 0))
+          const below = fluidOf(belowBlock, kind)
+          if (below || !isOtherFluid(belowBlock, kind)) {
+            height = ownHeight(below)
+            if (height > 0) drop = f(own - f(height - f(0.8888889)))
+          }
+        }
+      } else if (height > 0) {
+        drop = f(own - height)
+      }
+      if (drop !== 0) {
+        x += f(dx * drop)
+        z += f(dz * drop)
+      }
+    }
+    let flow = new Vec3(x, 0, z)
+    if (fluid.falling) {
+      for (const [dx, dz] of HORIZONTAL) {
+        if (isSolidFace(world, pos.offset(dx, 0, dz), kind) || isSolidFace(world, pos.offset(dx, 1, dz), kind)) {
+          flow = normalizeVec(flow).translate(0, -6, 0)
+          break
+        }
+      }
+    }
+    return normalizeVec(flow)
+  }
+
+  // The fluid of a kind in a block as FluidState has it (1.13+): { amount, falling }, or null
+  function fluidOf (block, kind) {
+    if (!block) return null
+    if (kind === 'water') {
+      if (waterLike.has(block.type) || block.isWaterlogged) return { amount: 8, falling: false }
+      if (!waterIds.includes(block.type)) return null
+    } else if (!lavaIds.includes(block.type)) return null
+    const level = block.metadata
+    return level === 0 ? { amount: 8, falling: false } : level >= 8 ? { amount: 8, falling: true } : { amount: 8 - level, falling: false }
+  }
+
+  const ownHeight = fluid => fluid ? Math.fround(fluid.amount / 9) : 0
+  const isOtherFluid = (block, kind) => !!fluidOf(block, kind === 'water' ? 'lava' : 'water')
+
+  // Block.isFaceSturdy / the legacy isBlockSolid of the side: a full cube that is not the fluid itself nor ice
+  function isSolidFace (world, pos, kind) {
+    const block = world.getBlock(pos)
+    if (!block || fluidOf(block, kind)) return false
+    if (blocksByName.ice && block.type === blocksByName.ice.id) return false
+    return block.shapes.length === 1 && block.shapes[0].every((v, i) => v === (i < 3 ? 0 : 1))
   }
 
   // Since 1.13 (Entity.updateFluidHeightAndDoFluidPushing) a fluid counts as soon as its surface
   // is above the bottom of the box deflated by 0.001; before that (handleMaterialAcceleration)
   // the box was shrunk by 0.4 at the top and compared through ceil(maxY).
   const fluidHeightFromFeet = supportFeature('fluidHeightFromFeet')
+  const fluidStates = mcData.version['>=']('1.13')
+  const normalizeFloatSqrt = mcData.version['<']('1.17')
   const waterAfterMove = mcData.version.minecraftVersion !== '1.21.4'
   const lavaAfterMove = mcData.version['>=']('26.1')
   const rocketTicksAfterPlayer = !(mcData.version['>=']('1.14') && mcData.version['<']('1.17'))
