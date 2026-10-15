@@ -109,4 +109,35 @@ describe('walking from rest', () => {
       expect(vel.x).toBe(SPRINT.frictionFactor.stone)
     })
   }
+
+  // A falling player sprinting accelerates by Player's flying speed: (float)(0.02F + 0.006) up to 1.18.1, 0.02F + 0.006F
+  // (float) on 1.18.2 to 1.19.3, 0.025999999F from 1.19.4. Up to 1.19.3 travel reads the sprint state of the tick before,
+  // so a sprint started in the air speeds it up a tick later. Facing east, one tick forward in the air:
+  const f = Math.fround
+  const airTick = (version, speed) => require('minecraft-data')(version).version['<']('1.14')
+    ? f(f(0.98) * speed) * f(0.91) // moveFlying in float
+    : (f(0.98) * speed) * f(0.91)
+  for (const [version, sprintSpeed, lags] of [
+    ['1.8.8', 0.025999998673796654, true],
+    ['1.13.2', 0.025999998673796654, true],
+    ['1.17.1', 0.025999998673796654, true],
+    ['1.18.2', 0.026000000536441803, true],
+    ['1.19.3', 0.026000000536441803, true],
+    ['1.19.4', 0.025999998673796654, false],
+    ['1.21.11', 0.025999998673796654, false],
+    ['26.1', 0.025999998673796654, false]
+  ]) {
+    const sprintInAir = sprintingBefore => firstTick(version, {
+      yawDegrees: -90,
+      airborne: true,
+      controls: { forward: true, sprint: true },
+      state: { isSprinting: sprintingBefore }
+    }).x
+    it(`${version}: sprints in the air at vanilla's speed`, () => {
+      expect(sprintInAir(true)).toBe(airTick(version, sprintSpeed))
+    })
+    it(`${version}: ${lags ? 'speeds up a tick after' : 'speeds up as soon as'} a sprint starts in the air`, () => {
+      expect(sprintInAir(false)).toBe(airTick(version, lags ? f(0.02) : sprintSpeed))
+    })
+  }
 })

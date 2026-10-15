@@ -78,7 +78,6 @@ function Physics (mcData, world) {
     lavaInertia: 0.5,
     liquidAcceleration: 0.02,
     airborneInertia: Math.fround(0.91), // LivingEntity.travel: 0.91F in the air
-    airborneAcceleration: 0.02,
     defaultSlipperiness: 0.6,
     outOfLiquidImpulse: 0.3,
     fluidJumpThreshold: 0.4, // LivingEntity.getFluidJumpThreshold for a standing player
@@ -455,6 +454,17 @@ function Physics (mcData, world) {
     return { sin: math.mthSin(radians, sinTableDoubleIndex), cos: math.mthCos(radians, sinTableDoubleIndex) }
   }
 
+  // The speed a falling (not flying) player accelerates at: 0.02F, more while sprinting. Up to 1.19.3 Player.aiStep
+  // sets the flyingSpeed field after travel, so travel reads the sprint state of the tick before; the sprinting value
+  // is (float)(0.02F + 0.006) up to 1.18.1 and 0.02F + 0.006F in float on 1.18.2 to 1.19.3. From 1.19.4
+  // Player.getFlyingSpeed reads the sprint state live, 0.025999999F.
+  function airborneSpeed (entity) {
+    const sprinting = airSpeedLagsSprint ? entity.wasSprinting : entity.isSprinting
+    if (!sprinting) return Math.fround(0.02)
+    if (airSprintSpeedFloatSum) return Math.fround(Math.fround(0.02) + Math.fround(0.006))
+    return Math.fround(0.025999999)
+  }
+
   // LivingEntity.jumpFromGround. The jump power is 0.42F times the block jump factor (from 1.15: the block at the feet,
   // or the one below when that is 1; honey 0.5F), from 1.20.6 the jump_strength attribute instead of 0.42F, plus 0.1F per
   // Jump Boost level. The sum is in double up to 1.13 and on 1.17 to 1.19, in float otherwise. From 1.20.6 a power of
@@ -545,6 +555,9 @@ function Physics (mcData, world) {
   const climbableTrapdoorFeature = supportFeature('climbableTrapdoor')
   const sprintSurvivesMinorCollision = supportFeature('sprintSurvivesMinorCollision')
   const headingAnglePiOver180 = supportFeature('headingAnglePiOver180')
+  // Player's airborne speed by version (airborneSpeed)
+  const airSpeedLagsSprint = mcData.version['<']('1.19.4')
+  const airSprintSpeedFloatSum = mcData.version['>=']('1.18.2') && mcData.version['<']('1.19.4')
   // LivingEntity.jumpFromGround by version
   const blockJumpFactorFeature = mcData.version['>=']('1.15')
   const jumpSumInDouble = mcData.version['<']('1.14') || (mcData.version['>=']('1.17') && mcData.version['<']('1.20'))
@@ -899,18 +912,13 @@ function Physics (mcData, world) {
         acceleration = Math.fround(attributeSpeed * groundSpeedFactor(friction, inertia))
         if (acceleration < 0) acceleration = 0 // acceleration should not be negative
       } else if (entity.flying) {
-        // Player.getFlyingSpeed: creative flight accelerates at the abilities' flying speed,
-        // doubled while sprinting, in place of the 0.02 / 0.026 of a falling player.
-        acceleration = entity.control.sprint ? entity.flyingSpeed * 2 : entity.flyingSpeed
+        // Player.travel / getFlyingSpeed: creative flight accelerates at the abilities' flying speed, doubled while
+        // sprinting (a float product)
+        acceleration = entity.isSprinting ? Math.fround(entity.flyingSpeed * 2) : entity.flyingSpeed
         inertia = physics.airborneInertia
       } else {
-        acceleration = physics.airborneAcceleration
+        acceleration = airborneSpeed(entity)
         inertia = physics.airborneInertia
-
-        if (entity.isSprinting) {
-          const airSprintFactor = physics.airborneAcceleration * 0.3
-          acceleration += airSprintFactor
-        }
       }
 
       applyHeading(entity, strafe, forward, acceleration)
@@ -1096,6 +1104,7 @@ function Physics (mcData, world) {
     if (Math.abs(vel.z) < physics.negligeableVelocity) vel.z = 0
 
     const input = movementInput(entity)
+    entity.wasSprinting = entity.isSprinting
     updateSprinting(entity, input.impulse)
 
     // Handle inputs
