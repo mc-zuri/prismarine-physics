@@ -92,6 +92,7 @@ Read / Write properties:
 Read only properties:
 - yaw : (float) the yaw angle, in radians, of the player entity
 - pitch: (float) the pitch angle, in radians, of the player entity
+- usingItem : (boolean) is the player using its held item (bot.usingHeldItem)? It slows the input to 0.2F
 - swiftSneak : (integer) the Swift Sneak level of the leggings (bot.inventory slot 7), which lessens the sneak slowdown on 1.19 and 1.20
 - control : (object) control states vector with properties:
   - forward

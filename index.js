@@ -511,6 +511,9 @@ function Physics (mcData, world) {
   const sinTableDoubleIndex = mcData.version['>=']('1.21.11')
   const sneakStopsSprinting = supportFeature('sneakStopsSprinting')
   const sneakSlowsWithKey = supportFeature('sneakSlowsWithKey')
+  // LocalPlayer's input scaling order changed within 1.21
+  const itemUseBeforeSneak = mcData.version['>=']('1.21.4')
+  const inputScalesFirst = mcData.version['>=']('1.21.5')
   const sneakSlowsWithKeyOrPose = supportFeature('sneakSlowsWithKeyOrPose')
   const flightUndoesSneakSlow = supportFeature('flightUndoesSneakSlow')
   const swiftSneakFeature = supportFeature('swiftSneak')
@@ -597,6 +600,18 @@ function Physics (mcData, world) {
     }
     if (swiftSneakFeature) return math.clamp(0, Math.fround(Math.fround(0.3) + Math.fround(entity.swiftSneak * Math.fround(0.15))), 1)
     return Math.fround(0.3)
+  }
+
+  // The input travel gets (strafe to the right, forward): the key impulses scaled, each step a float operation, for
+  // sneaking (S), using an item (U, 0.2F; LocalPlayer.aiStep, from 1.21.5 modifyInput) and by 0.98F (D;
+  // LivingEntity.aiStep, from 1.21.5 modifyInput). The order is S U D up to 1.21.3, U S D on 1.21.4, D U S since.
+  // 1.21.11 takes U from the used item's use effects: 0.2F for all but a few items, such as spears, which this omits.
+  function movementInput (entity) {
+    const slow = isMovingSlowly(entity) ? sneakingSpeed(entity) : 1
+    const use = entity.usingItem ? Math.fround(0.2) : 1
+    const order = inputScalesFirst ? [Math.fround(0.98), use, slow] : itemUseBeforeSneak ? [use, slow, Math.fround(0.98)] : [slow, use, Math.fround(0.98)]
+    const scale = impulse => order.reduce((value, factor) => Math.fround(value * factor), impulse)
+    return { strafe: scale(entity.control.right - entity.control.left), forward: scale(entity.control.forward - entity.control.back) }
   }
 
   function moveEntityWithHeading (entity, world, strafe, forward) {
@@ -968,11 +983,7 @@ function Physics (mcData, world) {
     }
     entity.jumpQueued = false
 
-    // The key impulses, slowed while sneaking, then scaled by 0.98F in LivingEntity.aiStep (from 1.21.5
-    // LocalPlayer.modifyInput), all floats
-    const slow = isMovingSlowly(entity) ? sneakingSpeed(entity) : 1
-    const strafe = Math.fround(Math.fround((entity.control.right - entity.control.left) * slow) * Math.fround(0.98))
-    const forward = Math.fround(Math.fround((entity.control.forward - entity.control.back) * slow) * Math.fround(0.98))
+    const { strafe, forward } = movementInput(entity)
     entity.shiftKeyDown = entity.control.sneak
     entity.inputStrafe = strafe
     entity.inputForward = forward
@@ -1054,6 +1065,7 @@ class PlayerState {
     this.isSprinting = bot.entity.isSprinting ?? false
     // the sneak key as the tick before left it (Entity.isShiftKeyDown)
     this.shiftKeyDown = bot.entity.shiftKeyDown ?? false
+    this.usingItem = bot.usingHeldItem ?? false
     this.elytraFlying = bot.entity.elytraFlying
     this.jumpTicks = bot.jumpTicks
     this.jumpQueued = bot.jumpQueued
