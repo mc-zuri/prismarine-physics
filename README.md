@@ -76,7 +76,8 @@ Read / Write properties:
 - onGround : (boolean) is the player touching ground ?
 - isInWater : (boolean) is the player in water ?
 - isInLava : (boolean) is the player in lava ?
-- isInWeb : (boolean) is the player in a web ?
+- isInWeb : (boolean) is the player stuck in a block (cobweb, sweet berry bush, powder snow) for the next move?
+- stuckSpeedMultiplier : (vec3 or null) how much that block scales the next move (Entity.makeStuckInBlock)
 - isCollidedHorizontally : (boolean) is the player collided horizontally with a solid block ?
 - isCollidedVertically : (boolean) is the player collided vertically with a solid block ?
 - elytraFlying : (boolean) is the player gliding with an elytra? From 1.15 the engine starts a glide when jump is

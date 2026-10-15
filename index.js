@@ -32,6 +32,8 @@ function Physics (mcData, world) {
   const soulsoilId = blocksByName.soul_soil ? blocksByName.soul_soil.id : -1 // 1.16+
   const honeyblockId = blocksByName.honey_block ? blocksByName.honey_block.id : -1 // 1.15+
   const webId = blocksByName.cobweb ? blocksByName.cobweb.id : blocksByName.web.id
+  const sweetBerryBushId = blocksByName.sweet_berry_bush ? blocksByName.sweet_berry_bush.id : -1 // 1.14+
+  const powderSnowId = blocksByName.powder_snow ? blocksByName.powder_snow.id : -1 // 1.17+
   const waterIds = [blocksByName.water.id, blocksByName.flowing_water ? blocksByName.flowing_water.id : -1]
   const lavaIds = [blocksByName.lava.id, blocksByName.flowing_lava ? blocksByName.flowing_lava.id : -1]
   const ladderId = blocksByName.ladder.id
@@ -153,14 +155,17 @@ function Physics (mcData, world) {
     const vel = entity.vel
     const pos = entity.pos
 
+    // Entity.move: a block the player was stuck in last tick scales this move once and stops the motion
     if (entity.isInWeb) {
-      dx *= 0.25
-      dy *= 0.05
-      dz *= 0.25
+      const stuck = entity.stuckSpeedMultiplier ?? new Vec3(0.25, Math.fround(0.05), 0.25)
+      dx *= stuck.x
+      dy *= stuck.y
+      dz *= stuck.z
       vel.x = 0
       vel.y = 0
       vel.z = 0
       entity.isInWeb = false
+      entity.stuckSpeedMultiplier = null
     }
 
     let oldVelX = dx
@@ -602,38 +607,58 @@ function Physics (mcData, world) {
     return entity.onGround || (inWater && height <= threshold) ? 'ground' : null
   }
 
+  // Entity.makeStuckInBlock: the multiplier a block the player is in sets for the next move, unless the player flies.
+  // A cobweb (0.25, 0.05F, 0.25), with Weaving (1.20.5+) (0.5, 0.25, 0.5); a sweet berry bush (1.14+) (0.8F, 0.75, 0.8F);
+  // powder snow (1.17+) at the feet (0.9F, 1.5, 0.9F).
+  function stuckMultiplier (entity, world, block) {
+    if (entity.flying) return null
+    if (block.type === webId) return entity.weaving > 0 ? new Vec3(0.5, 0.25, 0.5) : new Vec3(0.25, Math.fround(0.05), 0.25)
+    if (block.type === sweetBerryBushId) return new Vec3(Math.fround(0.8), 0.75, Math.fround(0.8))
+    if (block.type === powderSnowId && world.getBlock(entity.pos.floored())?.type === powderSnowId) {
+      return new Vec3(Math.fround(0.9), 1.5, Math.fround(0.9))
+    }
+    return null
+  }
+
   // Entity.checkInsideBlocks: what the blocks the box is inside do to the player (soul sand up to 1.14, cobweb, bubble
   // columns)
   function applyInsideBlocks (entity, world, box) {
     const vel = entity.vel
     const playerBB = box.clone().contract(0.001, 0.001, 0.001)
-    const cursor = new Vec3(0, 0, 0)
-    for (cursor.y = Math.floor(playerBB.minY); cursor.y <= Math.floor(playerBB.maxY); cursor.y++) {
-      for (cursor.z = Math.floor(playerBB.minZ); cursor.z <= Math.floor(playerBB.maxZ); cursor.z++) {
-        for (cursor.x = Math.floor(playerBB.minX); cursor.x <= Math.floor(playerBB.maxX); cursor.x++) {
-          const block = world.getBlock(cursor)
-          if (block) {
-            if (supportFeature('velocityBlocksOnCollision')) {
-              if (block.type === soulsandId) {
-                vel.x *= physics.soulsandSpeed
-                vel.z *= physics.soulsandSpeed
-              } else if (block.type === honeyblockId) {
-                vel.x *= physics.honeyblockSpeed
-                vel.z *= physics.honeyblockSpeed
-              }
-            }
-            if (block.type === webId) {
-              entity.isInWeb = true
-            } else if (block.type === bubblecolumnId) {
-              const down = !block.metadata
-              const aboveBlock = world.getBlock(cursor.offset(0, 1, 0))
-              const bubbleDrag = (aboveBlock && aboveBlock.type === 0 /* air */) ? physics.bubbleColumnSurfaceDrag : physics.bubbleColumnDrag
-              if (down) {
-                vel.y = Math.max(bubbleDrag.maxDown, vel.y - bubbleDrag.down)
-              } else {
-                vel.y = Math.min(bubbleDrag.maxUp, vel.y + bubbleDrag.up)
-              }
-            }
+    // Up to 1.21.1 x, then y, then z, as Entity.checkInsideBlocks (doBlockCollisions) visits them: the last stuck block
+    // wins, and a bubble column acts once per cell. From 1.21.2 vanilla walks the move's path, mostly upwards or
+    // downwards first; the cells go y first there.
+    const cells = []
+    for (let x = Math.floor(playerBB.minX); x <= Math.floor(playerBB.maxX); x++) {
+      for (let y = Math.floor(playerBB.minY); y <= Math.floor(playerBB.maxY); y++) {
+        for (let z = Math.floor(playerBB.minZ); z <= Math.floor(playerBB.maxZ); z++) cells.push(new Vec3(x, y, z))
+      }
+    }
+    if (blockEffectsAfterTravel) cells.sort((a, b) => a.y - b.y || a.z - b.z || a.x - b.x)
+    for (const cursor of cells) {
+      const block = world.getBlock(cursor)
+      if (block) {
+        if (supportFeature('velocityBlocksOnCollision')) {
+          if (block.type === soulsandId) {
+            vel.x *= physics.soulsandSpeed
+            vel.z *= physics.soulsandSpeed
+          } else if (block.type === honeyblockId) {
+            vel.x *= physics.honeyblockSpeed
+            vel.z *= physics.honeyblockSpeed
+          }
+        }
+        const stuck = stuckMultiplier(entity, world, block)
+        if (stuck) {
+          entity.isInWeb = true
+          entity.stuckSpeedMultiplier = stuck
+        } else if (block.type === bubblecolumnId) {
+          const down = !block.metadata
+          const aboveBlock = world.getBlock(cursor.offset(0, 1, 0))
+          const bubbleDrag = (aboveBlock && aboveBlock.type === 0 /* air */) ? physics.bubbleColumnSurfaceDrag : physics.bubbleColumnDrag
+          if (down) {
+            vel.y = Math.max(bubbleDrag.maxDown, vel.y - bubbleDrag.down)
+          } else {
+            vel.y = Math.min(bubbleDrag.maxUp, vel.y + bubbleDrag.up)
           }
         }
       }
@@ -1390,6 +1415,8 @@ class PlayerState {
     this.isInLava = bot.entity.isInLava
     this.lavaHeight = bot.entity.lavaHeight ?? 0
     this.isInWeb = bot.entity.isInWeb
+    // the multiplier the block the player is stuck in set (a cobweb's when only isInWeb is known)
+    this.stuckSpeedMultiplier = bot.entity.stuckSpeedMultiplier ?? null
     this.isCollidedHorizontally = bot.entity.isCollidedHorizontally
     this.minorHorizontalCollision = bot.entity.minorHorizontalCollision ?? false
     this.isCollidedVertically = bot.entity.isCollidedVertically
@@ -1427,6 +1454,7 @@ class PlayerState {
     this.speed = getEffectLevel(mcData, 'Speed', effects)
     this.slowness = getEffectLevel(mcData, 'Slowness', effects)
     this.blindness = getEffectLevel(mcData, 'Blindness', effects)
+    this.weaving = getEffectLevel(mcData, 'Weaving', effects)
 
     this.dolphinsGrace = getEffectLevel(mcData, 'DolphinsGrace', effects)
     this.slowFalling = getEffectLevel(mcData, 'SlowFalling', effects)
@@ -1457,6 +1485,7 @@ class PlayerState {
     bot.entity.isInLava = this.isInLava
     bot.entity.lavaHeight = this.lavaHeight
     bot.entity.isInWeb = this.isInWeb
+    bot.entity.stuckSpeedMultiplier = this.stuckSpeedMultiplier
     bot.entity.isCollidedHorizontally = this.isCollidedHorizontally
     bot.entity.minorHorizontalCollision = this.minorHorizontalCollision
     bot.entity.isCollidedVertically = this.isCollidedVertically
