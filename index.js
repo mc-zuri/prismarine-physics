@@ -613,6 +613,25 @@ function Physics (mcData, world) {
     return new Vec3(f(sin(yawRad) * pitchCos), -sin(pitchRad), f(cos(yawRad) * pitchCos))
   }
 
+  // LivingEntity.aiStep with the jump key: swim up ('fluid') or jump from the ground ('ground'). Up to 1.12 any water or
+  // lava swims up. On 1.13 to 1.15 water swims up when it is off the ground or deeper than 0.4, lava always, and the
+  // ground (or water 0.4 deep or less) jumps. From 1.16 the fluid's height (lava's in lava) against the fluid jump
+  // threshold decides for both fluids.
+  function liquidJump (entity) {
+    if (!fluidHeightFromFeet) return entity.isInWater || entity.isInLava ? 'fluid' : entity.onGround ? 'ground' : null
+    const threshold = physics.fluidJumpThreshold
+    if (!liquidJumpByThreshold) {
+      if (entity.waterHeight > 0 && (!entity.onGround || entity.waterHeight > threshold)) return 'fluid'
+      if (entity.isInLava) return 'fluid'
+      return entity.onGround || (entity.waterHeight > 0 && entity.waterHeight <= threshold) ? 'ground' : null
+    }
+    const height = entity.isInLava ? entity.lavaHeight : entity.waterHeight
+    const inWater = entity.isInWater && height > 0
+    if (inWater && (!entity.onGround || height > threshold)) return 'fluid'
+    if (entity.isInLava && (!entity.onGround || height > threshold)) return 'fluid'
+    return entity.onGround || (inWater && height <= threshold) ? 'ground' : null
+  }
+
   // LivingEntity.jumpFromGround. The jump power is 0.42F times the block jump factor (from 1.15: the block at the feet,
   // or the one below when that is 1; honey 0.5F), from 1.20.6 the jump_strength attribute instead of 0.42F, plus 0.1F per
   // Jump Boost level. The sum is in double up to 1.13 and on 1.17 to 1.19, in float otherwise. From 1.20.6 a power of
@@ -703,6 +722,10 @@ function Physics (mcData, world) {
   const climbableTrapdoorFeature = supportFeature('climbableTrapdoor')
   const sprintSurvivesMinorCollision = supportFeature('sprintSurvivesMinorCollision')
   const headingAnglePiOver180 = supportFeature('headingAnglePiOver180')
+  // swimming up and down by version
+  const sinksWithSneak = mcData.version['>=']('1.13')
+  const sinkNeedsFluidEffect = mcData.version['>=']('1.16')
+  const liquidJumpByThreshold = mcData.version['>=']('1.16')
   // gliding by version
   const glideLiftIsConstant = mcData.version['<']('1.13')
   const climbableStopsGliding = mcData.version['>=']('1.21.5')
@@ -1205,6 +1228,7 @@ function Physics (mcData, world) {
     if (fluidHeightFromFeet) {
       const fluidBB = getPlayerBB(pos).contract(0.001, 0.001, 0.001)
       entity.isInWater = isInWaterApplyCurrent(world, fluidBB, vel, !entity.flying)
+      entity.waterHeight = scanFluid(world, fluidBB, isWaterBlock).height
       const lava = scanFluid(world, fluidBB, (block) => block && lavaIds.includes(block.type))
       entity.isInLava = lava.blocks.length > 0
       entity.lavaHeight = lava.height
@@ -1216,6 +1240,9 @@ function Physics (mcData, world) {
     }
 
     const startVelY = vel.y
+    // LocalPlayer.aiStep: from 1.13 sneaking in water sinks by 0.04F (goDownInWater; from 1.16 not while flying), before
+    // the flight's climb and LivingEntity.aiStep's negligible motion
+    if (sinksWithSneak && entity.isInWater && entity.control.sneak && !(entity.flying && sinkNeedsFluidEffect)) vel.y -= Math.fround(0.04)
     if (entity.flying) {
       // LocalPlayer.aiStep: jump and sneak climb and descend at three times the flying speed,
       // added before the move so Player.travel damps it with the rest of the vertical velocity.
@@ -1246,11 +1273,13 @@ function Physics (mcData, world) {
     // Handle inputs
     // A flying player does not jump: LivingEntity.aiStep gates it on isAffectedByFluids, and
     // the jump key already climbs above.
+
     if (!entity.flying && (entity.control.jump || entity.jumpQueued)) {
       if (entity.jumpTicks > 0) entity.jumpTicks--
-      if (entity.isInWater || entity.isInLava) {
-        vel.y += 0.04
-      } else if (entity.onGround && entity.jumpTicks === 0) {
+      const jump = liquidJump(entity)
+      if (jump === 'fluid') {
+        vel.y += Math.fround(0.04) // jumpInLiquid
+      } else if (jump === 'ground' && entity.jumpTicks === 0) {
         jumpFromGround(entity, world)
         entity.jumpTicks = physics.autojumpCooldown
       }
