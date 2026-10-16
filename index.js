@@ -165,8 +165,8 @@ function Physics (mcData, world) {
         ? (entity.isSwimming ? 'swimming' : entity.elytraFlying ? 'fall_flying' : entity.spinAttack ? 'spin_attack' : crouch)
         : (entity.elytraFlying ? 'fall_flying' : entity.isSwimming ? 'swimming' : entity.spinAttack ? 'spin_attack' : crouch)
       const desired = entity.sleeping && (desiredSwimFirst || !entity.elytraFlying) ? 'sleeping' : awake
-      // a spectator takes the pose it wants
-      const pose = entity.gameMode === 'spectator' || fitsPose(entity, world, desired)
+      // a spectator or a passenger takes the pose it wants
+      const pose = entity.gameMode === 'spectator' || entity.riding || fitsPose(entity, world, desired)
         ? desired
         : fitsPose(entity, world, 'crouching') ? 'crouching' : 'swimming'
       setPose(entity, pose)
@@ -2563,9 +2563,20 @@ function Physics (mcData, world) {
     }
   }
 
+  // A passenger (entity.riding) ticks from no motion (Entity.rideTick, updateRidden up to 1.12) with its own input, then
+  // its vehicle places it (positionRider): the tick leaves it its motion, not its move.
   physics.simulatePlayer = (entity, world) => {
     playerDims = dimensionsOf(entity)
     try {
+      if (entity.riding) {
+        const pos = entity.pos.clone()
+        const box = entity.box && entity.box.clone()
+        entity.vel.set(0, 0, 0)
+        simulateTick(entity, world)
+        entity.pos.set(pos.x, pos.y, pos.z)
+        entity.box = box
+        return entity
+      }
       // the use key let go before the tick pushes a riptide first, before any entity ticks
       if (entity.riptide > 0) riptide(entity, world)
       pushedByOthers(entity, world, true)
@@ -2838,6 +2849,8 @@ class PlayerState {
     this.pose = bot.entity.pose ?? 'standing'
     // whether the player sleeps in a bed (bot.isSleeping), which keeps it in the sleeping pose
     this.sleeping = !!bot.isSleeping
+    // whether the player rides a vehicle (bot.vehicle), which places it
+    this.riding = !!bot.vehicle
     this.food = bot.food ?? 20
     this.mayFly = bot.abilities?.mayFly ?? false
     this.elytraFlying = bot.entity.elytraFlying
