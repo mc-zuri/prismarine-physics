@@ -196,6 +196,7 @@ function Physics (mcData, world) {
 
   // Entity.maxUpStep: 0.6; from 1.20.5 the step_height attribute, as a float
   const stepHeightResource = mcData.attributesByName.stepHeight?.resource
+  const stepDownKeepsMove = mcData.version['>=']('1.14') && mcData.version['<']('1.21')
   function stepHeightOf (entity) {
     const synced = stepHeightResource && entity.attributes && entity.attributes[stepHeightResource]
     return synced ? Math.fround(attribute.getAttributeValue(synced)) : physics.stepHeight
@@ -344,7 +345,8 @@ function Physics (mcData, world) {
     }
     playerBB.offset(0, 0, dz)
 
-    // Step on block if height < stepHeight. The move then goes up by stepUp, across, and down by dy.
+    // Step on block if height < stepHeight. The move then goes up by stepUp, across, and down by dy: by the step-up up to
+    // 1.13, and from 1.14 to 1.20.6 by the step-up less the move's own dy (Entity.collide: -vec.y + movement.y)
     let stepUp = 0
     const stepHeight = stepHeightOf(entity)
     if (stepHeight > 0 &&
@@ -395,17 +397,16 @@ function Physics (mcData, world) {
 
       if (norm1 > norm2) {
         dx = dx1
-        dy = -dy1
         dz = dz1
         stepUp = dy1
         playerBB = BB1
       } else {
         dx = dx2
-        dy = -dy2
         dz = dz2
         stepUp = dy2
         playerBB = BB2
       }
+      dy = stepDownKeepsMove ? -stepUp + oldVelY : -stepUp
 
       for (const blockBB of surroundingBBs) {
         dy = blockBB.computeOffsetY(playerBB, dy)
@@ -450,7 +451,8 @@ function Physics (mcData, world) {
     // Update flags
     entity.isCollidedHorizontally = dx !== oldVelX || dz !== oldVelZ
     entity.minorHorizontalCollision = entity.isCollidedHorizontally && isHorizontalCollisionMinor(entity, dx, dz)
-    entity.isCollidedVertically = dy !== oldVelY
+    // from 1.14 (Entity.move) the whole move against the one asked for, a step's up and down together
+    entity.isCollidedVertically = (stepDownKeepsMove ? movedY : dy) !== oldVelY
     entity.onGround = entity.isCollidedVertically && oldVelY < 0
     if (onPosBelow) checkSupportingBlock(entity, world, positionFromBox ? entity.box : getPlayerBB(pos), new Vec3(dx, movedY, dz))
 
