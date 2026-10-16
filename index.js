@@ -948,10 +948,11 @@ function Physics (mcData, world) {
 
   // Entity.checkInsideBlocks: what the blocks the box is inside do to the player (soul sand up to 1.14, cobweb, bubble
   // columns)
-  // Up to 1.21.1 Entity.checkInsideBlocks acts on the blocks in the box (shrunk by 0.001) during the move, visiting x,
-  // then y, then z: the last stuck block wins, and a bubble column acts once per cell.
+  // Up to 1.21.1 Entity.checkInsideBlocks acts on the blocks in the box during the move, visiting x, then y, then z: the
+  // last stuck block wins, and a bubble column acts once per cell. The box is shrunk by 0.001, from 1.19.3 by 1.0E-7.
+  const insideBlocksMargin = mcData.version['>=']('1.19.3') ? 1.0e-7 : 0.001
   function applyInsideBlocks (entity, world, box) {
-    const playerBB = box.clone().contract(0.001, 0.001, 0.001)
+    const playerBB = box.clone().contract(insideBlocksMargin, insideBlocksMargin, insideBlocksMargin)
     const cursor = new Vec3(0, 0, 0)
     for (cursor.x = Math.floor(playerBB.minX); cursor.x <= Math.floor(playerBB.maxX); cursor.x++) {
       for (cursor.y = Math.floor(playerBB.minY); cursor.y <= Math.floor(playerBB.maxY); cursor.y++) {

@@ -130,3 +130,36 @@ describe('blocks along the move', () => {
     expect(riseOutOfColumn('1.21.9')).toBeGreaterThan(riseOutOfColumn('1.21.10'))
   })
 })
+
+// A player at rest with its feet 0.0002 below the top of a cobweb's cell. Up to 1.21.1 Entity.checkInsideBlocks finds
+// the blocks in the box shrunk by 0.001, which leaves that cell out, and from 1.19.3 by 1.0E-7, which keeps it; from
+// 1.21.2 the blocks along the move are found with no such margin, and the cobweb holds the player too.
+describe('the blocks the player is inside', () => {
+  for (const version of ['1.8.8', '1.12.2', '1.14.4', '1.16.5', '1.18.2', '1.19.2', '1.19.3', '1.20.4', '1.21.1', '1.21.3', '1.21.11', '26.1']) {
+    const found = !['1.8.8', '1.12.2', '1.14.4', '1.16.5', '1.18.2', '1.19.2'].includes(version)
+    it(`${version}: ${found ? 'include' : 'leave out'} a cell 0.0002 into the box`, () => {
+      const mcData = require('minecraft-data')(version)
+      const Block = require('prismarine-block')(version)
+      const web = (mcData.blocksByName.cobweb ?? mcData.blocksByName.web).id
+      const world = {
+        getBlock: (pos) => {
+          const p = pos.floored()
+          const b = new Block(p.y === 60 && p.x === 0 && p.z === 0 ? web : mcData.blocksByName.air.id, 0, 0)
+          b.position = pos.clone()
+          return b
+        }
+      }
+      const bot = {
+        entity: { position: new Vec3(0.5, 60.9998, 0.5), velocity: new Vec3(0, 0, 0), onGround: false, isInWater: false, isInLava: false, isInWeb: false, isCollidedHorizontally: false, isCollidedVertically: false, elytraFlying: false, yaw: Math.PI, pitch: 0, effects: {} },
+        jumpTicks: 0,
+        jumpQueued: false,
+        fireworkRocketDuration: 0,
+        version,
+        inventory: { slots: [] }
+      }
+      const controls = { forward: false, back: false, left: false, right: false, jump: false, sprint: false, sneak: false }
+      Physics(mcData, world).simulatePlayer(new PlayerState(bot, controls), world).apply(bot)
+      expect(bot.entity.isInWeb).toBe(found)
+    })
+  }
+})
