@@ -471,7 +471,10 @@ function Physics (mcData, world) {
       }
       dy = stepDownKeepsMove ? -stepUp + oldVelY : -stepUp
 
-      for (const blockBB of surroundingBBs) {
+      // Up to 1.13 the step goes down no further than it went up, within the step's boxes. From 1.14 it can go down by the
+      // move's own fall too, so it collides with the boxes under it (collideBoundingBoxHeuristically on its own box)
+      const stepDownBBs = stepDownKeepsMove ? getSurroundingBBs(world, playerBB.clone().extend(0, dy, 0), entity) : surroundingBBs
+      for (const blockBB of stepDownBBs) {
         dy = blockBB.computeOffsetY(playerBB, dy)
       }
       playerBB.offset(0, dy, 0)
