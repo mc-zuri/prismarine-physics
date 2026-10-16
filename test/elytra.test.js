@@ -412,8 +412,9 @@ describe('Elytra tests', () => {
     expect(player.entity.elytraFlying).toBeTruthy()
     expect(player.fireworkRocketDuration).toEqual(19)
 
+    // boost until out of the lava (a glider's 0.6 tall box hardly counts as in lava up to 1.13, so go by the height)
     const playerState = new PlayerState(player, controls)
-    while (playerState.isInLava) {
+    for (let i = 0; i < 100 && playerState.pos.y < 60; i++) {
       playerState.fireworkRocketDuration = 1
       physics.simulatePlayer(playerState, lavaWorld)
     }

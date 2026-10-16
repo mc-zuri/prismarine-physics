@@ -124,12 +124,73 @@ function Physics (mcData, world) {
   // (EntityDimensions.scale, in float; the box half as wide, Entity.makeBoundingBox)
   let playerDims = null // null: physics.playerHalfWidth and physics.playerHeight
   const scaleResource = mcData.attributesByName.scale?.resource
-  function dimensionsOf (entity) {
+  // The pose's height: 1.8 standing; from 1.9 (EntityPlayer.updateSize) 1.65 sneaking and 0.6 gliding (and from 1.13
+  // swimming); from 1.14 (Player POSES) 1.5 crouching and 0.6 swimming, gliding and spin attacking. Eye heights 1.62, 1.27
+  // crouching from 1.14, 0.4 for the 0.6 poses.
+  const posePoses = mcData.version['>=']('1.14')
+  const legacySize = !posePoses && mcData.version['>=']('1.9')
+  const poseDeflate = mcData.version['>=']('1.16')
+  const desiredSwimFirst = mcData.version['>=']('1.21.5')
+  const POSE_HEIGHT = { standing: 1.8, crouching: posePoses ? 1.5 : 1.65, swimming: 0.6, fall_flying: 0.6, spin_attack: 0.6 }
+  const POSE_EYE = { standing: 1.62, crouching: 1.27, swimming: 0.4, fall_flying: 0.4, spin_attack: 0.4 }
+  function scaleOf (entity) {
     const synced = scaleResource && entity.attributes && entity.attributes[scaleResource]
-    const scale = synced ? Math.fround(attribute.getAttributeValue(synced)) : 1
-    if (scale === 1) return null
+    return synced ? Math.fround(attribute.getAttributeValue(synced)) : 1
+  }
+  function dimensionsOf (entity, pose = entity.pose) {
+    const scale = scaleOf(entity)
+    const height = (posePoses || legacySize) ? (POSE_HEIGHT[pose] ?? 1.8) : 1.8
+    if (scale === 1 && height === 1.8) return null
     const f = Math.fround
-    return { halfWidth: f(f(f(0.6) * scale) / 2), height: f(f(1.8) * scale) }
+    return { halfWidth: f(f(f(0.6) * scale) / 2), height: f(f(height) * scale) }
+  }
+  function poseBox (entity, pose) {
+    const saved = playerDims
+    playerDims = dimensionsOf(entity, pose)
+    try { return getPlayerBB(entity.pos) } finally { playerDims = saved }
+  }
+  // Player.canEnterPose (canPlayerFitWithinBlocksAndEntitiesWhen): the pose's box at the position, from 1.16 deflated
+  // by 1.0E-7, collides with nothing
+  function fitsPose (entity, world, pose) {
+    let box = poseBox(entity, pose)
+    if (poseDeflate) box = box.contract(1.0e-7, 1.0e-7, 1.0e-7)
+    return !getSurroundingBBs(world, box, entity).some(bb => bb.intersects(box))
+  }
+  // At the end of the tick: Player.updatePlayerPose (1.14+) picks the pose the player wants (gliding, swimming, crouching
+  // with the sneak key while not flying, else standing; from 1.21.5 swimming before gliding) when the swimming box fits,
+  // and where it does not fit crouching, else swimming (crawling). EntityPlayer.updateSize (1.9-1.13) resizes the box to
+  // the wanted height only when the new box collides with nothing.
+  function updatePose (entity, world) {
+    const sneak = !!entity.control.sneak
+    if (posePoses) {
+      if (!fitsPose(entity, world, 'swimming')) return
+      const crouch = sneak && !entity.flying ? 'crouching' : 'standing'
+      const desired = desiredSwimFirst
+        ? (entity.isSwimming ? 'swimming' : entity.elytraFlying ? 'fall_flying' : entity.spinAttack ? 'spin_attack' : crouch)
+        : (entity.elytraFlying ? 'fall_flying' : entity.isSwimming ? 'swimming' : entity.spinAttack ? 'spin_attack' : crouch)
+      const pose = fitsPose(entity, world, desired) ? desired : fitsPose(entity, world, 'crouching') ? 'crouching' : 'swimming'
+      setPose(entity, pose)
+    } else if (legacySize) {
+      const desired = entity.elytraFlying ? 'fall_flying' : (fluidStates && (entity.isSwimming || entity.spinAttack)) ? 'swimming' : sneak ? 'crouching' : 'standing'
+      const current = entity.pose ?? 'standing'
+      if (POSE_HEIGHT[desired] === POSE_HEIGHT[current]) { entity.pose = desired; return }
+      const resized = anchoredBox(entity, desired)
+      if (getSurroundingBBs(world, resized, entity).some(bb => bb.intersects(resized))) return
+      entity.pose = desired
+      entity.box = resized
+    }
+  }
+  // Entity.setSize / refreshDimensions up to 1.16: the width does not change, so the box keeps its lower corner
+  function anchoredBox (entity, pose) {
+    const box = entity.box ?? getPlayerBB(entity.pos)
+    const w = Math.fround(0.6)
+    return new AABB(box.minX, box.minY, box.minZ, box.minX + w, box.minY + Math.fround(POSE_HEIGHT[pose]), box.minZ + w)
+  }
+  // From 1.17 the box is rebuilt from the position (reapplyPosition), which getPlayerBB does with the pose's size
+  function setPose (entity, pose) {
+    if (pose === (entity.pose ?? 'standing')) return
+    if (positionFromBox) entity.box = anchoredBox(entity, pose)
+    entity.pose = pose
   }
 
   // Entity.maxUpStep: 0.6; from 1.20.5 the step_height attribute, as a float
@@ -1576,18 +1637,31 @@ function Physics (mcData, world) {
   const eyesLagATick = mcData.version['>=']('1.16')
   const swimNeedsWaterAtFeet = mcData.version['>=']('1.17')
   const eyeFluidOffset = mcData.version['>=']('1.16') && mcData.version['<']('1.20.5')
-  const crouchEyes = mcData.version['>=']('1.14')
 
   // The eye height (1.62F; crouching from 1.14 1.27F, the pose the last tick left; from 1.20.5 times the scale) against
   // the water in the block at the eyes: up to 1.15 under its surface plus 0.11111111F (Entity.isUnderLiquid); from 1.16
   // below its surface, the eyes taken 0.11111111 lower up to 1.20.4 (Entity.updateFluidOnEyes). The surface is
   // (float)(y + height), the height 1 under more water from 1.14.
+  // The eye height of the pose (Player.getStandingEyeHeight from 1.14; EntityPlayer.getEyeHeight up to 1.13, sneaking
+  // 1.62 - 0.08, and the 0.6 box 0.4, which 1.13 checks first)
+  function poseEyeHeight (entity) {
+    const pose = entity.pose ?? 'standing'
+    if (posePoses) return POSE_EYE[pose] ?? 1.62
+    const height = POSE_HEIGHT[pose] ?? 1.8
+    const sneaking = !!entity.shiftKeyDown || height === 1.65
+    const short = entity.elytraFlying || (fluidStates && entity.isSwimming) || height === 0.6
+    if (fluidStates && short) return 0.4
+    if (sneaking) return 1.62 - 0.08
+    if (short && legacySize) return 0.4
+    return 1.62
+  }
+
   function eyesInWater (entity, world) {
     const f = Math.fround
     const pos = entity.pos
     const synced = scaleResource && entity.attributes && entity.attributes[scaleResource]
     const scale = synced ? f(attribute.getAttributeValue(synced)) : 1
-    const eyeHeight = f((crouchEyes && entity.shiftKeyDown ? f(1.27) : f(1.62)) * scale)
+    const eyeHeight = f(f(poseEyeHeight(entity)) * scale)
     let eyeY = pos.y + eyeHeight
     if (eyeFluidOffset) eyeY -= 0.1111111119389534
     const cell = new Vec3(Math.floor(pos.x), Math.floor(eyeY), Math.floor(pos.z))
@@ -1869,6 +1943,7 @@ function Physics (mcData, world) {
     else if (!lavaByHeight) entity.isInLava = isMaterialInBB(world, getPlayerBB(pos).contract(0.1, 0.4, 0.1), lavaIds)
 
     if (rocketTicksAfterPlayer) boostByRocket(entity)
+    updatePose(entity, world)
 
     return entity
   }
@@ -1958,6 +2033,8 @@ class PlayerState {
     this.eyeInWater = bot.entity.eyeInWater ?? this.isUnderWater
     // whether the player swims (1.13+, Entity.isSwimming), as the last tick left it
     this.isSwimming = bot.entity.isSwimming ?? false
+    // the pose (standing, crouching, swimming, fall_flying, spin_attack) as the last tick left it; from 1.9 it sizes the box
+    this.pose = bot.entity.pose ?? 'standing'
     this.food = bot.food ?? 20
     this.mayFly = bot.abilities?.mayFly ?? false
     this.elytraFlying = bot.entity.elytraFlying
@@ -2019,6 +2096,7 @@ class PlayerState {
     bot.entity.isUnderWater = this.isUnderWater
     bot.entity.eyeInWater = this.eyeInWater
     bot.entity.isSwimming = this.isSwimming
+    bot.entity.pose = this.pose
     bot.entity.supportingBlockPos = this.supportingBlockPos
     bot.entity.onGroundNoBlocks = this.onGroundNoBlocks
     bot.entity.isInWeb = this.isInWeb

@@ -106,6 +106,8 @@ Read / Write properties:
 - fallDistance : (number) how far the player has fallen since it was last on the ground or in water (Entity.fallDistance),
   as the last tick left it
 - isInPowderSnow : (boolean) whether powder snow touched the player during the last tick (Entity.isInPowderSnow)
+- pose : (string) standing, crouching, swimming, fall_flying or spin_attack, as the last tick left it; from 1.9 it sizes
+  the box (1.65 sneaking on 1.9 to 1.13; from 1.14 1.5 crouching and 0.6 swimming, crawling and gliding)
 - isUnderWater : (boolean) whether the player is under water for this tick's sprint logic: from 1.16 the eyes of the tick
   before while in water, on 1.13 to 1.15 the eyes now (the engine sets it from 1.13)
 - supportingBlockPos : (vec3 or null) from 1.20, the block holding the player up as the last move found it
