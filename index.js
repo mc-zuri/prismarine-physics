@@ -888,7 +888,8 @@ function Physics (mcData, world) {
   }
 
   // LivingEntity.travel while gliding (1.21.3+ updateFallFlyingMovement). The pitch is the float xRot in radians; c is
-  // its cosine squared: through the float Mth.cos up to 1.18.1, the double Math.cos from 1.18.2. The lift is
+  // its cosine squared: through the float Mth.cos up to 1.18.1, the double Math.cos from 1.18.2 (correctly rounded,
+  // as the Java runtime nearly always gives it). The lift is
   // -0.08 + c * 0.06 up to 1.12 and gravity * (-1 + c * 0.75) from 1.13 (gravity 0.08, 0.01 falling with Slow Falling).
   // Falling turns into speed along the look, pulling up (xRot below 0, looking up) trades speed for lift, and the
   // motion turns towards the look; then 0.99F, 0.98F and 0.99F of it stay.
@@ -901,7 +902,7 @@ function Physics (mcData, world) {
     const hVel = Math.sqrt(vel.x * vel.x + vel.z * vel.z)
     let c
     if (glideCosineIsDouble) {
-      const cos = Math.cos(pitchRad)
+      const cos = math.javaCos(pitchRad)
       c = cos * cos
     } else {
       const cos = math.mthCos(pitchRad, sinTableDoubleIndex)
