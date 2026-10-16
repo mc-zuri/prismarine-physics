@@ -55,3 +55,23 @@ describe('a player riding a boat on water', () => {
     expect(ride('1.19.2', 98).isInWater).toBe(false)
   })
 })
+
+// A passenger does not collide with the vehicle it rides (Entity.canCollideWith: isPassengerOfSameVehicle): the boat
+// that moved on ahead of its rider this tick does not stop the rider's own move
+describe('a player riding a boat that moved ahead', () => {
+  for (const version of ['1.12.2', '1.21.11']) {
+    it(`${version}: moves through its boat`, () => {
+      const mcData = require('minecraft-data')(version)
+      const Block = require('prismarine-block')(version)
+      const world = { getBlock: (pos) => { const block = new Block(mcData.blocksByName[pos.y < 101 ? 'ice' : 'air'].id, 0, 0); block.position = pos.floored(); return block } }
+      const entity = { id: 1, position: new Vec3(11.813735175340863, 100.5875, 2136.5), velocity: new Vec3(0, 0, 0), onGround: false, isInWater: false, isInLava: false, isInWeb: false, isCollidedHorizontally: false, isCollidedVertically: false, elytraFlying: false, yaw: -Math.PI / 2, pitch: 0, effects: {} }
+      const name = mcData.entitiesByName.oak_boat ? 'oak_boat' : 'boat'
+      const boat = { id: 97, name, type: mcData.entitiesByName[name].type, position: new Vec3(12.80746042822931, 101, 2136.5), width: 1.375, height: 0.5625 }
+      const bot = { entity, vehicle: boat, entities: { 1: entity, 97: boat }, jumpTicks: 0, jumpQueued: false, fireworkRocketDuration: 0, version, inventory: { slots: [] } }
+      const controls = { forward: true, back: false, left: false, right: false, jump: false, sprint: false, sneak: false }
+      Physics(mcData, world).simulatePlayer(new PlayerState(bot, controls), world).apply(bot)
+      expect(entity.isCollidedHorizontally).toBe(false)
+      expect(entity.velocity.x).toBeGreaterThan(0.017)
+    })
+  }
+})

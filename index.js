@@ -2803,11 +2803,14 @@ const NOT_LIVING = new Set(['object', 'other', 'projectile', 'orb', 'global'])
 const NOT_LIVING_NAME = /arrow|bobber|firework|^item|orb$|xp_|experience|potion|snowball|egg$|pearl|eye_of_ender|trident|tnt|falling_block|minecart|boat|raft|leash|painting|frame|marker|display|interaction|lightning|area_effect|spit|fireball|skull|bullet|fangs|wind_charge/
 // (living entities that push nothing: an armor stand pushes only minecarts, a bat nothing; ArmorStand and Bat pushEntities)
 const NO_PUSH_NAME = /^armor_?stand$|^bat$/
+// (not the vehicle the player rides, nor another passenger of it: Entity.canCollideWith, isPassengerOfSameVehicle)
 function otherEntitiesOf (bot) {
   const self = bot.entity
+  const vehicle = bot.vehicle
   const others = []
   for (const other of Object.values(bot.entities ?? {})) {
     if (!other || other === self || !other.position || !(other.width > 0) || !(other.height > 0)) continue
+    if (vehicle && (other === vehicle || other.vehicle === vehicle)) continue
     if (Math.abs(other.position.x - self.position.x) > 8 || Math.abs(other.position.z - self.position.z) > 8 || Math.abs(other.position.y - self.position.y) > 8) continue
     const half = other.width / 2
     const box = new AABB(other.position.x - half, other.position.y, other.position.z - half, other.position.x + half, other.position.y + other.height, other.position.z + half)
