@@ -195,6 +195,7 @@ function Physics (mcData, world) {
   const touchingCollides = mcData.version['<']('1.14')
   const collisionTolerance = mcData.version['>=']('1.14')
   const collisionStopsMotion = mcData.version['>=']('1.18.2')
+  const cornerKeepsMotionX = mcData.version['>=']('1.14') && mcData.version['<']('1.18.2')
   const candidateStepUp = mcData.version['>=']('1.21')
   const noPhysicsClearsCollisions = mcData.version['>=']('1.21.9')
   const flightToggleJumps = mcData.version['>=']('1.20.5')
@@ -560,9 +561,12 @@ function Physics (mcData, world) {
     // the block landed on: Entity.getOnPosLegacy, 0.2F under the position (from 1.20 by the supporting block)
     const blockAtFeet = world.getBlock(onPosBelow ? onPos(entity, world, Math.fround(0.2)) : pos.offset(0, -0.2, 0))
 
-    // the motion stops along a horizontal axis whose move was cut at all; from 1.18.2 along one that collided
-    if (collisionStopsMotion ? collidedX : dx !== oldVelX) vel.x = 0
-    if (collisionStopsMotion ? collidedZ : dz !== oldVelZ) vel.z = 0
+    // the motion stops along a horizontal axis whose move was cut at all; from 1.18.2 along one that collided. From 1.14
+    // to 1.18.1 the z stop sets the motion as it was before the x stop, so a move cut along both stops only z.
+    const stopX = collisionStopsMotion ? collidedX : dx !== oldVelX
+    const stopZ = collisionStopsMotion ? collidedZ : dz !== oldVelZ
+    if (stopX && !(cornerKeepsMotionX && stopZ)) vel.x = 0
+    if (stopZ) vel.z = 0
     if (dy !== oldVelY) {
       if (blockAtFeet && blockAtFeet.type === slimeBlockId && !entity.control.sneak) {
         vel.y = -vel.y

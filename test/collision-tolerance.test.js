@@ -64,3 +64,55 @@ describe('a move the collision cuts by a little', () => {
     })
   }
 })
+
+// A move 0.1 east and 0.1 south into a corner (stone walls from x = 2 and from z = 2), each 0.05 away, cut along both
+// axes. Entity.move stops the motion along each: from 1.14 to 1.18.1 the z stop sets the motion read before the x stop,
+// so the x motion comes back and only z stops; up to 1.13 and from 1.18.2 both stop.
+function moveIntoCorner (version) {
+  const mcData = require('minecraft-data')(version)
+  const Block = require('prismarine-block')(version)
+  const world = {
+    getBlock: (pos) => {
+      const solid = pos.y < 60 || pos.x >= 2 || pos.z >= 2
+      const block = new Block(solid ? mcData.blocksByName.stone.id : mcData.blocksByName.air.id, 0, 0)
+      block.position = pos
+      return block
+    }
+  }
+  const bot = {
+    entity: {
+      position: new Vec3(2 - 0.05 - HALF_WIDTH, 60, 2 - 0.05 - HALF_WIDTH),
+      velocity: new Vec3(0.1, -0.0784000015258789, 0.1),
+      onGround: true,
+      isInWater: false,
+      isInLava: false,
+      isInWeb: false,
+      isCollidedHorizontally: false,
+      isCollidedVertically: true,
+      elytraFlying: false,
+      yaw: Math.PI,
+      pitch: 0,
+      effects: {}
+    },
+    jumpTicks: 0,
+    jumpQueued: false,
+    fireworkRocketDuration: 0,
+    version,
+    inventory: { slots: [] }
+  }
+  const controls = { forward: false, back: false, left: false, right: false, jump: false, sprint: false, sneak: false }
+  Physics(mcData, world).simulatePlayer(new PlayerState(bot, controls), world).apply(bot)
+  return bot.entity
+}
+
+describe('a move cut along both horizontal axes', () => {
+  for (const version of ['1.8.8', '1.12.2', '1.13.2', '1.14.4', '1.15.2', '1.16.5', '1.17.1', '1.18.2', '1.20.4', '1.21.11', '26.1']) {
+    const keepsX = ['1.14.4', '1.15.2', '1.16.5', '1.17.1'].includes(version)
+    it(`${version}: stops the motion along ${keepsX ? 'z only' : 'both'}`, () => {
+      const entity = moveIntoCorner(version)
+      expect(entity.isCollidedHorizontally).toBe(true)
+      expect(entity.velocity.x !== 0).toBe(keepsX)
+      expect(entity.velocity.z).toBe(0)
+    })
+  }
+})
