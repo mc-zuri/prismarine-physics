@@ -198,6 +198,8 @@ function Physics (mcData, world) {
   const stepHeightResource = mcData.attributesByName.stepHeight?.resource
   const stepDownKeepsMove = mcData.version['>=']('1.14') && mcData.version['<']('1.21')
   const largerAxisFirst = mcData.version['>=']('1.14')
+  const candidateStepUp = mcData.version['>=']('1.21')
+  const wholeMoveCollides = mcData.version['>=']('1.14')
   function stepHeightOf (entity) {
     const synced = stepHeightResource && entity.attributes && entity.attributes[stepHeightResource]
     return synced ? Math.fround(attribute.getAttributeValue(synced)) : physics.stepHeight
@@ -224,6 +226,41 @@ function Physics (mcData, world) {
       }
     }
     return surroundingBBs
+  }
+
+  // The shapes of the blocks that collide with a box (Level.getBlockCollisions: a block whose shape overlaps it), each a
+  // list of boxes
+  function getCollidingShapes (world, queryBB, entity) {
+    const shapes = []
+    const cursor = new Vec3(0, 0, 0)
+    for (cursor.y = Math.floor(queryBB.minY) - 1; cursor.y <= Math.floor(queryBB.maxY); cursor.y++) {
+      for (cursor.z = Math.floor(queryBB.minZ); cursor.z <= Math.floor(queryBB.maxZ); cursor.z++) {
+        for (cursor.x = Math.floor(queryBB.minX); cursor.x <= Math.floor(queryBB.maxX); cursor.x++) {
+          const block = world.getBlock(cursor)
+          if (!block) continue
+          const blockPos = block.position
+          const boxes = shapesFor(block, blockPos, entity)
+            .map(shape => new AABB(shape[0], shape[1], shape[2], shape[3], shape[4], shape[5]).offset(blockPos.x, blockPos.y, blockPos.z))
+          if (boxes.some(box => box.intersects(queryBB))) shapes.push(boxes)
+        }
+      }
+    }
+    return shapes
+  }
+
+  // Entity.collectCandidateStepUpHeights (1.21+): the heights over the box's bottom of each shape's y coordinates, as
+  // floats, from 0 up to the step height, but the plain move's own, lowest first
+  function stepUpHeights (bb, shapes, stepHeight, movedY) {
+    const heights = new Set()
+    for (const boxes of shapes) {
+      for (const box of boxes) {
+        for (const y of [box.minY, box.maxY]) {
+          const height = Math.fround(y - bb.minY)
+          if (height >= 0 && height !== movedY && height <= stepHeight) heights.add(height)
+        }
+      }
+    }
+    return [...heights].sort((a, b) => a - b)
   }
 
   // The collision shapes of a block as the player's collision context sees them
@@ -356,9 +393,29 @@ function Physics (mcData, world) {
     // 1.13, and from 1.14 to 1.20.6 by the step-up less the move's own dy (Entity.collide: -vec.y + movement.y)
     let stepUp = 0
     const stepHeight = stepHeightOf(entity)
-    if (stepHeight > 0 &&
-      (entity.onGround || (dy !== oldVelY && oldVelY < 0)) &&
-      (dx !== oldVelX || dz !== oldVelZ)) {
+    const landed = dy !== oldVelY && oldVelY < 0
+    if (candidateStepUp && stepHeight > 0 && (entity.onGround || landed) && (dx !== oldVelX || dz !== oldVelZ)) {
+      // From 1.21 (Entity.collide) the step starts where the plain move landed, or where the player is, and tries the
+      // heights of the shapes around from the lowest (collectCandidateStepUpHeights): the first that goes further than
+      // the plain move is the step, with no step down after it
+      const fromBB = landed ? oldBB.clone().offset(0, dy, 0) : oldBB.clone()
+      const stepBB = fromBB.clone().extend(oldVelX, stepHeight, oldVelZ)
+      if (!landed) stepBB.extend(0, -9.999999747378752e-6, 0)
+      const shapes = getCollidingShapes(world, stepBB, entity)
+      const colliders = shapes.flat()
+      for (const height of stepUpHeights(fromBB, shapes, stepHeight, Math.fround(dy))) {
+        const bb = fromBB.clone()
+        const step = collideAxes(colliders, bb, oldVelX, height, oldVelZ)
+        if (step.dx * step.dx + step.dz * step.dz > dx * dx + dz * dz) {
+          dx = step.dx
+          dz = step.dz
+          stepUp = step.dy + (landed ? dy : 0)
+          dy = 0
+          playerBB = bb
+          break
+        }
+      }
+    } else if (stepHeight > 0 && (entity.onGround || landed) && (dx !== oldVelX || dz !== oldVelZ)) {
       const oldVelXCol = dx
       const oldVelYCol = dy
       const oldVelZCol = dz
@@ -440,7 +497,7 @@ function Physics (mcData, world) {
     entity.isCollidedHorizontally = dx !== oldVelX || dz !== oldVelZ
     entity.minorHorizontalCollision = entity.isCollidedHorizontally && isHorizontalCollisionMinor(entity, dx, dz)
     // from 1.14 (Entity.move) the whole move against the one asked for, a step's up and down together
-    entity.isCollidedVertically = (stepDownKeepsMove ? movedY : dy) !== oldVelY
+    entity.isCollidedVertically = (wholeMoveCollides ? movedY : dy) !== oldVelY
     entity.onGround = entity.isCollidedVertically && oldVelY < 0
     if (onPosBelow) checkSupportingBlock(entity, world, positionFromBox ? entity.box : getPlayerBB(pos), new Vec3(dx, movedY, dz))
 
