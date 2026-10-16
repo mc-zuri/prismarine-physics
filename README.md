@@ -144,6 +144,10 @@ Read only properties:
 - mayFly : (boolean) may the player fly (bot.abilities.mayFly); then hunger does not keep it from sprinting
 - gameMode : (string) the game mode (bot.game.gameMode); a spectator moves through blocks, is never on the ground,
   keeps flying and takes the pose it wants
+- worldBorder : (object, optional) the world border (bot.worldBorder): centerX, centerZ and size. A player inside it
+  cannot leave it (up to 1.13 the cells outside it collide as full blocks; from 1.14 its shape collides, from 1.18 only
+  near it). Without one the engine takes the default border, 59999968 across around 0, 0. Up to 1.13 a player counts as
+  inside it within 1 past it, or 1 short of it when the last check found it outside (bot.entity.outsideBorder)
 - dimension : (string) the dimension type (bot.game.dimension); from 1.16 lava currents push three times as hard in
   the_nether
 - blindness : (integer) the blindness effect's level; blindness keeps a sprint from starting

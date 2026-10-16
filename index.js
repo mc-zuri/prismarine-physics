@@ -227,6 +227,9 @@ function Physics (mcData, world) {
   // The collision boxes around queryBB. `entity`: the player whose collision context shapes some blocks (scaffolding)
   function getSurroundingBBs (world, queryBB, entity) {
     const surroundingBBs = []
+    const border = entity && borderOf(entity)
+    // up to 1.13 a player inside the border collides with every cell outside it as with a full block
+    const cellsOutsideCollide = border && !borderShape && insideBorder(entity, border)
     const cursor = new Vec3(0, 0, 0)
     for (cursor.y = Math.floor(queryBB.minY) - 1; cursor.y <= Math.floor(queryBB.maxY); cursor.y++) {
       for (cursor.z = Math.floor(queryBB.minZ); cursor.z <= Math.floor(queryBB.maxZ); cursor.z++) {
@@ -234,7 +237,8 @@ function Physics (mcData, world) {
           const block = world.getBlock(cursor)
           if (block) {
             const blockPos = block.position
-            const shapes = shapesFor(block, blockPos, entity)
+            const outside = cellsOutsideCollide && !(blockPos.x + 1 > border.minX && blockPos.x < border.maxX && blockPos.z + 1 > border.minZ && blockPos.z < border.maxZ)
+            const shapes = outside ? FULL_BLOCK : shapesFor(block, blockPos, entity)
             for (const shape of shapes) {
               const blockBB = new AABB(shape[0], shape[1], shape[2], shape[3], shape[4], shape[5])
               blockBB.offset(blockPos.x, blockPos.y, blockPos.z)
@@ -244,7 +248,50 @@ function Physics (mcData, world) {
         }
       }
     }
+    // (the parts of the border's shape the box reaches)
+    if (border && borderShape && borderCollides(entity, border, queryBB)) surroundingBBs.push(...borderBoxes(border).filter(box => box.intersects(queryBB)))
     return surroundingBBs
+  }
+
+  // The world border (WorldBorder): the caller's (bot.worldBorder: centerX, centerZ and size), else the default one, 59999968
+  // across around 0, 0; each side at most 29999984 from 0 (absoluteMaxSize). A border that is moving is taken where it is.
+  const DEFAULT_BORDER = { centerX: 0, centerZ: 0, size: 59999968 }
+  const borderShape = mcData.version['>=']('1.14')
+  const borderOnlyNear = mcData.version['>=']('1.18')
+  function borderOf (entity) {
+    const { centerX, centerZ, size } = entity.worldBorder ?? DEFAULT_BORDER
+    const clamp = value => math.clamp(-29999984, value, 29999984)
+    return { minX: clamp(centerX - size / 2), maxX: clamp(centerX + size / 2), minZ: clamp(centerZ - size / 2), maxZ: clamp(centerZ + size / 2) }
+  }
+  // Up to 1.13 (World.isInsideWorldBorder): inside the border widened by 1, or narrowed by 1 for a player the last
+  // check found outside it (entity.outsideBorder, Entity.isOutsideBorder), which each check sets anew
+  function insideBorder (entity, border) {
+    const { x, z } = entity.pos
+    const margin = entity.outsideBorder ? -1 : 1
+    const inside = x > border.minX - margin && x < border.maxX + margin && z > border.minZ - margin && z < border.maxZ + margin
+    entity.outsideBorder = !inside
+    return inside
+  }
+  // From 1.14 the border's shape, everything outside it, is a collider: up to 1.17 while the player's box (deflated by
+  // 1.0E-7) is inside it, from 1.18 while the player is near it (isInsideCloseToBorder: closer than twice the larger
+  // horizontal size of the box, and within that of its inside)
+  function borderCollides (entity, border, queryBB) {
+    if (!borderOnlyNear) {
+      const box = (positionFromBox && entity.box ? entity.box : getPlayerBB(entity.pos)).clone().contract(1.0e-7, 1.0e-7, 1.0e-7)
+      return box.minX >= Math.floor(border.minX) && box.maxX <= Math.ceil(border.maxX) && box.minZ >= Math.floor(border.minZ) && box.maxZ <= Math.ceil(border.maxZ)
+    }
+    const reach = Math.max(Math.abs(queryBB.maxX - queryBB.minX), Math.abs(queryBB.maxZ - queryBB.minZ), 1)
+    const { x, z } = entity.pos
+    const distance = Math.min(x - border.minX, border.maxX - x, z - border.minZ, border.maxZ - z)
+    return distance < reach * 2 && x > border.minX - reach && x < border.maxX + reach && z > border.minZ - reach && z < border.maxZ + reach
+  }
+  // Shapes.join(INFINITY, box(floor(minX), -inf, floor(minZ), ceil(maxX), inf, ceil(maxZ)), ONLY_FIRST) as boxes
+  function borderBoxes (border) {
+    const inf = Infinity
+    const minX = Math.floor(border.minX)
+    const maxX = Math.ceil(border.maxX)
+    return [new AABB(-inf, -inf, -inf, minX, inf, inf), new AABB(maxX, -inf, -inf, inf, inf, inf),
+      new AABB(minX, -inf, -inf, maxX, inf, Math.floor(border.minZ)), new AABB(minX, -inf, Math.ceil(border.maxZ), maxX, inf, inf)]
   }
 
   // The shapes of the blocks that collide with a box (Level.getBlockCollisions: a block whose shape overlaps it), each a
@@ -2525,6 +2572,10 @@ class PlayerState {
     this.gameMode = bot.game?.gameMode
     // the dimension type (bot.game.dimension), e.g. the_nether, where lava flows faster
     this.dimension = bot.game?.dimension
+    // the world border (bot.worldBorder: centerX, centerZ, size), or the default one
+    this.worldBorder = bot.worldBorder
+    // up to 1.13, whether the last border check found the player outside the border (Entity.isOutsideBorder)
+    this.outsideBorder = !!bot.entity.outsideBorder
     this.attributes = bot.entity.attributes
     this.yaw = bot.entity.yaw
     // the client's yRot in degrees, not wrapped, when the caller keeps it (read only)
@@ -2595,6 +2646,7 @@ class PlayerState {
     bot.entity.fallDistance = this.fallDistance
     bot.jumpTicks = this.jumpTicks
     bot.autoJumpTime = this.autoJumpTime
+    bot.entity.outsideBorder = this.outsideBorder
     bot.jumpQueued = this.jumpQueued
     bot.fireworkRocketDuration = this.fireworkRocketDuration
   }
