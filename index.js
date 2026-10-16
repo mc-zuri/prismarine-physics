@@ -250,7 +250,86 @@ function Physics (mcData, world) {
     }
     // (the parts of the border's shape the box reaches)
     if (border && borderShape && borderCollides(entity, border, queryBB)) surroundingBBs.push(...borderBoxes(border).filter(box => box.intersects(queryBB)))
+    // Level.getEntityCollisions: the boxes of the entities that can be collided with (boats, shulkers; not minecarts,
+    // which only collide with others) that the box (inflated by 1.0E-7) reaches
+    if (entity && entity.otherEntities) {
+      const reach = queryBB.clone().expand(1.0e-7, 1.0e-7, 1.0e-7)
+      for (const other of entity.otherEntities) if (other.solid && other.box.intersects(reach)) surroundingBBs.push(other.box.clone())
+    }
     return surroundingBBs
+  }
+
+  // The client ticks the other entities around the player's tick, and they push a player they touch (Entity.push: away
+  // from the pusher's center by 0.05 times at most 1 over the root of the larger horizontal distance, from 0.01; the root
+  // in float up to 1.16): a living entity a player inside its box (LivingEntity.pushEntities), a boat one inside its box
+  // inflated by 0.2 across and 0.01 less high whose feet are not above the boat's (Boat.tick, Boat.push). A spectator
+  // or a player on a climbable block is not pushed (isPushable).
+  // Up to 1.13 and from 1.17 the other entities tick after the player (in the order they joined); from 1.14 to 1.16 the
+  // client ticks them in its entity map's order (Int2ObjectOpenHashMap: slot mix(id) & mask, from the highest slot
+  // down), so an entity whose slot is above the player's ticks before it. Up to 1.8 only the server pushes
+  // (EntityLivingBase.collideWithNearbyEntities runs on the server side).
+  const pushRootInFloat = mcData.version['<']('1.17')
+  const entitiesInHashOrder = mcData.version['>=']('1.14') && mcData.version['<']('1.17')
+  const clientPushes = mcData.version['>=']('1.9')
+  // The slot of each entity the client knows (entity.entityIds, the player's among them) in its entity map, filled as
+  // they joined: the player first, then the others by id. A new key takes the next free slot from its own; the table
+  // starts at 32 slots and doubles when a key would take it past 3/4 full, moving the keys from the highest slot down
+  // (fastutil's rehash). The null key (id 0) has a slot of its own, visited first.
+  function entityMapSlots (playerId, ids) {
+    let n = 32
+    let slots = new Int32Array(n).fill(-1)
+    let size = 0
+    const slotOf = (table, mask, id) => {
+      const h = Math.imul(id, 0x9E3779B9)
+      let slot = (h ^ (h >>> 16)) & mask
+      while (table[slot] !== -1) slot = (slot + 1) & mask
+      return slot
+    }
+    const hasNull = ids.includes(0)
+    for (const id of [playerId, ...ids.filter(id => id !== playerId && id !== 0).sort((a, b) => a - b)]) {
+      if (id === 0) continue
+      slots[slotOf(slots, n - 1, id)] = id
+      if (++size + (hasNull ? 1 : 0) > n * 0.75) {
+        const old = slots
+        n *= 2
+        slots = new Int32Array(n).fill(-1)
+        for (let i = old.length - 1; i >= 0; i--) if (old[i] !== -1) slots[slotOf(slots, n - 1, old[i])] = old[i]
+      }
+    }
+    const result = new Map()
+    slots.forEach((id, slot) => { if (id !== -1) result.set(id, slot) })
+    if (hasNull) result.set(0, n)
+    return result
+  }
+  // The other entities in the order the client ticks them, those before the player and those after it
+  function tickOrder (entity) {
+    const others = [...entity.otherEntities].sort((a, b) => (a.id ?? 0) - (b.id ?? 0))
+    if (!entitiesInHashOrder || entity.entityId == null || others.some(other => other.id == null)) return { before: [], after: others }
+    const slots = entityMapSlots(entity.entityId, [...new Set([...(entity.entityIds ?? []), ...others.map(other => other.id)])])
+    const playerSlot = slots.get(entity.entityId)
+    const placed = others.map(other => ({ other, slot: slots.get(other.id) })).sort((a, b) => b.slot - a.slot)
+    return { before: placed.filter(p => p.slot > playerSlot).map(p => p.other), after: placed.filter(p => p.slot < playerSlot).map(p => p.other) }
+  }
+  function pushedByOthers (entity, world, beforePlayer) {
+    if (!clientPushes || !entity.otherEntities || entity.gameMode === 'spectator' || isOnLadder(world, entity.pos)) return
+    const box = positionFromBox && entity.box ? entity.box : getPlayerBB(entity.pos)
+    const order = tickOrder(entity)
+    for (const other of beforePlayer ? order.before : order.after) {
+      const pushes = other.boat
+        ? box.intersects(other.box.clone().expand(0.20000000298023224, -0.009999999776482582, 0.20000000298023224)) && box.minY <= other.box.minY
+        : other.living && box.intersects(other.box)
+      if (!pushes) continue
+      let dx = entity.pos.x - other.position.x
+      let dz = entity.pos.z - other.position.z
+      let distance = Math.max(Math.abs(dx), Math.abs(dz))
+      if (distance < 0.009999999776482582) continue
+      distance = pushRootInFloat ? Math.fround(Math.sqrt(distance)) : Math.sqrt(distance)
+      dx /= distance
+      dz /= distance
+      const scale = Math.min(1 / distance, 1)
+      entity.vel.x += dx * scale * 0.05000000074505806
+      entity.vel.z += dz * scale * 0.05000000074505806
+    }
   }
 
   // The world border (WorldBorder): the caller's (bot.worldBorder: centerX, centerZ and size), else the default one, 59999968
@@ -310,6 +389,11 @@ function Physics (mcData, world) {
           if (boxes.some(box => box.intersects(queryBB))) shapes.push(boxes)
         }
       }
+    }
+    // (Entity.collectColliders: the entities' too)
+    if (entity && entity.otherEntities) {
+      const reach = queryBB.clone().expand(1.0e-7, 1.0e-7, 1.0e-7)
+      for (const other of entity.otherEntities) if (other.solid && other.box.intersects(reach)) shapes.push([other.box.clone()])
     }
     return shapes
   }
@@ -2335,7 +2419,12 @@ function Physics (mcData, world) {
   physics.simulatePlayer = (entity, world) => {
     playerDims = dimensionsOf(entity)
     try {
-      return simulateTick(entity, world)
+      // the use key let go before the tick pushes a riptide first, before any entity ticks
+      if (entity.riptide > 0) riptide(entity, world)
+      pushedByOthers(entity, world, true)
+      simulateTick(entity, world)
+      pushedByOthers(entity, world, false)
+      return entity
     } finally {
       playerDims = null
     }
@@ -2344,7 +2433,6 @@ function Physics (mcData, world) {
   function simulateTick (entity, world) {
     const vel = entity.vel
     const pos = entity.pos
-    if (entity.riptide > 0) riptide(entity, world)
     const tickStart = pos.clone()
     // Player.tick: a spectator is never on the ground (and moves with noPhysics, moveEntity)
     const spectator = entity.gameMode === 'spectator'
@@ -2529,6 +2617,28 @@ function getEnchantmentLevel (mcData, enchantmentName, enchantments) {
   return 0
 }
 
+// The other entities near the player as the caller knows them (bot.entities: name, type, position, width, height)
+const SOLID_ENTITY = /(^|_)(boat|raft)$|^shulker$/
+const NOT_LIVING = new Set(['object', 'other', 'projectile', 'orb', 'global'])
+// (minecraft-data up to 1.16 types every entity as a mob: the kinds that are not living entities, by name)
+const NOT_LIVING_NAME = /arrow|bobber|firework|^item|orb$|xp_|experience|potion|snowball|egg$|pearl|eye_of_ender|trident|tnt|falling_block|minecart|boat|raft|leash|painting|frame|marker|display|interaction|lightning|area_effect|spit|fireball|skull|bullet|fangs|wind_charge/
+// (living entities that push nothing: an armor stand pushes only minecarts, a bat nothing; ArmorStand and Bat pushEntities)
+const NO_PUSH_NAME = /^armor_?stand$|^bat$/
+function otherEntitiesOf (bot) {
+  const self = bot.entity
+  const others = []
+  for (const other of Object.values(bot.entities ?? {})) {
+    if (!other || other === self || !other.position || !(other.width > 0) || !(other.height > 0)) continue
+    if (Math.abs(other.position.x - self.position.x) > 8 || Math.abs(other.position.z - self.position.z) > 8 || Math.abs(other.position.y - self.position.y) > 8) continue
+    const half = other.width / 2
+    const box = new AABB(other.position.x - half, other.position.y, other.position.z - half, other.position.x + half, other.position.y + other.height, other.position.z + half)
+    // (names are CamelCase up to 1.10, where a shulker bullet is an object named Shulker)
+    const name = (other.name ?? '').toLowerCase()
+    others.push({ id: other.id, box, position: other.position, boat: /(^|_)(boat|raft)$/.test(name), solid: SOLID_ENTITY.test(name) && !(name === 'shulker' && other.type === 'object'), living: !NOT_LIVING.has(other.type) && !NOT_LIVING_NAME.test(name) && !NO_PUSH_NAME.test(name) })
+  }
+  return others
+}
+
 class PlayerState {
   constructor (bot, control) {
     // Prefer the bot's already-resolved registry: it is correct for every edition, whereas re-resolving by bot.version
@@ -2604,6 +2714,11 @@ class PlayerState {
     this.worldBorder = bot.worldBorder
     // up to 1.13, whether the last border check found the player outside the border (Entity.isOutsideBorder)
     this.outsideBorder = !!bot.entity.outsideBorder
+    // the other entities near the player (bot.entities), which collide with it and push it
+    this.otherEntities = bot.entities ? otherEntitiesOf(bot) : null
+    this.entityId = bot.entity.id
+    // the ids of every entity the client knows (bot.entities), which place the others in its entity map (1.14 to 1.16)
+    this.entityIds = bot.entities ? Object.values(bot.entities).filter(other => other && other.id != null).map(other => other.id) : null
     this.attributes = bot.entity.attributes
     this.yaw = bot.entity.yaw
     // the client's yRot in degrees, not wrapped, when the caller keeps it (read only)

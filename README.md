@@ -149,6 +149,16 @@ Read only properties:
 - mayFly : (boolean) may the player fly (bot.abilities.mayFly); then hunger does not keep it from sprinting
 - gameMode : (string) the game mode (bot.game.gameMode); a spectator moves through blocks, is never on the ground,
   keeps flying and takes the pose it wants
+- otherEntities : (array or null) the other entities within 8 blocks, from bot.entities (each entity's id, name, type,
+  position, width and height). Boats, rafts and shulkers are colliders (Level.getEntityCollisions; from 1.21 also for
+  the step-up heights); a minecart is not. The client ticks the other entities after the player (from 1.14 to 1.16 in
+  its entity map's order, so some before it), and from 1.9 a living entity whose box the player is in (not an armor
+  stand or a bat), or a boat the player touches, pushes it away by up to 0.05 (Entity.push); a spectator or a player on
+  a climbable block is not pushed. On 1.14 to 1.16 a gliding player's rocket boosts in that order too: the first rocket
+  near the player is taken for the one it rides
+- entityIds : (array or null) the ids of every entity the client knows (bot.entities), which place the others in its
+  entity map on 1.14 to 1.16
+- entityId : (integer) the player's entity id (bot.entity.id), for the order of the entity map on 1.14 to 1.16
 - worldBorder : (object, optional) the world border (bot.worldBorder): centerX, centerZ and size. A player inside it
   cannot leave it (up to 1.13 the cells outside it collide as full blocks; from 1.14 its shape collides, from 1.18 only
   near it). Without one the engine takes the default border, 59999968 across around 0, 0. Up to 1.13 a player counts as
