@@ -119,6 +119,8 @@ Read only properties:
 - mayFly : (boolean) may the player fly (bot.abilities.mayFly); then hunger does not keep it from sprinting
 - blindness : (integer) the blindness effect's level; blindness keeps a sprint from starting
 - yaw : (float) the yaw angle, in radians, of the player entity
+- yRot : (number, optional) the yaw in degrees as the client keeps it, not wrapped (bot.entity.yRot). The sine table
+  reads it, and -80 and 280 differ in the last bits; used when it looks the same way as yaw
 - pitch: (float) the pitch angle, in radians, of the player entity
 - usingItem : (boolean) is the player using its held item (bot.usingHeldItem)? It slows the input to 0.2F
 - swiftSneak : (integer) the Swift Sneak level of the leggings (bot.inventory slot 7), which lessens the sneak slowdown on 1.19 and 1.20

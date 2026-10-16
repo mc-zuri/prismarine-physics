@@ -613,11 +613,20 @@ function Physics (mcData, world) {
   // entity's yaw. applyHeading and isHorizontalCollisionMinor MUST share it so their conventions cannot drift (the strafe
   // sign in particular): x = -(strafe*cos + forward*sin), z = forward*cos - strafe*sin.
   // The sin and cos are Mth.sin and Mth.cos of the float yRot in radians, read from the sine table (lib/math.js).
-  // yRot is recovered as degrees(PI - yaw), the value mineflayer sends. The table entry depends on the unwrapped
-  // angle, so a yaw normalized to [0, 2PI) matches a client only while its yRot is within (-180, 180].
   // Mth.sin and Mth.cos of the float yRot in radians: yRot * 0.017453292F, or with `piOver180` yRot * 3.1415927F / 180.0F
-  function yawSinCos (yaw, piOver180) {
-    const yRot = Math.fround((Math.PI - yaw) * 180 / Math.PI)
+  // The float yRot in degrees the sine table reads. Its table entry depends on the unwrapped angle (the index truncates
+  // towards zero), so -80 and 280 differ in the last bits: the client's own yRot (entity.yRot) when the caller has it and
+  // it looks the same way as the yaw, else degrees(PI - yaw), which matches a client whose yRot is within (-180, 180].
+  function yRotOf (entity) {
+    const derived = Math.fround((Math.PI - entity.yaw) * 180 / Math.PI)
+    const given = entity.yRot
+    if (typeof given !== 'number') return derived
+    const turn = (((given - derived) % 360) + 540) % 360 - 180
+    return Math.abs(turn) < 1.0e-3 ? Math.fround(given) : derived
+  }
+
+  function yawSinCos (entity, piOver180) {
+    const yRot = yRotOf(entity)
     const radians = piOver180
       ? Math.fround(Math.fround(yRot * math.PI_F) / 180)
       : Math.fround(yRot * math.DEG_TO_RAD_F)
@@ -743,7 +752,7 @@ function Physics (mcData, world) {
   // float. Up to 1.12 (getVectorForRotation) from -yRot - PI and -xRot; since (calculateViewVector) from -yRot and xRot.
   function viewVector (entity) {
     const f = Math.fround
-    const yRot = f((Math.PI - entity.yaw) * 180 / Math.PI)
+    const yRot = yRotOf(entity)
     const xRot = f(-entity.pitch * 180 / Math.PI)
     const sin = r => math.mthSin(r, sinTableDoubleIndex)
     const cos = r => math.mthCos(r, sinTableDoubleIndex)
@@ -991,7 +1000,7 @@ function Physics (mcData, world) {
     }
     vel.y = jumpKeepsHigherMotion ? Math.max(power, vel.y) : power
     if (entity.isSprinting) {
-      const { sin, cos } = yawSinCos(entity.yaw, false)
+      const { sin, cos } = yawSinCos(entity, false)
       if (sprintJumpInDouble) {
         vel.x += -sin * 0.2
         vel.z += cos * 0.2
@@ -1012,8 +1021,8 @@ function Physics (mcData, world) {
   }
 
   // `round` rounds each operation, Math.fround where vanilla computes it in float (moveRelative before 1.14).
-  function inputToWorld (strafe, forward, yaw, round = x => x) {
-    const { sin, cos } = yawSinCos(yaw, headingAnglePiOver180)
+  function inputToWorld (strafe, forward, entity, round = x => x) {
+    const { sin, cos } = yawSinCos(entity, headingAnglePiOver180)
     return { x: -round(round(strafe * cos) + round(forward * sin)), z: round(round(forward * cos) - round(strafe * sin)) }
   }
 
@@ -1029,7 +1038,7 @@ function Physics (mcData, world) {
       f = Math.fround(Math.sqrt(f))
       if (f < 1) f = 1
       f = Math.fround(speed / f)
-      dir = inputToWorld(Math.fround(strafe * f), Math.fround(forward * f), entity.yaw, Math.fround)
+      dir = inputToWorld(Math.fround(strafe * f), Math.fround(forward * f), entity, Math.fround)
     } else {
       const lengthSqr = strafe * strafe + forward * forward
       if (lengthSqr < 1.0e-7) return
@@ -1038,7 +1047,7 @@ function Physics (mcData, world) {
         strafe /= length
         forward /= length
       }
-      dir = inputToWorld(strafe * speed, forward * speed, entity.yaw)
+      dir = inputToWorld(strafe * speed, forward * speed, entity)
     }
     entity.vel.x += dir.x
     entity.vel.z += dir.z
@@ -1186,7 +1195,7 @@ function Physics (mcData, world) {
   function isHorizontalCollisionMinor (entity, dx, dz) {
     // Use the same input-to-world transform as applyHeading so the desired direction matches where the move actually went
     // (an earlier local copy flipped the strafe sign, so diagonal input was compared against the wrong direction).
-    const want = inputToWorld(entity.inputStrafe, entity.inputForward, entity.yaw)
+    const want = inputToWorld(entity.inputStrafe, entity.inputForward, entity)
     const wantSq = want.x * want.x + want.z * want.z
     const moveSq = dx * dx + dz * dz
     if (wantSq < 1e-5 || moveSq < 1e-5) return false
@@ -2059,6 +2068,8 @@ class PlayerState {
     this.flyingSpeed = bot.entity.flyingSpeed ?? 0.05
     this.attributes = bot.entity.attributes
     this.yaw = bot.entity.yaw
+    // the client's yRot in degrees, not wrapped, when the caller keeps it (read only)
+    this.yRot = bot.entity.yRot
     this.pitch = bot.entity.pitch
     this.control = control
 
