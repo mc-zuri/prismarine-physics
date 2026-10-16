@@ -190,6 +190,9 @@ function Physics (mcData, world) {
   const stepHeightResource = mcData.attributesByName.stepHeight?.resource
   const stepDownKeepsMove = mcData.version['>=']('1.14') && mcData.version['<']('1.21')
   const largerAxisFirst = mcData.version['>=']('1.14')
+  const tinyAxisMoveCutoff = mcData.version['>=']('1.13')
+  const borderAlwaysCollides = mcData.version['>=']('1.14') && mcData.version['<']('1.18')
+  const touchingCollides = mcData.version['<']('1.14')
   const collisionTolerance = mcData.version['>=']('1.14')
   const collisionStopsMotion = mcData.version['>=']('1.18.2')
   const candidateStepUp = mcData.version['>=']('1.21')
@@ -309,20 +312,42 @@ function Physics (mcData, world) {
     pos.y += dy
   }
 
+  // From 1.13 (Shapes.collide) a move along an axis under 1.0E-7 is none when the collide call has shapes to collide
+  // with, checked before each: on 1.13 those touching the box swept by its move (IWorldReaderBase.getCollisionBoxes:
+  // grown by 1.0E-7; vanilla also leaves out what only the box itself, shifted 1.0E-7 back, overlaps, and asks once for
+  // a whole step, both left out here); from 1.14 to 1.17 always the world border's, the player being inside it
+  // (collideBoundingBoxHeuristically); from 1.18 those in the swept box (Level.getBlockCollisions), the border's only
+  // near it
+  function hasColliders (boxes, query) {
+    if (!tinyAxisMoveCutoff) return false
+    if (borderAlwaysCollides) return true
+    if (touchingCollides) query = query.clone().expand(1.0e-7, 1.0e-7, 1.0e-7)
+    return boxes.some(box => box.intersects(query))
+  }
+
+  function collideAlong (axis, boxes, bb, d, cutoff) {
+    if (cutoff && Math.abs(d) < 1.0e-7) return 0
+    for (const blockBB of boxes) {
+      if (cutoff && Math.abs(d) < 1.0e-7) return 0
+      d = blockBB[axis](bb, d)
+    }
+    return d
+  }
+
   // A move against the boxes, axis by axis, moving the box with it: y, x then z up to 1.13 (Entity.move); from 1.14 y,
   // then the larger horizontal axis first (Entity.collideWithShapes: z before x where |x| < |z|)
-  function collideAxes (boxes, bb, dx, dy, dz) {
-    for (const blockBB of boxes) dy = blockBB.computeOffsetY(bb, dy)
+  function collideAxes (boxes, bb, dx, dy, dz, cutoff = hasColliders(boxes, bb.clone().extend(dx, dy, dz))) {
+    dy = collideAlong('computeOffsetY', boxes, bb, dy, cutoff)
     bb.offset(0, dy, 0)
     const zFirst = largerAxisFirst && Math.abs(dx) < Math.abs(dz)
     if (zFirst) {
-      for (const blockBB of boxes) dz = blockBB.computeOffsetZ(bb, dz)
+      dz = collideAlong('computeOffsetZ', boxes, bb, dz, cutoff)
       bb.offset(0, 0, dz)
     }
-    for (const blockBB of boxes) dx = blockBB.computeOffsetX(bb, dx)
+    dx = collideAlong('computeOffsetX', boxes, bb, dx, cutoff)
     bb.offset(dx, 0, 0)
     if (!zFirst) {
-      for (const blockBB of boxes) dz = blockBB.computeOffsetZ(bb, dz)
+      dz = collideAlong('computeOffsetZ', boxes, bb, dz, cutoff)
       bb.offset(0, 0, dz)
     }
     return { dx, dy, dz }
@@ -425,7 +450,7 @@ function Physics (mcData, world) {
       const colliders = shapes.flat()
       for (const height of stepUpHeights(fromBB, shapes, stepHeight, Math.fround(dy))) {
         const bb = fromBB.clone()
-        const step = collideAxes(colliders, bb, oldVelX, height, oldVelZ)
+        const step = collideAxes(colliders, bb, oldVelX, height, oldVelZ, hasColliders(colliders, stepBB))
         if (step.dx * step.dx + step.dz * step.dz > dx * dx + dz * dz) {
           dx = step.dx
           dz = step.dz
@@ -450,10 +475,7 @@ function Physics (mcData, world) {
       const BB2 = oldBB.clone()
       const { dx: dx2, dy: dy2, dz: dz2 } = collideAxes(surroundingBBs, BB2, oldVelX, dy, oldVelZ)
       const BB_XZ = oldBB.clone().extend(oldVelX, 0, oldVelZ)
-      let dy1 = dy
-      for (const blockBB of surroundingBBs) {
-        dy1 = blockBB.computeOffsetY(BB_XZ, dy1)
-      }
+      const dy1 = collideAlong('computeOffsetY', surroundingBBs, BB_XZ, dy, hasColliders(surroundingBBs, BB_XZ.clone().extend(0, dy, 0)))
       const BB1 = oldBB.clone().offset(0, dy1, 0)
       const { dx: dx1, dz: dz1 } = collideAxes(surroundingBBs, BB1, oldVelX, 0, oldVelZ)
 
@@ -476,9 +498,7 @@ function Physics (mcData, world) {
       // Up to 1.13 the step goes down no further than it went up, within the step's boxes. From 1.14 it can go down by the
       // move's own fall too, so it collides with the boxes under it (collideBoundingBoxHeuristically on its own box)
       const stepDownBBs = stepDownKeepsMove ? getSurroundingBBs(world, playerBB.clone().extend(0, dy, 0), entity) : surroundingBBs
-      for (const blockBB of stepDownBBs) {
-        dy = blockBB.computeOffsetY(playerBB, dy)
-      }
+      dy = collideAlong('computeOffsetY', stepDownBBs, playerBB, dy, hasColliders(stepDownBBs, playerBB.clone().extend(0, dy, 0)))
       playerBB.offset(0, dy, 0)
 
       if (oldVelXCol * oldVelXCol + oldVelZCol * oldVelZCol >= dx * dx + dz * dz) {
