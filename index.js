@@ -278,6 +278,7 @@ function Physics (mcData, world) {
   // (EntityLivingBase.collideWithNearbyEntities runs on the server side).
   const pushRootInFloat = mcData.version['<']('1.17')
   const boatRiderWetUnderWater = mcData.version['>=']('1.19.3')
+  const passengerSprintNeedsVehicle = mcData.version['>=']('1.19.4')
   const entitiesInHashOrder = mcData.version['>=']('1.14') && mcData.version['<']('1.17')
   const clientPushes = mcData.version['>=']('1.9')
   // The slot of each entity the client knows (entity.entityIds, the player's among them) in its entity map, filled as
@@ -1827,6 +1828,8 @@ function Physics (mcData, world) {
   //   impulse keeps it. From 1.16 sneaking resets the double tap, from 1.19.4 elytra flight blocks a start, and 1.21.4
   //   stops a sprint while gliding, blind, slowed or using an item, and starts none while slowed.
   // - From 1.21.5: canStartSprinting and shouldStopRunSprinting on the raw forward key; a double tap needs no ground.
+  // From 1.19.4 a passenger starts a sprint only on a vehicle that can sprint (a camel: vehicleCanSprint); from 1.21.5
+  // isSprintingPossible also stops it, and a passenger needs no food.
   function updateSprinting (entity, impulse) {
     const control = entity.control
     const lastImpulse = entity.forwardImpulse
@@ -1834,6 +1837,7 @@ function Physics (mcData, world) {
     const underWater = entity.isUnderWater
     const shallowWater = entity.isInWater && !underWater
     const enoughFood = entity.food > 6 || entity.mayFly
+    const passengerMaySprint = !(passengerSprintNeedsVehicle && entity.riding) || !!entity.riding.canSprint
     const blind = entity.blindness > 0
     const slowed = isMovingSlowly(entity)
     const collided = entity.isCollidedHorizontally && !(sprintSurvivesMinorCollision && entity.minorHorizontalCollision)
@@ -1842,7 +1846,7 @@ function Physics (mcData, world) {
     if (inputScalesFirst) {
       if (wasSneaking || entity.usingItem || control.back) entity.sprintTriggerTime = 0
       const hasImpulse = impulse > 1.0e-5
-      const possible = !blind && enoughFood && (sprintPossibleWhileFlying ? entity.flying || !shallowWater : !shallowWater)
+      const possible = !blind && (entity.riding ? passengerMaySprint : enoughFood) && (sprintPossibleWhileFlying ? entity.flying || !shallowWater : !shallowWater)
       if (!entity.isSprinting && hasImpulse && possible && !entity.usingItem && (!entity.elytraFlying || underWater) && (!slowed || underWater)) {
         if (!(lastImpulse > 1.0e-5)) {
           if (entity.sprintTriggerTime > 0) entity.isSprinting = true
@@ -1865,7 +1869,7 @@ function Physics (mcData, world) {
     if (entity.usingItem || (sneakResetsSprintTrigger && wasSneaking)) entity.sprintTriggerTime = 0
     const enough = value => !legacy && underWater ? value > 1.0e-5 : value >= 0.8
     const canStart = !entity.isSprinting && enough(impulse) && enoughFood && !entity.usingItem && !blind &&
-      !(elytraBlocksSprintStart && entity.elytraFlying) && !(sprintStopsWhenSlowed && slowed && !underWater)
+      !(elytraBlocksSprintStart && entity.elytraFlying) && !(sprintStopsWhenSlowed && slowed && !underWater) && passengerMaySprint
     if ((entity.onGround || (sprintWaterRules && underWater)) && !wasSneaking && !enough(lastImpulse) && canStart) {
       if (entity.sprintTriggerTime <= 0 && !control.sprint) entity.sprintTriggerTime = 7
       else entity.isSprinting = true
@@ -2872,7 +2876,7 @@ class PlayerState {
     // whether the player sleeps in a bed (bot.isSleeping), which keeps it in the sleeping pose
     this.sleeping = !!bot.isSleeping
     // the vehicle the player rides (bot.vehicle: its position, and whether it is a boat), which places it
-    this.riding = bot.vehicle ? { position: bot.vehicle.position?.clone(), boat: !!bot.vehicle.position && /(^|_)(boat|raft)$/i.test(bot.vehicle.name ?? '') } : null
+    this.riding = bot.vehicle ? { position: bot.vehicle.position?.clone(), boat: !!bot.vehicle.position && /(^|_)(boat|raft)$/i.test(bot.vehicle.name ?? ''), canSprint: /^camel$/i.test(bot.vehicle.name ?? '') } : null
     this.food = bot.food ?? 20
     this.mayFly = bot.abilities?.mayFly ?? false
     this.elytraFlying = bot.entity.elytraFlying

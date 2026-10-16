@@ -75,3 +75,29 @@ describe('a player riding a boat that moved ahead', () => {
     })
   }
 })
+
+// From 1.19.4 a passenger starts a sprint only on a vehicle that can sprint (LocalPlayer.vehicleCanSprint: a camel): a
+// boat's rider holding the sprint key moves as without it. Up to 1.19.3 the key starts a sprint.
+describe('a player riding a boat with the sprint key', () => {
+  const ride = (version) => {
+    const mcData = require('minecraft-data')(version)
+    const Block = require('prismarine-block')(version)
+    const world = { getBlock: (pos) => { const block = new Block(mcData.blocksByName[pos.y <= 100 ? 'water' : 'air'].id, 0, 0); block.position = pos.floored(); return block } }
+    const entity = { position: new Vec3(0.5, 100.11076049837288, 0.5), velocity: new Vec3(0, 0, 0), onGround: false, isInWater: false, isInLava: false, isInWeb: false, isCollidedHorizontally: false, isCollidedVertically: false, elytraFlying: false, yaw: -Math.PI / 2, pitch: 0, effects: {} }
+    const vehicle = { id: 97, name: mcData.entitiesByName.oak_boat ? 'oak_boat' : 'boat', position: new Vec3(0.5, 100.52326049837288, 0.5) }
+    const bot = { entity, vehicle, jumpTicks: 0, jumpQueued: false, fireworkRocketDuration: 0, version, inventory: { slots: [] }, food: 20 }
+    const controls = { forward: true, back: false, left: false, right: false, jump: false, sprint: true, sneak: false }
+    Physics(mcData, world).simulatePlayer(new PlayerState(bot, controls), world).apply(bot)
+    return entity
+  }
+  for (const version of ['1.20.4', '1.21.11', '26.1']) {
+    it(`${version}: does not sprint`, () => {
+      const entity = ride(version)
+      expect(entity.velocity.x).toBe(0.017836000462502232)
+      expect(entity.isSprinting).toBe(false)
+    })
+  }
+  it('1.18.2: sprints', () => {
+    expect(ride('1.18.2').isSprinting).toBe(true)
+  })
+})

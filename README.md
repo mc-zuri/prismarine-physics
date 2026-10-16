@@ -180,7 +180,7 @@ Read only properties:
   near the player is taken for the one it rides
 - riding : (object or null) the vehicle the player rides (bot.vehicle: its name and position). A passenger ticks from no
   motion with its own input and stays where it is (its vehicle places it); a boat's rider is out of the water, from
-  1.19.3 unless the boat is under water
+  1.19.3 unless the boat is under water. From 1.19.4 a passenger sprints only on a camel
 - entityIds : (array or null) the ids of every entity the client knows (bot.entities), which place the others in its
   entity map on 1.14 to 1.16
 - movingPistons : (array or null) the moving piston blocks (bot.movingPistons), each { position (the block's cell),
