@@ -115,8 +115,13 @@ Read / Write properties:
 - supportingBlockPos : (vec3 or null) from 1.20, the block holding the player up as the last move found it
   (Entity.mainSupportingBlockPos); the blocks under the player that affect its movement are found from it
 - onGroundNoBlocks : (boolean) from 1.20, whether the last move found no supporting block while on the ground
-- flying : (boolean) is the player creative flying (bot.entity.flying, from the abilities the server grants)? A flyer
-  that lands stops flying, unless a spectator; a caller that talks to a server then sends its abilities (mineflayer does)
+- flying : (boolean) is the player creative flying (bot.entity.flying, from the abilities the server grants)? A player
+  that may fly toggles it with a second press of jump within 6 ticks, a spectator always flies, and a flyer that lands
+  stops flying unless a spectator; a caller that talks to a server sends its abilities when it changes (mineflayer does)
+- jumpTriggerTime : (integer) ticks left for a second press of jump to toggle flight
+- flightToggled : (boolean, set by each tick) did a press of jump toggle flight on this tick (or a spectator start
+  flying)? A caller that talks to a server then sends its abilities, before any START_FALL_FLYING command
+  (onUpdateAbilities)
 
 Read only properties:
 - food : (number) the food level (bot.food); 6 or less keeps a sprint from starting

@@ -203,6 +203,9 @@ function Physics (mcData, world) {
   const largerAxisFirst = mcData.version['>=']('1.14')
   const candidateStepUp = mcData.version['>=']('1.21')
   const noPhysicsClearsCollisions = mcData.version['>=']('1.21.9')
+  const flightToggleJumps = mcData.version['>=']('1.20.5')
+  const glideWaitsForFlightToggle = mcData.version['>=']('1.15')
+  const swimmingBlocksFlightToggle = mcData.version['>=']('1.13')
   const wholeMoveCollides = mcData.version['>=']('1.14')
   function stepHeightOf (entity) {
     const synced = stepHeightResource && entity.attributes && entity.attributes[stepHeightResource]
@@ -761,13 +764,40 @@ function Physics (mcData, world) {
     return { drag, acceleration }
   }
 
+  // LocalPlayer.aiStep, after the sprint logic: a spectator that may fly always flies. Another toggles flight on a press of
+  // jump (not held from the tick before) while jumpTriggerTime, which the press before set to 7, is not 0: within 6 ticks;
+  // from 1.13 not while swimming, and from 1.20.5 starting to fly on the ground jumps. Player.aiStep then counts
+  // jumpTriggerTime down. The caller tells the server of a change (onUpdateAbilities).
+  function toggleFlight (entity, world) {
+    let toggled = false
+    if (entity.mayFly && entity.gameMode === 'spectator') {
+      if (!entity.flying) {
+        entity.flying = true
+        toggled = true
+      }
+    } else if (entity.mayFly && entity.control.jump && !entity.wasJumping) {
+      if (entity.jumpTriggerTime === 0) {
+        entity.jumpTriggerTime = 7
+      } else if (!(swimmingBlocksFlightToggle && entity.isSwimming)) {
+        entity.flying = !entity.flying
+        if (flightToggleJumps && entity.flying && entity.onGround) jumpFromGround(entity, world)
+        entity.jumpTriggerTime = 0
+        toggled = true
+      }
+    }
+    if (entity.jumpTriggerTime > 0) entity.jumpTriggerTime--
+    entity.flightToggled = toggled
+    return toggled
+  }
+
   // LocalPlayer.aiStep asks the server to start gliding (START_FALL_FLYING) when jump is pressed (not held from the tick
   // before) in the air with a usable elytra, not creative flying. Up to 1.14 it asks only while falling (the motion the
   // tick started with), and the server's entity data starts the glide later. From 1.15 it starts the glide at once, and
   // asks, when also not on a ladder, not in water and from 1.16 not levitating (Player.tryToStartFallFlying).
-  function tryToStartFallFlying (entity, world, startVelY) {
+  function tryToStartFallFlying (entity, world, startVelY, flightToggled) {
     entity.fallFlyingRequested = false
     if (!entity.control.jump || entity.wasJumping || entity.flying || entity.onGround || entity.elytraFlying) return
+    if (flightToggled && glideWaitsForFlightToggle) return // from 1.15 not on the tick flight was toggled
     if (!entity.elytraEquipped) return
     if (!clientStartsGliding) {
       entity.fallFlyingRequested = startVelY < 0
@@ -2045,6 +2075,20 @@ function Physics (mcData, world) {
 
     pushOutOfBlocks(entity, world)
     const startVelY = vel.y
+
+    // LocalPlayer.aiStep (1.14+): crouching with the tick before's sneak key, or where standing does not fit but crouching
+    // does; never while flying or swimming
+    if (posePoses) {
+      entity.crouching = !entity.flying && !entity.isSwimming && fitsPose(entity, world, 'crouching') &&
+        (!!entity.shiftKeyDown || !fitsPose(entity, world, 'standing'))
+    }
+    const input = movementInput(entity)
+    entity.wasSprinting = entity.isSprinting
+    updateSprinting(entity, input.impulse)
+    const flightToggled = toggleFlight(entity, world)
+    tryToStartFallFlying(entity, world, startVelY, flightToggled)
+    entity.wasJumping = entity.control.jump
+
     // LocalPlayer.aiStep: from 1.13 sneaking in water sinks by 0.04F (goDownInWater; from 1.16 not while flying), before
     // the flight's climb and LivingEntity.aiStep's negligible motion
     if (sinksWithSneak && entity.isInWater && entity.control.sneak && !(entity.flying && sinkNeedsFluidEffect)) vel.y -= Math.fround(0.04)
@@ -2068,18 +2112,6 @@ function Physics (mcData, world) {
       if (Math.abs(vel.z) < negligibleVelocity) vel.z = 0
     }
     if (Math.abs(vel.y) < negligibleVelocity) vel.y = 0
-
-    // LocalPlayer.aiStep (1.14+): crouching with the tick before's sneak key, or where standing does not fit but crouching
-    // does; never while flying or swimming
-    if (posePoses) {
-      entity.crouching = !entity.flying && !entity.isSwimming && fitsPose(entity, world, 'crouching') &&
-        (!!entity.shiftKeyDown || !fitsPose(entity, world, 'standing'))
-    }
-    const input = movementInput(entity)
-    entity.wasSprinting = entity.isSprinting
-    updateSprinting(entity, input.impulse)
-    tryToStartFallFlying(entity, world, startVelY)
-    entity.wasJumping = entity.control.jump
 
     // Handle inputs
     // A flying player does not jump: LivingEntity.aiStep gates it on isAffectedByFluids, and
@@ -2218,9 +2250,12 @@ class PlayerState {
     this.wasJumping = bot.entity.wasJumping ?? false
     this.fallFlyingRequested = false
     this.flightEndedOnLanding = false
+    this.flightToggled = false
     this.usingItem = bot.usingHeldItem ?? false
     // the sprint logic's state as the tick before left it, and what it reads
     this.sprintTriggerTime = bot.entity.sprintTriggerTime ?? 0
+    // ticks left for a second press of jump to toggle flight (Player.jumpTriggerTime)
+    this.jumpTriggerTime = bot.entity.jumpTriggerTime ?? 0
     this.forwardImpulse = bot.entity.forwardImpulse ?? 0
     this.isUnderWater = bot.entity.isUnderWater ?? false
     // whether the eyes were in water as the last tick found them (1.13+)
@@ -2308,6 +2343,7 @@ class PlayerState {
     bot.entity.shiftKeyDown = this.shiftKeyDown
     bot.entity.wasJumping = this.wasJumping
     bot.entity.sprintTriggerTime = this.sprintTriggerTime
+    bot.entity.jumpTriggerTime = this.jumpTriggerTime
     bot.entity.forwardImpulse = this.forwardImpulse
     bot.entity.elytraFlying = this.elytraFlying
     bot.entity.isInPowderSnow = this.isInPowderSnow
