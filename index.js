@@ -128,6 +128,7 @@ function Physics (mcData, world) {
   // swimming); from 1.14 (Player POSES) 1.5 crouching and 0.6 swimming, gliding and spin attacking. Eye heights 1.62, 1.27
   // crouching from 1.14, 0.4 for the 0.6 poses.
   const posePoses = mcData.version['>=']('1.14')
+  const pushTowardsClosestSpace = mcData.version['>=']('1.16')
   const legacySize = !posePoses && mcData.version['>=']('1.9')
   const poseDeflate = mcData.version['>=']('1.16')
   const desiredSwimFirst = mcData.version['>=']('1.21.5')
@@ -1831,6 +1832,98 @@ function Physics (mcData, world) {
     --entity.fireworkRocketDuration
   }
 
+  // Whether a block suffocates (BlockBehaviour.isSuffocating): up to 1.13 an opaque full cube (isNormalCube); from 1.14
+  // a full cube except glass, leaves, grates, mangrove roots and cobwebs, and from 1.16 also farmland, soul sand, dirt
+  // paths and mud, which are lower
+  const NEVER_SUFFOCATES = /glass$|_leaves$|copper_grate$|^mangrove_roots$|^moving_piston$|^cobweb$/
+  const ALWAYS_SUFFOCATES = new Set(['farmland', 'soul_sand', 'dirt_path', 'grass_path', 'mud'])
+  function suffocates (block) {
+    if (!block) return false
+    const fullCube = block.shapes.length === 1 && block.shapes[0].every((v, i) => v === (i < 3 ? 0 : 1))
+    if (!posePoses) return !block.transparent && fullCube
+    if (NEVER_SUFFOCATES.test(block.name)) return false
+    if (pushTowardsClosestSpace && ALWAYS_SUFFOCATES.has(block.name)) return true
+    return fullCube
+  }
+
+  // LocalPlayer.aiStep pushes a player out of the blocks it is inside, before the move: from the four corners 0.35 widths
+  // out, a corner in a blocked cell sets the motion towards the nearest open side of that cell (0.1F up to 1.13, 0.1
+  // since). From 1.16 (moveTowardsClosestSpace) a cell is blocked by a suffocating block whose shape reaches into the
+  // box's height there (deflated by 1.0E-7). Up to 1.15 (pushOutOfBlocks, from half a block above the feet): up to 1.12
+  // a normal cube in the cell or the one above, on 1.13 the same (a swimmer: the cell only; the open side still needs
+  // both free), on 1.14 and 1.15 a suffocating block anywhere in the box's height.
+  function pushOutOfBlocks (entity, world) {
+    if (entity.gameMode === 'spectator') return
+    const pos = entity.pos
+    const w = Math.fround(Math.fround(0.6) * scaleOf(entity)) * 0.35
+    const corners = [[-w, w], [-w, -w], [w, -w], [w, w]]
+    for (const [cx, cz] of corners) {
+      if (pushTowardsClosestSpace) moveTowardsClosestSpace(entity, world, pos.x + cx, pos.z + cz)
+      else pushOutOfBlock(entity, world, pos.x + cx, pos.z + cz)
+    }
+  }
+
+  const SIDES = [[-1, 0], [1, 0], [0, -1], [0, 1]] // west, east, north, south
+
+  function moveTowardsClosestSpace (entity, world, x, z) {
+    const bx = Math.floor(x)
+    const bz = Math.floor(z)
+    const box = getPlayerBB(entity.pos)
+    const blocked = (cx, cz) => {
+      const check = new AABB(cx, box.minY, cz, cx + 1, box.maxY, cz + 1).contract(1.0e-7, 1.0e-7, 1.0e-7)
+      for (let y = Math.floor(check.minY); y <= Math.floor(check.maxY); y++) {
+        const block = world.getBlock(new Vec3(cx, y, cz))
+        if (!suffocates(block)) continue
+        if (shapesFor(block, new Vec3(cx, y, cz), entity).some(s => new AABB(cx + s[0], y + s[1], cz + s[2], cx + s[3], y + s[4], cz + s[5]).intersects(check))) return true
+      }
+      return false
+    }
+    if (!blocked(bx, bz)) return
+    pushTowardsOpenSide(entity, x - bx, z - bz, (sx, sz) => !blocked(bx + sx, bz + sz), Number.MAX_VALUE, 0.1)
+  }
+
+  function pushOutOfBlock (entity, world, x, z) {
+    const box = positionFromBox && entity.box ? entity.box : getPlayerBB(entity.pos)
+    const y = box.minY + 0.5
+    const bx = Math.floor(x)
+    const by = Math.floor(y)
+    const bz = Math.floor(z)
+    const solid = (cx, cy, cz) => suffocates(world.getBlock(new Vec3(cx, cy, cz)))
+    let blocked
+    if (posePoses) {
+      blocked = (cx, cz) => {
+        for (let cy = Math.floor(box.minY); cy < Math.ceil(box.maxY); cy++) if (solid(cx, cy, cz)) return true
+        return false
+      }
+    } else if (fluidStates && entity.isSwimming) {
+      blocked = (cx, cz) => solid(cx, by, cz)
+    } else {
+      blocked = (cx, cz) => solid(cx, by, cz) || solid(cx, by + 1, cz)
+    }
+    if (!blocked(bx, bz)) return
+    const open = (fluidStates && !posePoses)
+      ? (sx, sz) => !solid(bx + sx, by, bz + sz) && !solid(bx + sx, by + 1, bz + sz)
+      : (sx, sz) => !blocked(bx + sx, bz + sz)
+    pushTowardsOpenSide(entity, x - bx, z - bz, open, 9999.0, posePoses ? 0.1 : Math.fround(0.1))
+  }
+
+  // the nearest open side of the cell, the corner's place in it being dx, dz
+  function pushTowardsOpenSide (entity, dx, dz, open, farthest, speed) {
+    let best = null
+    let bestDistance = farthest
+    for (const [sx, sz] of SIDES) {
+      const coord = sx !== 0 ? dx : dz
+      const distance = (sx > 0 || sz > 0) ? 1.0 - coord : coord
+      if (distance < bestDistance && open(sx, sz)) {
+        bestDistance = distance
+        best = [sx, sz]
+      }
+    }
+    if (!best) return
+    if (best[0] !== 0) entity.vel.x = speed * best[0]
+    else entity.vel.z = speed * best[1]
+  }
+
   physics.simulatePlayer = (entity, world) => {
     playerDims = dimensionsOf(entity)
     try {
@@ -1874,6 +1967,7 @@ function Physics (mcData, world) {
       entity.isInLava = isMaterialInBB(world, getPlayerBB(pos).contract(0.1, 0.4, 0.1), lavaIds)
     }
 
+    pushOutOfBlocks(entity, world)
     const startVelY = vel.y
     // LocalPlayer.aiStep: from 1.13 sneaking in water sinks by 0.04F (goDownInWater; from 1.16 not while flying), before
     // the flight's climb and LivingEntity.aiStep's negligible motion
