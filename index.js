@@ -2100,6 +2100,11 @@ function Physics (mcData, world) {
     if (lavaFlagFromMove) entity.isInLava = isMaterialInBB(world, (entity.box ?? getPlayerBB(pos)).clone().contract(0.001, 0.001, 0.001), lavaIds)
     else if (!lavaByHeight) entity.isInLava = isMaterialInBB(world, getPlayerBB(pos).contract(0.1, 0.4, 0.1), lavaIds)
 
+    // LocalPlayer.aiStep, after the move: a flyer on the ground stops flying, unless a spectator (the caller tells the
+    // server, onUpdateAbilities)
+    entity.flightEndedOnLanding = entity.onGround && entity.flying && entity.gameMode !== 'spectator'
+    if (entity.flightEndedOnLanding) entity.flying = false
+
     if (rocketTicksAfterPlayer) boostByRocket(entity)
     updatePose(entity, world)
 
@@ -2182,6 +2187,7 @@ class PlayerState {
     // the jump key as the tick before left it
     this.wasJumping = bot.entity.wasJumping ?? false
     this.fallFlyingRequested = false
+    this.flightEndedOnLanding = false
     this.usingItem = bot.usingHeldItem ?? false
     // the sprint logic's state as the tick before left it, and what it reads
     this.sprintTriggerTime = bot.entity.sprintTriggerTime ?? 0
@@ -2202,11 +2208,14 @@ class PlayerState {
     this.jumpTicks = bot.jumpTicks
     this.jumpQueued = bot.jumpQueued
     this.fireworkRocketDuration = bot.fireworkRocketDuration
+    // the abilities' flight: the server grants it, and the client ends it itself on landing
+    this.flying = bot.entity.flying ?? false
 
     // Input only (not modified)
     // The server owns these: it grants flight in the abilities packet and the client obeys.
-    this.flying = bot.entity.flying ?? false
     this.flyingSpeed = bot.entity.flyingSpeed ?? 0.05
+    // the game mode (survival, creative, adventure, spectator)
+    this.gameMode = bot.game?.gameMode
     this.attributes = bot.entity.attributes
     this.yaw = bot.entity.yaw
     // the client's yRot in degrees, not wrapped, when the caller keeps it (read only)
@@ -2257,6 +2266,7 @@ class PlayerState {
     bot.entity.eyeInWater = this.eyeInWater
     bot.entity.isSwimming = this.isSwimming
     bot.entity.pose = this.pose
+    bot.entity.flying = this.flying
     bot.entity.supportingBlockPos = this.supportingBlockPos
     bot.entity.onGroundNoBlocks = this.onGroundNoBlocks
     bot.entity.isInWeb = this.isInWeb

@@ -90,6 +90,8 @@ Read / Write properties:
   START_FALL_FLYING command)? From 1.15 on the tick the engine starts a glide; up to 1.14, where only the server
   starts it, on a press of jump while falling with a usable elytra. A caller that talks to a server sends the command
   then, or the server never starts the glide
+- flightEndedOnLanding : (boolean, set by each tick) did landing end the flight on this tick? A caller that talks to a
+  server then sends its abilities, after any START_FALL_FLYING command (onUpdateAbilities)
 - jumpTicks : (integer) number of ticks before the player can auto-jump again
 - jumpQueued : (boolean) true if the jump control state was true between the last tick and the current one
 - fireworkRocketDuration : (number) how many ticks of firework boost are remaining ?
@@ -113,10 +115,14 @@ Read / Write properties:
 - supportingBlockPos : (vec3 or null) from 1.20, the block holding the player up as the last move found it
   (Entity.mainSupportingBlockPos); the blocks under the player that affect its movement are found from it
 - onGroundNoBlocks : (boolean) from 1.20, whether the last move found no supporting block while on the ground
+- flying : (boolean) is the player creative flying (bot.entity.flying, from the abilities the server grants)? A flyer
+  that lands stops flying, unless a spectator; a caller that talks to a server then sends its abilities (mineflayer does)
 
 Read only properties:
 - food : (number) the food level (bot.food); 6 or less keeps a sprint from starting
 - mayFly : (boolean) may the player fly (bot.abilities.mayFly); then hunger does not keep it from sprinting
+- gameMode : (string) the game mode (bot.game.gameMode); a spectator keeps flying on the ground and is not pushed out of
+  blocks
 - blindness : (integer) the blindness effect's level; blindness keeps a sprint from starting
 - yaw : (float) the yaw angle, in radians, of the player entity
 - yRot : (number, optional) the yaw in degrees as the client keeps it, not wrapped (bot.entity.yRot). The sine table
