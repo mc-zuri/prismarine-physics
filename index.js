@@ -45,19 +45,8 @@ function Physics (mcData, world) {
   const vineLikeIds = new Set(['weeping_vines', 'weeping_vines_plant', 'twisting_vines', 'twisting_vines_plant', 'cave_vines', 'cave_vines_plant']
     .filter(name => blocksByName[name]).map(name => blocksByName[name].id))
 
-  // NOTE: Copper trapdoors is coming in 1.21.
-  const trapdoorIds = new Set()
-  if (blocksByName.iron_trapdoor) { trapdoorIds.add(blocksByName.iron_trapdoor.id) } // 1.8+
-  if (blocksByName.acacia_trapdoor) { trapdoorIds.add(blocksByName.acacia_trapdoor.id) } // 1.13+
-  if (blocksByName.birch_trapdoor) { trapdoorIds.add(blocksByName.birch_trapdoor.id) } // 1.13+
-  if (blocksByName.jungle_trapdoor) { trapdoorIds.add(blocksByName.jungle_trapdoor.id) } // 1.13+
-  if (blocksByName.oak_trapdoor) { trapdoorIds.add(blocksByName.oak_trapdoor.id) } // 1.13+
-  if (blocksByName.dark_oak_trapdoor) { trapdoorIds.add(blocksByName.dark_oak_trapdoor.id) } // 1.13+
-  if (blocksByName.spruce_trapdoor) { trapdoorIds.add(blocksByName.spruce_trapdoor.id) } // 1.13+
-  if (blocksByName.crimson_trapdoor) { trapdoorIds.add(blocksByName.crimson_trapdoor.id) } // 1.16+
-  if (blocksByName.warped_trapdoor) { trapdoorIds.add(blocksByName.warped_trapdoor.id) } // 1.16+
-  if (blocksByName.mangrove_trapdoor) { trapdoorIds.add(blocksByName.mangrove_trapdoor.id) } // 1.19+
-  if (blocksByName.cherry_trapdoor) { trapdoorIds.add(blocksByName.cherry_trapdoor.id) } // 1.20+
+  // every trapdoor block (TrapDoorBlock): wooden (named trapdoor up to 1.12), iron, and each wood and copper kind
+  const trapdoorIds = new Set(Object.values(blocksByName).filter(block => /(^|_)trapdoor$/.test(block.name)).map(block => block.id))
 
   const waterLike = new Set()
   if (blocksByName.seagrass) waterLike.add(blocksByName.seagrass.id) // 1.13+
@@ -1286,7 +1275,8 @@ function Physics (mcData, world) {
       const blockBelow = world.getBlock(pos.offset(0, -1, 0))
       if (blockBelow.type !== ladderId) { return false } // condition 1.
       const blockProperties = block._properties
-      if (!blockProperties.open) { return false } // condition 2.
+      // condition 2. (up to 1.12 the property is the string 'true' or 'false')
+      if (blockProperties.open !== true && blockProperties.open !== 'true') { return false }
       if (blockProperties.facing !== blockBelow.getProperties().facing) { return false } // condition 3
       return true
     }
