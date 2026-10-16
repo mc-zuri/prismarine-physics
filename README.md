@@ -73,7 +73,7 @@ See `examples/` for more.
 #### syncPose(entity, pose)
 - entity : the player entity as a PlayerState reads it (its position, pose and physicsBox)
 - pose : (string) the pose the server set for the player in its entity data: standing, crouching, swimming,
-  fall_flying or spin_attack
+  fall_flying, spin_attack or sleeping
 
 From 1.14 the player takes the pose until its next tick sets its own, after the move. Up to 1.16 the player's box is
 then rebuilt from its lower corner at the pose's size, even when the pose is unchanged. A caller that talks to a server
@@ -131,8 +131,11 @@ Read / Write properties:
 - fallDistance : (number) how far the player has fallen since it was last on the ground or in water (Entity.fallDistance),
   as the last tick left it
 - isInPowderSnow : (boolean) whether powder snow touched the player during the last tick (Entity.isInPowderSnow)
-- pose : (string) standing, crouching, swimming, fall_flying or spin_attack, as the last tick left it; from 1.9 it sizes
-  the box (1.65 sneaking on 1.9 to 1.13; from 1.14 1.5 crouching and 0.6 swimming, crawling and gliding)
+- pose : (string) standing, crouching, swimming, fall_flying, spin_attack or sleeping, as the last tick left it; from
+  1.9 it sizes the box (1.65 sneaking on 1.9 to 1.13; from 1.14 1.5 crouching and 0.6 swimming, crawling and gliding),
+  and sleeping on every version (0.2 by 0.2)
+- sleeping : (boolean) whether the player sleeps in a bed (bot.isSleeping), which keeps it in the sleeping pose (after
+  gliding up to 1.21.4)
 - isUnderWater : (boolean) whether the player is under water for this tick's sprint logic: from 1.16 the eyes of the tick
   before while in water, on 1.13 to 1.15 the eyes now (the engine sets it from 1.13)
 - supportingBlockPos : (vec3 or null) from 1.20, the block holding the player up as the last move found it
