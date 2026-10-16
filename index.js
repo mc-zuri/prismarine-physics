@@ -284,7 +284,33 @@ function Physics (mcData, world) {
   function shapesFor (block, blockPos, entity) {
     if (block.type === scaffoldingId) return scaffoldingShapes(block, blockPos, entity)
     if (block.type === powderSnowId) return powderSnowShapes(blockPos, entity)
+    const maxOffset = horizontalOffsetLimits.get(block.type)
+    if (maxOffset !== undefined) return offsetShapes(block.shapes, maxOffset, blockPos)
     return block.shapes
+  }
+
+  // Blocks whose shape a hash of their x and z moves (OffsetType.XZ, BlockBehaviour.getOffset): bamboo (1.14+) up to 0.25
+  // and pointed dripstone (1.17+) up to 0.125 each way (getMaxHorizontalOffset). minecraft-data has their shapes as at
+  // x = z = 0, already moved by that position's offset (-0.25, or -0.125), so a block elsewhere moves by the difference.
+  const horizontalOffsetLimits = new Map([['bamboo', 0.25], ['pointed_dripstone', 0.125]]
+    .filter(([name]) => blocksByName[name]).map(([name, max]) => [blocksByName[name].id, max]))
+  const originOffsets = new Map()
+  function offsetShapes (shapes, max, blockPos) {
+    const [x, z] = horizontalOffset(max, blockPos.x, blockPos.z)
+    if (!originOffsets.has(max)) originOffsets.set(max, horizontalOffset(max, 0, 0))
+    const [x0, z0] = originOffsets.get(max)
+    return shapes.map(([minX, minY, minZ, maxX, maxY, maxZ]) =>
+      [minX - x0 + x, minY, minZ - z0 + z, maxX - x0 + x, maxY, maxZ - z0 + z])
+  }
+  function horizontalOffset (max, x, z) {
+    const seed = positionSeed(x, z)
+    const axis = bits => Math.min(max, Math.max(-max, (Math.fround(Number(bits) / 15) - 0.5) * 0.5))
+    return [axis(seed & 15n), axis((seed >> 8n) & 15n)]
+  }
+  // Mth.getSeed(x, 0, z), in 64-bit integers
+  function positionSeed (x, z) {
+    const l = BigInt(Math.imul(x, 3129871)) ^ (BigInt(z) * 116129781n)
+    return BigInt.asIntN(64, l * l * 42317861n + l * 11n) >> 16n
   }
 
   // PowderSnowBlock.getCollisionShape (1.17+): under a player whose fall distance is over 2.5 a 0.9 tall box
