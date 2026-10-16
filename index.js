@@ -186,6 +186,21 @@ function Physics (mcData, world) {
     entity.pose = pose
   }
 
+  // From 1.14 the pose the server sets for the player (its entity data, Entity.onSyncedDataUpdated) is the player's until
+  // its next tick sets its own after the move (Player.updatePlayerPose). Up to 1.16 the box then takes that pose's size
+  // from its lower corner (refreshDimensions) even when the pose is the same, so its far sides are rounded anew.
+  // `entity`: the player as PlayerState reads it (bot.entity: position, pose, physicsBox).
+  physics.syncPose = (entity, pose) => {
+    if (!posePoses || !(pose in POSE_HEIGHT)) return
+    if (positionFromBox) {
+      const carried = entity.physicsBox && entity.physicsBox.position.equals(entity.position) ? entity.physicsBox.box : null
+      const current = entity.pose ?? 'standing'
+      const box = carried ?? poseBox({ pos: entity.position, attributes: entity.attributes }, current)
+      entity.physicsBox = { box: anchoredBox({ box }, pose), position: entity.position.clone() }
+    }
+    entity.pose = pose
+  }
+
   // Entity.maxUpStep: 0.6; from 1.20.5 the step_height attribute, as a float
   const stepHeightResource = mcData.attributesByName.stepHeight?.resource
   const stepDownKeepsMove = mcData.version['>=']('1.14') && mcData.version['<']('1.21')

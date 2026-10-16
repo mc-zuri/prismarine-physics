@@ -66,6 +66,15 @@ See `examples/` for more.
 - playerState : instance of the PlayerState class
 - world : interface with a function `getBlock(position)` returning the prismarine-block at the given position
 
+#### syncPose(entity, pose)
+- entity : the player entity as a PlayerState reads it (its position, pose and physicsBox)
+- pose : (string) the pose the server set for the player in its entity data: standing, crouching, swimming,
+  fall_flying or spin_attack
+
+From 1.14 the player takes the pose until its next tick sets its own, after the move. Up to 1.16 the player's box is
+then rebuilt from its lower corner at the pose's size, even when the pose is unchanged. A caller that talks to a server
+calls this when the player's entity data sets its pose (mineflayer does).
+
 ### PlayerState
 
 A player state is an object containing the properties:
