@@ -1319,7 +1319,24 @@ function Physics (mcData, world) {
 
   function doesNotCollide (world, pos, entity) {
     const pBB = getPlayerBB(pos)
-    return !getSurroundingBBs(world, pBB, entity).some(x => pBB.intersects(x)) && getWaterInBB(world, pBB).length === 0
+    return !getSurroundingBBs(world, pBB, entity).some(x => pBB.intersects(x)) && !containsAnyLiquid(world, pBB)
+  }
+
+  // Level.containsAnyLiquid: a fluid in a cell the box is in, at any height. Up to 1.12 water or lava in the cells from
+  // the floor of each min to the floor of each max; from 1.13 any fluid (a waterlogged block too) in those from the floor
+  // of each min to below the ceiling of each max.
+  function containsAnyLiquid (world, bb) {
+    const last = (max) => fluidCellsBelowCeiling ? Math.ceil(max) - 1 : Math.floor(max)
+    const cursor = new Vec3(0, 0, 0)
+    for (cursor.y = Math.floor(bb.minY); cursor.y <= last(bb.maxY); cursor.y++) {
+      for (cursor.z = Math.floor(bb.minZ); cursor.z <= last(bb.maxZ); cursor.z++) {
+        for (cursor.x = Math.floor(bb.minX); cursor.x <= last(bb.maxX); cursor.x++) {
+          const block = world.getBlock(cursor)
+          if (isWaterBlock(block) || (block && lavaIds.includes(block.type))) return true
+        }
+      }
+    }
+    return false
   }
 
   // LocalPlayer.isHorizontalCollisionMinor: a collision counts as minor when the move that survived it still
@@ -1771,6 +1788,7 @@ function Physics (mcData, world) {
   // is above the bottom of the box deflated by 0.001; before that (handleMaterialAcceleration)
   // the box was shrunk by 0.4 at the top and compared through ceil(maxY).
   const fluidHeightFromFeet = supportFeature('fluidHeightFromFeet')
+  const fluidCellsBelowCeiling = mcData.version['>=']('1.13')
   const fluidStates = mcData.version['>=']('1.13')
   const eyesLagATick = mcData.version['>=']('1.16')
   const swimNeedsWaterAtFeet = mcData.version['>=']('1.17')
