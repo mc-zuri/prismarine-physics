@@ -2733,6 +2733,18 @@ function Physics (mcData, world) {
     return entity
   }
 
+  // The tick of a boat the player controls (lib/boat.js)
+  physics.simulateBoat = require('./lib/boat')({
+    mcData,
+    getSurroundingBBs,
+    collideAxes,
+    isWaterBlock,
+    getRenderedDepth,
+    waterLike,
+    blockSlipperiness,
+    flags: { positionFromBox, collisionTolerance, collisionStopsMotion, cornerKeepsMotionX, fallStopMultiplies, moveThreshold, appliesUnobstructedTinyMove }
+  })
+
   return physics
 }
 

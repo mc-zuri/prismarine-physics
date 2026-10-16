@@ -79,6 +79,23 @@ From 1.14 the player takes the pose until its next tick sets its own, after the 
 then rebuilt from its lower corner at the pose's size, even when the pose is unchanged. A caller that talks to a server
 calls this when the player's entity data sets its pose (mineflayer does).
 
+#### simulateBoat(boat, world)
+The tick of a boat the player controls (Boat.tick, from 1.9): its status, its float, the paddles from its rider's keys
+and its move. `boat` is changed in place and returned:
+- pos, vel : (Vec3) the boat's position (its bottom centre) and motion
+- yaw : (number) its yRot in degrees, as the client keeps it (a float)
+- deltaRotation : (number) its rotation rate, which the turning keys change and the float slows
+- status : (string) in_water, under_water, under_flowing_water, on_land or in_air, as the last tick left it (the tick
+  sets it anew, and floats by the change)
+- waterLevel, landFriction, lastYd : (number) what the last tick left (the water surface, the ground's friction, the
+  last move's vertical motion)
+- box : (AABB, up to 1.16) the box the last move left
+- controls : { left, right, forward, back } the rider's keys of the tick before
+- controlledByPlayer : (boolean) whether a player paddles it (it halves the land friction for the next tick)
+
+The tick sets onGround, isCollidedHorizontally, isCollidedVertically and paddles (left and right, as
+ServerboundPaddleBoatPacket sends them).
+
 ### PlayerState
 
 A player state is an object containing the properties:
