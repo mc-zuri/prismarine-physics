@@ -505,7 +505,10 @@ function Physics (mcData, world) {
     return boxes.some(box => box.intersects(query))
   }
 
+  // From 1.13 a shape stops a move from its face 1.0E-7 inside the box on (AABB.collideX), up to 1.12 from outside it
+  const SHAPE_COLLIDE = { computeOffsetX: 'collideX', computeOffsetY: 'collideY', computeOffsetZ: 'collideZ' }
   function collideAlong (axis, boxes, bb, d, cutoff) {
+    if (tinyAxisMoveCutoff) axis = SHAPE_COLLIDE[axis]
     if (cutoff && Math.abs(d) < 1.0e-7) return 0
     for (const blockBB of boxes) {
       if (cutoff && Math.abs(d) < 1.0e-7) return 0
