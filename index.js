@@ -190,6 +190,8 @@ function Physics (mcData, world) {
   const stepHeightResource = mcData.attributesByName.stepHeight?.resource
   const stepDownKeepsMove = mcData.version['>=']('1.14') && mcData.version['<']('1.21')
   const largerAxisFirst = mcData.version['>=']('1.14')
+  const collisionTolerance = mcData.version['>=']('1.14')
+  const collisionStopsMotion = mcData.version['>=']('1.18.2')
   const candidateStepUp = mcData.version['>=']('1.21')
   const noPhysicsClearsCollisions = mcData.version['>=']('1.21.9')
   const flightToggleJumps = mcData.version['>=']('1.20.5')
@@ -514,8 +516,11 @@ function Physics (mcData, world) {
       entity.box = oldBB.clone()
     }
 
-    // Update flags
-    entity.isCollidedHorizontally = dx !== oldVelX || dz !== oldVelZ
+    // Update flags. A horizontal axis collided when the move along it was cut: at all up to 1.13, by 1.0E-5 or more from
+    // 1.14 (Entity.move: Mth.equal)
+    const collidedX = collisionTolerance ? !(Math.abs(dx - oldVelX) < 9.999999747378752e-6) : dx !== oldVelX
+    const collidedZ = collisionTolerance ? !(Math.abs(dz - oldVelZ) < 9.999999747378752e-6) : dz !== oldVelZ
+    entity.isCollidedHorizontally = collidedX || collidedZ
     entity.minorHorizontalCollision = entity.isCollidedHorizontally && isHorizontalCollisionMinor(entity, dx, dz)
     // from 1.14 (Entity.move) the whole move against the one asked for, a step's up and down together
     entity.isCollidedVertically = (wholeMoveCollides ? movedY : dy) !== oldVelY
@@ -535,8 +540,9 @@ function Physics (mcData, world) {
     // the block landed on: Entity.getOnPosLegacy, 0.2F under the position (from 1.20 by the supporting block)
     const blockAtFeet = world.getBlock(onPosBelow ? onPos(entity, world, Math.fround(0.2)) : pos.offset(0, -0.2, 0))
 
-    if (dx !== oldVelX) vel.x = 0
-    if (dz !== oldVelZ) vel.z = 0
+    // the motion stops along a horizontal axis whose move was cut at all; from 1.18.2 along one that collided
+    if (collisionStopsMotion ? collidedX : dx !== oldVelX) vel.x = 0
+    if (collisionStopsMotion ? collidedZ : dz !== oldVelZ) vel.z = 0
     if (dy !== oldVelY) {
       if (blockAtFeet && blockAtFeet.type === slimeBlockId && !entity.control.sneak) {
         vel.y = -vel.y
