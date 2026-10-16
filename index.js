@@ -76,6 +76,8 @@ function Physics (mcData, world) {
     outOfLiquidImpulse: Math.fround(0.3),
     fluidJumpThreshold: 0.4, // LivingEntity.getFluidJumpThreshold for a standing player
     autojumpCooldown: 10, // ticks (0.5s)
+    // the client's auto-jump option (from 1.11): walking into a step jumps it
+    autoJump: false,
     bubbleColumnSurfaceDrag: {
       down: 0.03,
       maxDown: -0.9,
@@ -395,7 +397,138 @@ function Physics (mcData, world) {
     return { dx, dy, dz }
   }
 
+  // LocalPlayer.move: every move of the player may set up an auto-jump (updateAutoJump)
   function moveEntity (entity, world, dx, dy, dz) {
+    const startX = entity.pos.x
+    const startZ = entity.pos.z
+    moveEntityAlone(entity, world, dx, dy, dz)
+    updateAutoJump(entity, world, Math.fround(entity.pos.x - startX), Math.fround(entity.pos.z - startZ))
+  }
+
+  // LocalPlayer.updateAutoJump (from 1.11, with the client's auto-jump option, physics.autoJump): a move on the ground,
+  // not sneaking, towards a step it ran into 0.5 to 1.2 high (0.75 more per Jump Boost level), with room above the head
+  // and the step, makes the next tick jump (autoJumpTime). Up to 1.14 the sneak key stops it; from 1.15 the sneak key
+  // and a block that lowers jumps (honey).
+  const autoJumpFeature = mcData.version['>=']('1.11')
+  const autoJumpChecksJumpFactor = mcData.version['>=']('1.15')
+  const autoJumpFloatInvSqrt = mcData.version['>=']('1.19.4')
+  const autoJumpRawInput = mcData.version['>=']('1.21.5')
+  function updateAutoJump (entity, world, moveX, moveZ) {
+    if (!physics.autoJump || !autoJumpFeature) return
+    if (entity.autoJumpTime > 0 || !entity.onGround || entity.control.sneak) return
+    if (autoJumpChecksJumpFactor && blockJumpFactor(entity, world) < 1) return
+    const f = Math.fround
+    // Input.getMoveVector: the keys (left, forward), up to 1.21.4 slowed by sneaking and using an item; from 1.21.5 as
+    // pressed, normalized
+    const keys = [(entity.control.left ? 1 : 0) - (entity.control.right ? 1 : 0), (entity.control.forward ? 1 : 0) - (entity.control.back ? 1 : 0)]
+    if (keys[0] === 0 && keys[1] === 0) return
+    let move
+    if (autoJumpRawInput) {
+      const length = f(Math.sqrt(keys[0] * keys[0] + keys[1] * keys[1]))
+      move = [f(keys[0] / length), f(keys[1] / length)]
+    } else {
+      const slow = isMovingSlowly(entity) ? sneakingSpeed(entity) : 1
+      const use = entity.usingItem ? f(0.2) : 1
+      move = keys.map(key => f(f(key * slow) * use))
+    }
+    const pos = entity.pos
+    const speed = movementSpeed(entity)
+    let diffX = moveX
+    let diffZ = moveZ
+    let distSq = f(diffX * diffX + diffZ * diffZ)
+    if (distSq <= f(0.001)) {
+      const inputX = f(speed * move[0])
+      const inputZ = f(speed * move[1])
+      const yRotRad = f(yRotOf(entity) * math.DEG_TO_RAD_F)
+      const sin = math.mthSin(yRotRad, sinTableDoubleIndex)
+      const cos = math.mthCos(yRotRad, sinTableDoubleIndex)
+      diffX = f(f(inputX * cos) - f(inputZ * sin))
+      diffZ = f(f(inputZ * cos) + f(inputX * sin))
+      distSq = f(diffX * diffX + diffZ * diffZ)
+      if (distSq <= f(0.001)) return
+    }
+    // Mth.invSqrt: the fast inverse square root in double up to 1.19.3, 1 / sqrt in float from 1.19.4
+    const inv = autoJumpFloatInvSqrt ? f(1 / f(Math.sqrt(distSq))) : f(fastInvSqrt(distSq))
+    const dirX = diffX * inv
+    const dirZ = diffZ * inv
+    const forward = viewVector(entity)
+    if (f(forward.x * dirX + forward.z * dirZ) < f(-0.15)) return
+    const emptyAt = (cell) => shapesFor(world.getBlock(cell), cell, entity).length === 0
+    const box = positionFromBox && entity.box ? entity.box : getPlayerBB(pos)
+    let ceiling = new Vec3(Math.floor(pos.x), Math.floor(box.maxY), Math.floor(pos.z))
+    if (!emptyAt(ceiling)) return
+    ceiling = ceiling.offset(0, 1, 0)
+    if (!emptyAt(ceiling)) return
+    let maxStep = f(1.2)
+    if (entity.jumpBoost > 0) maxStep = f(maxStep + f(entity.jumpBoost * f(0.75)))
+    const reach = Math.max(f(speed * f(7)), f(1 / inv))
+    const endX = pos.x + moveX + dirX * reach
+    const endZ = pos.z + moveZ + dirZ * reach
+    const dims = dimensionsOf(entity)
+    const width = dims ? dims.halfWidth * 2 : f(0.6)
+    const height = dims ? dims.height : f(POSE_HEIGHT[entity.pose ?? 'standing'] ?? 1.8)
+    const query = new AABB(Math.min(pos.x, endX), pos.y, Math.min(pos.z, endZ), Math.max(pos.x, endX), pos.y + height, Math.max(pos.z, endZ))
+      .expand(width, 0, width)
+    // the segments from the feet (0.51 up) to the end of the reach, half a width to each side
+    const sideX = -dirZ * f(width * f(0.5))
+    const sideZ = dirX * f(width * f(0.5))
+    const fromY = pos.y + 0.5099999904632568
+    const segments = [-1, 1].map(side => [pos.x + side * sideX, pos.z + side * sideZ, endX + side * sideX, endZ + side * sideZ])
+    const crosses = (b, [x0, z0, x1, z1]) => b.minX < Math.max(x0, x1) && b.maxX > Math.min(x0, x1) &&
+      b.minY < fromY && b.maxY > fromY && b.minZ < Math.max(z0, z1) && b.maxZ > Math.min(z0, z1)
+    let top = 1.0e-45
+    for (const blockBox of collisionBoxes(world, query, entity)) {
+      if (!segments.some(segment => crosses(blockBox, segment))) continue
+      top = f(blockBox.maxY)
+      const above = new Vec3(Math.floor((blockBox.minX + blockBox.maxX) / 2), Math.floor((blockBox.minY + blockBox.maxY) / 2), Math.floor((blockBox.minZ + blockBox.maxZ) / 2))
+      for (let up = 1; up < maxStep; up++) {
+        const cell = above.offset(0, up, 0)
+        const shapes = shapesFor(world.getBlock(cell), cell, entity)
+        if (shapes.length > 0) {
+          top = f(f(Math.max(...shapes.map(shape => shape[4]))) + cell.y)
+          if (top - pos.y > maxStep) return
+        }
+        if (up > 1) {
+          ceiling = ceiling.offset(0, 1, 0)
+          if (!emptyAt(ceiling)) return
+        }
+      }
+      break
+    }
+    if (top === 1.0e-45) return
+    const step = f(top - pos.y)
+    if (step > f(0.5) && step <= maxStep) entity.autoJumpTime = 1
+  }
+
+  // The collision boxes of the blocks a box touches (Level.getCollisions, BlockCollisions: x, then y, then z), each block's
+  // boxes when one of them overlaps the box
+  function collisionBoxes (world, query, entity) {
+    const boxes = []
+    const cursor = new Vec3(0, 0, 0)
+    for (cursor.z = Math.floor(query.minZ) - 1; cursor.z <= Math.floor(query.maxZ) + 1; cursor.z++) {
+      for (cursor.y = Math.floor(query.minY) - 1; cursor.y <= Math.floor(query.maxY) + 1; cursor.y++) {
+        for (cursor.x = Math.floor(query.minX) - 1; cursor.x <= Math.floor(query.maxX) + 1; cursor.x++) {
+          const block = world.getBlock(cursor)
+          if (!block) continue
+          const blockBoxes = shapesFor(block, cursor, entity).map(shape => new AABB(...shape).offset(cursor.x, cursor.y, cursor.z))
+          if (blockBoxes.some(box => box.intersects(query))) boxes.push(...blockBoxes)
+        }
+      }
+    }
+    return boxes
+  }
+
+  // Mth.fastInvSqrt: the inverse square root by the magic constant and one Newton step, in double
+  const invSqrtView = new DataView(new ArrayBuffer(8))
+  function fastInvSqrt (x) {
+    const half = 0.5 * x
+    invSqrtView.setFloat64(0, x)
+    invSqrtView.setBigInt64(0, 6910469410427058090n - (invSqrtView.getBigInt64(0) >> 1n))
+    const y = invSqrtView.getFloat64(0)
+    return y * (1.5 - half * y * y)
+  }
+
+  function moveEntityAlone (entity, world, dx, dy, dz) {
     const vel = entity.vel
     const pos = entity.pos
 
@@ -846,14 +979,14 @@ function Physics (mcData, world) {
   // jump (not held from the tick before) while jumpTriggerTime, which the press before set to 7, is not 0: within 6 ticks;
   // from 1.13 not while swimming, and from 1.20.5 starting to fly on the ground jumps. Player.aiStep then counts
   // jumpTriggerTime down. The caller tells the server of a change (onUpdateAbilities).
-  function toggleFlight (entity, world) {
+  function toggleFlight (entity, world, autoJumped) {
     let toggled = false
     if (entity.mayFly && entity.gameMode === 'spectator') {
       if (!entity.flying) {
         entity.flying = true
         toggled = true
       }
-    } else if (entity.mayFly && entity.control.jump && !entity.wasJumping) {
+    } else if (entity.mayFly && entity.control.jump && !entity.wasJumping && !autoJumped) {
       if (entity.jumpTriggerTime === 0) {
         entity.jumpTriggerTime = 7
       } else if (!(swimmingBlocksFlightToggle && entity.isSwimming)) {
@@ -2186,7 +2319,14 @@ function Physics (mcData, world) {
     entity.wasSprinting = entity.isSprinting
     updateSprinting(entity, input.impulse)
     if (entity.isSprinting !== entity.wasSprinting) setSprinting(entity)
-    const flightToggled = toggleFlight(entity, world)
+    // LocalPlayer.aiStep: an auto-jump the last move set up presses jump for this tick, which does not toggle flight
+    const autoJumped = entity.autoJumpTime > 0
+    entity.autoJumped = autoJumped
+    if (autoJumped) {
+      entity.autoJumpTime--
+      entity.control = { ...entity.control, jump: true }
+    }
+    const flightToggled = toggleFlight(entity, world, autoJumped)
     tryToStartFallFlying(entity, world, startVelY, flightToggled)
     entity.wasJumping = entity.control.jump
 
@@ -2372,6 +2512,7 @@ class PlayerState {
     // Entity.fallDistance, which the client keeps itself
     this.fallDistance = bot.entity.fallDistance ?? 0
     this.jumpTicks = bot.jumpTicks
+    this.autoJumpTime = bot.autoJumpTime ?? 0
     this.jumpQueued = bot.jumpQueued
     this.fireworkRocketDuration = bot.fireworkRocketDuration
     // the abilities' flight: the server grants it, and the client ends it itself on landing
@@ -2453,6 +2594,7 @@ class PlayerState {
     bot.entity.isInPowderSnow = this.isInPowderSnow
     bot.entity.fallDistance = this.fallDistance
     bot.jumpTicks = this.jumpTicks
+    bot.autoJumpTime = this.autoJumpTime
     bot.jumpQueued = this.jumpQueued
     bot.fireworkRocketDuration = this.fireworkRocketDuration
   }

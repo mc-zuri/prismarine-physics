@@ -66,6 +66,10 @@ See `examples/` for more.
 - playerState : instance of the PlayerState class
 - world : interface with a function `getBlock(position)` returning the prismarine-block at the given position
 
+#### autoJump
+- (boolean, default false) the client's auto-jump option, from 1.11: a player walking on the ground into a step 0.5 to
+  1.2 high (higher with Jump Boost) with room above jumps on the next tick (LocalPlayer.updateAutoJump)
+
 #### syncPose(entity, pose)
 - entity : the player entity as a PlayerState reads it (its position, pose and physicsBox)
 - pose : (string) the pose the server set for the player in its entity data: standing, crouching, swimming,
@@ -102,6 +106,9 @@ Read / Write properties:
 - flightEndedOnLanding : (boolean, set by each tick) did landing end the flight on this tick? A caller that talks to a
   server then sends its abilities, after any START_FALL_FLYING command (onUpdateAbilities)
 - jumpTicks : (integer) number of ticks before the player can auto-jump again
+- autoJumpTime : (integer) ticks left of a jump the auto-jump option set up (read from and written to bot.autoJumpTime)
+- autoJumped : (boolean, set by each tick) did the auto-jump option press jump on this tick? A caller that sends its keys
+  (player_input, 1.21.2+) sends jump pressed then (Input.makeJump)
 - jumpQueued : (boolean) true if the jump control state was true between the last tick and the current one
 - fireworkRocketDuration : (number) how many ticks of firework boost are remaining ?
 - box : (AABB or null) up to 1.16, the player's box as the last move left it; the position is read from it. It is kept on
