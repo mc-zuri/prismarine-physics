@@ -2173,7 +2173,15 @@ function Physics (mcData, world) {
   const normalizeFloatSqrt = mcData.version['<']('1.17')
   const waterAfterMove = mcData.version.minecraftVersion !== '1.21.4'
   const lavaAfterMove = mcData.version['>=']('26.1')
+  // The rocket a gliding player rides boosts it on its own tick: after the player's up to 1.13 and from 1.17; from 1.14
+  // to 1.16 in the client's entity map's order (tickOrder), and without the rocket among the other entities before it
   const rocketTicksAfterPlayer = !(mcData.version['>=']('1.14') && mcData.version['<']('1.17'))
+  function rocketBoostsBeforeMove (entity) {
+    if (rocketTicksAfterPlayer) return false
+    const rocket = entity.otherEntities?.find(other => other.firework)
+    if (!rocket) return true
+    return tickOrder(entity).before.includes(rocket)
+  }
   const lavaByHeight = mcData.version['>=']('1.16')
   const lavaFlagFromMove = mcData.version['>=']('1.14') && !lavaByHeight
   const shallowLavaMovement = supportFeature('shallowLavaMovement')
@@ -2433,6 +2441,9 @@ function Physics (mcData, world) {
   function simulateTick (entity, world) {
     const vel = entity.vel
     const pos = entity.pos
+    // (a rocket that ticks before the player boosts it before its tick)
+    const rocketFirst = rocketBoostsBeforeMove(entity)
+    if (rocketFirst) boostByRocket(entity)
     const tickStart = pos.clone()
     // Player.tick: a spectator is never on the ground (and moves with noPhysics, moveEntity)
     const spectator = entity.gameMode === 'spectator'
@@ -2549,7 +2560,6 @@ function Physics (mcData, world) {
     const inFluid = !entity.flying && (entity.isInWater || entity.isInLava)
     if (entity.elytraFlying && climbableStopsGliding && !inFluid && isOnLadder(world, entity.pos)) entity.elytraFlying = false
 
-    if (!rocketTicksAfterPlayer) boostByRocket(entity)
     moveEntityWithHeading(entity, world, strafe, forward)
     if (!flightEndsFallBeforeTravel && entity.flying) entity.fallDistance = 0 // up to 1.21.1 Player.travel, after the move
     // LivingEntity.applyEffectsFromBlocks: not with noPhysics (Entity.isAffectedByBlocks)
@@ -2567,7 +2577,7 @@ function Physics (mcData, world) {
     entity.flightEndedOnLanding = entity.onGround && entity.flying && entity.gameMode !== 'spectator'
     if (entity.flightEndedOnLanding) entity.flying = false
 
-    if (rocketTicksAfterPlayer) boostByRocket(entity)
+    if (!rocketFirst) boostByRocket(entity)
     updatePose(entity, world)
 
     return entity
@@ -2634,7 +2644,7 @@ function otherEntitiesOf (bot) {
     const box = new AABB(other.position.x - half, other.position.y, other.position.z - half, other.position.x + half, other.position.y + other.height, other.position.z + half)
     // (names are CamelCase up to 1.10, where a shulker bullet is an object named Shulker)
     const name = (other.name ?? '').toLowerCase()
-    others.push({ id: other.id, box, position: other.position, boat: /(^|_)(boat|raft)$/.test(name), solid: SOLID_ENTITY.test(name) && !(name === 'shulker' && other.type === 'object'), living: !NOT_LIVING.has(other.type) && !NOT_LIVING_NAME.test(name) && !NO_PUSH_NAME.test(name) })
+    others.push({ id: other.id, box, position: other.position, boat: /(^|_)(boat|raft)$/.test(name), solid: SOLID_ENTITY.test(name) && !(name === 'shulker' && other.type === 'object'), living: !NOT_LIVING.has(other.type) && !NOT_LIVING_NAME.test(name) && !NO_PUSH_NAME.test(name), firework: /firework/.test(name) })
   }
   return others
 }
