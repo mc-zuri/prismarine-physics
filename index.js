@@ -197,6 +197,7 @@ function Physics (mcData, world) {
   // Entity.maxUpStep: 0.6; from 1.20.5 the step_height attribute, as a float
   const stepHeightResource = mcData.attributesByName.stepHeight?.resource
   const stepDownKeepsMove = mcData.version['>=']('1.14') && mcData.version['<']('1.21')
+  const largerAxisFirst = mcData.version['>=']('1.14')
   function stepHeightOf (entity) {
     const synced = stepHeightResource && entity.attributes && entity.attributes[stepHeightResource]
     return synced ? Math.fround(attribute.getAttributeValue(synced)) : physics.stepHeight
@@ -273,6 +274,25 @@ function Physics (mcData, world) {
     pos.y += dy
   }
 
+  // A move against the boxes, axis by axis, moving the box with it: y, x then z up to 1.13 (Entity.move); from 1.14 y,
+  // then the larger horizontal axis first (Entity.collideWithShapes: z before x where |x| < |z|)
+  function collideAxes (boxes, bb, dx, dy, dz) {
+    for (const blockBB of boxes) dy = blockBB.computeOffsetY(bb, dy)
+    bb.offset(0, dy, 0)
+    const zFirst = largerAxisFirst && Math.abs(dx) < Math.abs(dz)
+    if (zFirst) {
+      for (const blockBB of boxes) dz = blockBB.computeOffsetZ(bb, dz)
+      bb.offset(0, 0, dz)
+    }
+    for (const blockBB of boxes) dx = blockBB.computeOffsetX(bb, dx)
+    bb.offset(dx, 0, 0)
+    if (!zFirst) {
+      for (const blockBB of boxes) dz = blockBB.computeOffsetZ(bb, dz)
+      bb.offset(0, 0, dz)
+    }
+    return { dx, dy, dz }
+  }
+
   function moveEntity (entity, world, dx, dy, dz) {
     const vel = entity.vel
     const pos = entity.pos
@@ -330,20 +350,7 @@ function Physics (mcData, world) {
     const surroundingBBs = getSurroundingBBs(world, queryBB, entity)
     const oldBB = playerBB.clone()
 
-    for (const blockBB of surroundingBBs) {
-      dy = blockBB.computeOffsetY(playerBB, dy)
-    }
-    playerBB.offset(0, dy, 0)
-
-    for (const blockBB of surroundingBBs) {
-      dx = blockBB.computeOffsetX(playerBB, dx)
-    }
-    playerBB.offset(dx, 0, 0)
-
-    for (const blockBB of surroundingBBs) {
-      dz = blockBB.computeOffsetZ(playerBB, dz)
-    }
-    playerBB.offset(0, 0, dz)
+    ;({ dx, dy, dz } = collideAxes(surroundingBBs, playerBB, dx, dy, dz))
 
     // Step on block if height < stepHeight. The move then goes up by stepUp, across, and down by dy: by the step-up up to
     // 1.13, and from 1.14 to 1.20.6 by the step-up less the move's own dy (Entity.collide: -vec.y + movement.y)
@@ -361,36 +368,17 @@ function Physics (mcData, world) {
       const queryBB = oldBB.clone().extend(oldVelX, dy, oldVelZ)
       const surroundingBBs = getSurroundingBBs(world, queryBB, entity)
 
-      const BB1 = oldBB.clone()
+      // up by the step height from where the player is, then across (BB2); or up as far as the whole move's column
+      // allows, then across (BB1)
       const BB2 = oldBB.clone()
-      const BB_XZ = BB1.clone().extend(oldVelX, 0, oldVelZ)
-
+      const { dx: dx2, dy: dy2, dz: dz2 } = collideAxes(surroundingBBs, BB2, oldVelX, dy, oldVelZ)
+      const BB_XZ = oldBB.clone().extend(oldVelX, 0, oldVelZ)
       let dy1 = dy
-      let dy2 = dy
       for (const blockBB of surroundingBBs) {
         dy1 = blockBB.computeOffsetY(BB_XZ, dy1)
-        dy2 = blockBB.computeOffsetY(BB2, dy2)
       }
-      BB1.offset(0, dy1, 0)
-      BB2.offset(0, dy2, 0)
-
-      let dx1 = oldVelX
-      let dx2 = oldVelX
-      for (const blockBB of surroundingBBs) {
-        dx1 = blockBB.computeOffsetX(BB1, dx1)
-        dx2 = blockBB.computeOffsetX(BB2, dx2)
-      }
-      BB1.offset(dx1, 0, 0)
-      BB2.offset(dx2, 0, 0)
-
-      let dz1 = oldVelZ
-      let dz2 = oldVelZ
-      for (const blockBB of surroundingBBs) {
-        dz1 = blockBB.computeOffsetZ(BB1, dz1)
-        dz2 = blockBB.computeOffsetZ(BB2, dz2)
-      }
-      BB1.offset(0, 0, dz1)
-      BB2.offset(0, 0, dz2)
+      const BB1 = oldBB.clone().offset(0, dy1, 0)
+      const { dx: dx1, dz: dz1 } = collideAxes(surroundingBBs, BB1, oldVelX, 0, oldVelZ)
 
       const norm1 = dx1 * dx1 + dz1 * dz1
       const norm2 = dx2 * dx2 + dz2 * dz2
