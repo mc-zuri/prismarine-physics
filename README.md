@@ -160,6 +160,13 @@ Read only properties:
   near the player is taken for the one it rides
 - entityIds : (array or null) the ids of every entity the client knows (bot.entities), which place the others in its
   entity map on 1.14 to 1.16
+- movingPistons : (array or null) the moving piston blocks (bot.movingPistons), each { position (the block's cell),
+  direction (the piston's facing: down, up, north, south, west or east), extending, source (the piston's head), boxes
+  (the moved block's collision boxes in its cell), progress (0 to 1) }. physics.tickPistons(playerState, world), after
+  the player's tick (and after a caller sent the tick's movement packets), moves each on by 0.5 and pushes a player in its
+  way out of it, plus 0.01 (PistonMovingBlockEntity.moveCollidedEntities); apply writes the progress back, and finished
+  once the piston is done (on 1.9 and 1.10 a tick after it got there, which pushes once more). Up to 1.8 a piston pushes
+  no player here
 - entityId : (integer) the player's entity id (bot.entity.id), for the order of the entity map on 1.14 to 1.16
 - worldBorder : (object, optional) the world border (bot.worldBorder): centerX, centerZ and size. A player inside it
   cannot leave it (up to 1.13 the cells outside it collide as full blocks; from 1.14 its shape collides, from 1.18 only

@@ -529,11 +529,123 @@ function Physics (mcData, world) {
   }
 
   // LocalPlayer.move: every move of the player may set up an auto-jump (updateAutoJump)
-  function moveEntity (entity, world, dx, dy, dz) {
+  function moveEntity (entity, world, dx, dy, dz, piston = false) {
     const startX = entity.pos.x
     const startZ = entity.pos.z
-    moveEntityAlone(entity, world, dx, dy, dz)
+    moveEntityAlone(entity, world, dx, dy, dz, piston)
     updateAutoJump(entity, world, Math.fround(entity.pos.x - startX), Math.fround(entity.pos.z - startZ))
+  }
+
+  // PistonMovingBlockEntity.tick, for the moving piston blocks (bot.movingPistons), after the entities: each goes on by
+  // 0.5 of a block a tick until it gets there (progress 1), and pushes a player in the way of its shape
+  // (moveCollidedEntities): by as far as the shape's boxes move into the player's box (PistonMath.getMovementArea), at
+  // most the 0.5, plus 0.01, along the way it moves (the piston's direction when extending, the opposite when
+  // retracting). The push is a move of type PISTON: at most 0.51 along each axis in a tick (limitPistonMovement), none
+  // under 1.0E-5, and no backing off from an edge. A piston that got there is finished.
+  // On 1.9 and 1.10 (TileEntityPiston.update) the box the moved block's collision box covers between its last and its new
+  // place, on the tick it gets there and once more after, pushes a player it overlaps by as far as its far side is past
+  // the player's near side, plus 0.01, as an ordinary move. Up to 1.8 the moved block's box comes from shared block
+  // bounds, which is not modelled: a piston does not push there.
+  const pistonsLegacyPush = mcData.version['<']('1.11')
+  const pistonsPush = mcData.version['>=']('1.9')
+  const PISTON_DIRECTIONS = { down: [0, -1, 0], up: [0, 1, 0], north: [0, 0, -1], south: [0, 0, 1], west: [-1, 0, 0], east: [1, 0, 0] }
+  const OPPOSITE_DIRECTION = { down: 'up', up: 'down', north: 'south', south: 'north', west: 'east', east: 'west' }
+  function pistonMovementArea (box, direction, distance) {
+    const step = distance * Math.sign(PISTON_DIRECTIONS[direction].find(value => value !== 0))
+    const low = Math.min(step, 0)
+    const high = Math.max(step, 0)
+    switch (direction) {
+      case 'west': return new AABB(box.minX + low, box.minY, box.minZ, box.minX + high, box.maxY, box.maxZ)
+      case 'east': return new AABB(box.maxX + low, box.minY, box.minZ, box.maxX + high, box.maxY, box.maxZ)
+      case 'down': return new AABB(box.minX, box.minY + low, box.minZ, box.maxX, box.minY + high, box.maxZ)
+      case 'north': return new AABB(box.minX, box.minY, box.minZ + low, box.maxX, box.maxY, box.minZ + high)
+      case 'south': return new AABB(box.minX, box.minY, box.maxZ + low, box.maxX, box.maxY, box.maxZ + high)
+      default: return new AABB(box.minX, box.maxY + low, box.minZ, box.maxX, box.maxY + high, box.maxZ)
+    }
+  }
+  function pistonMovement (area, direction, box) {
+    switch (direction) {
+      case 'east': return area.maxX - box.minX
+      case 'west': return box.maxX - area.minX
+      case 'down': return box.maxY - area.minY
+      case 'south': return area.maxZ - box.minZ
+      case 'north': return box.maxZ - area.minZ
+      default: return area.maxY - box.minY
+    }
+  }
+  function pushedByPistons (entity, world) {
+    if (!entity.movingPistons) return
+    const deltas = [0, 0, 0]
+    for (const piston of entity.movingPistons) {
+      if (piston.finished) continue
+      if (pistonsLegacyPush || !pistonsPush) {
+        legacyPistonTick(entity, world, piston)
+        continue
+      }
+      const next = Math.fround(piston.progress + 0.5)
+      const distance = next - piston.progress
+      const moving = piston.extending ? piston.direction : OPPOSITE_DIRECTION[piston.direction]
+      const extended = Math.fround(piston.extending ? piston.progress - 1 : 1 - piston.progress)
+      const [fx, fy, fz] = PISTON_DIRECTIONS[piston.direction]
+      const boxes = piston.boxes.map(([minX, minY, minZ, maxX, maxY, maxZ]) => new AABB(minX, minY, minZ, maxX, maxY, maxZ)
+        .offset(piston.position.x + extended * fx, piston.position.y + extended * fy, piston.position.z + extended * fz))
+      if (boxes.length > 0) {
+        const bounds = boxes.reduce((all, box) => new AABB(Math.min(all.minX, box.minX), Math.min(all.minY, box.minY), Math.min(all.minZ, box.minZ),
+          Math.max(all.maxX, box.maxX), Math.max(all.maxY, box.maxY), Math.max(all.maxZ, box.maxZ)))
+        const area = pistonMovementArea(bounds, moving, distance)
+        const reach = new AABB(Math.min(area.minX, bounds.minX), Math.min(area.minY, bounds.minY), Math.min(area.minZ, bounds.minZ),
+          Math.max(area.maxX, bounds.maxX), Math.max(area.maxY, bounds.maxY), Math.max(area.maxZ, bounds.maxZ))
+        const playerBox = positionFromBox && entity.box ? entity.box : getPlayerBB(entity.pos)
+        if (playerBox.intersects(reach)) {
+          let push = 0
+          for (const box of boxes) {
+            const boxArea = pistonMovementArea(box, moving, distance)
+            if (boxArea.intersects(playerBox)) {
+              push = Math.max(push, pistonMovement(boxArea, moving, playerBox))
+              if (push >= distance) break
+            }
+          }
+          if (push > 0) moveByPiston(entity, world, moving, Math.min(push, distance) + 0.01, deltas)
+        }
+      }
+      piston.progress = Math.min(next, 1)
+      piston.finished = piston.progress >= 1
+    }
+  }
+  function legacyPistonTick (entity, world, piston) {
+    const last = piston.progress
+    if (last >= 1) piston.finished = true
+    else piston.progress = Math.min(Math.fround(last + 0.5), 1)
+    if (!pistonsPush) return
+    const [fx, fy, fz] = PISTON_DIRECTIONS[piston.direction]
+    // the moved block's collision box (the head's plate: the box furthest along the facing)
+    const local = piston.boxes.reduce((far, box) => !far || box[3] * fx + box[4] * fy + box[5] * fz > far[3] * fx + far[4] * fy + far[5] * fz ? box : far, null)
+    if (!local) return
+    const placed = progress => {
+      const f = Math.fround(piston.extending ? progress - 1 : 1 - progress)
+      return new AABB(...local).offset(Math.fround(f * fx), Math.fround(f * fy), Math.fround(f * fz))
+    }
+    const a = placed(piston.progress)
+    const b = placed(last)
+    const swept = new AABB(Math.min(a.minX, b.minX), Math.min(a.minY, b.minY), Math.min(a.minZ, b.minZ), Math.max(a.maxX, b.maxX), Math.max(a.maxY, b.maxY), Math.max(a.maxZ, b.maxZ))
+      .offset(piston.position.x, piston.position.y, piston.position.z)
+    const playerBox = positionFromBox && entity.box ? entity.box : getPlayerBB(entity.pos)
+    if (!playerBox.intersects(swept)) return
+    const moving = piston.extending ? piston.direction : OPPOSITE_DIRECTION[piston.direction]
+    const [mx, my, mz] = PISTON_DIRECTIONS[moving]
+    const distance = pistonMovement(swept, moving, playerBox) + 0.01
+    moveEntity(entity, world, distance * mx, distance * my, distance * mz)
+  }
+  function moveByPiston (entity, world, direction, distance, deltas) {
+    const move = PISTON_DIRECTIONS[direction].map(step => distance * step)
+    const axis = move.findIndex(value => value !== 0)
+    if (move[axis] * move[axis] > 1.0e-7) {
+      const limited = math.clamp(-0.51, move[axis] + deltas[axis], 0.51)
+      move[axis] = limited - deltas[axis]
+      deltas[axis] = limited
+      if (Math.abs(move[axis]) <= 9.999999747378752e-6) return
+    }
+    moveEntity(entity, world, move[0], move[1], move[2], true)
   }
 
   // LocalPlayer.updateAutoJump (from 1.11, with the client's auto-jump option, physics.autoJump): a move on the ground,
@@ -682,7 +794,8 @@ function Physics (mcData, world) {
     return y * (1.5 - half * y * y)
   }
 
-  function moveEntityAlone (entity, world, dx, dy, dz) {
+  // `piston`: a move of type PISTON, which a sneaking player is not backed off an edge in
+  function moveEntityAlone (entity, world, dx, dy, dz, piston) {
     const vel = entity.vel
     const pos = entity.pos
 
@@ -725,7 +838,7 @@ function Physics (mcData, world) {
     const oldVelY = dy
     let oldVelZ = dz
 
-    if (entity.control.sneak && entity.onGround) {
+    if (entity.control.sneak && entity.onGround && !piston) {
       const step = 0.05
 
       // In the 3 loops bellow, y offset should be -1, but that doesnt reproduce vanilla behavior.
@@ -2427,6 +2540,18 @@ function Physics (mcData, world) {
     else entity.vel.z = speed * best[1]
   }
 
+  // The moving piston blocks' tick, after the player's and after the player sent its position: they move the player
+  // (pushedByPistons). A caller that talks to a server runs it after sending the tick's movement packets.
+  physics.tickPistons = (entity, world) => {
+    playerDims = dimensionsOf(entity)
+    try {
+      pushedByPistons(entity, world)
+      return entity
+    } finally {
+      playerDims = null
+    }
+  }
+
   physics.simulatePlayer = (entity, world) => {
     playerDims = dimensionsOf(entity)
     try {
@@ -2734,6 +2859,9 @@ class PlayerState {
     this.entityId = bot.entity.id
     // the ids of every entity the client knows (bot.entities), which place the others in its entity map (1.14 to 1.16)
     this.entityIds = bot.entities ? Object.values(bot.entities).filter(other => other && other.id != null).map(other => other.id) : null
+    // the moving piston blocks (bot.movingPistons): position, direction (the piston's facing), extending, the boxes of the
+    // block they move and how far they got (progress, 0 to 1), which the tick moves on
+    this.movingPistons = bot.movingPistons ? bot.movingPistons.map(piston => ({ ...piston })) : null
     this.attributes = bot.entity.attributes
     this.yaw = bot.entity.yaw
     // the client's yRot in degrees, not wrapped, when the caller keeps it (read only)
@@ -2805,6 +2933,7 @@ class PlayerState {
     bot.jumpTicks = this.jumpTicks
     bot.autoJumpTime = this.autoJumpTime
     bot.entity.outsideBorder = this.outsideBorder
+    if (this.movingPistons) bot.movingPistons = this.movingPistons
     bot.riptide = 0
     bot.jumpQueued = this.jumpQueued
     bot.fireworkRocketDuration = this.fireworkRocketDuration
