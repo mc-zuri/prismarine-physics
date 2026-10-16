@@ -150,7 +150,11 @@ Read only properties:
   and soul soil on 1.16 to 1.20
 - attributes : (object) the synced attributes (bot.entity.attributes), keyed by the registry's resource name
   (`registry.attributesByName[name].resource`), each `{ value, modifiers }`. The engine reads movement speed and, on the
-  versions that have them, sneaking speed, jump strength and the movement and water movement efficiencies
+  versions that have them, sneaking speed, jump strength and the movement and water movement efficiencies. As the
+  vanilla client does, it takes the sprint modifier off the movement speed when sprinting stops and puts it on when
+  sprinting starts, and nowhere else: attributes the server sends replace all the modifiers, so a player can sprint
+  without the modifier until it stops and starts again; apply writes the attributes back. With no synced movement
+  speed the sprint modifier follows isSprinting
 - control : (object) control states vector with properties:
   - forward
   - back

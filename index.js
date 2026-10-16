@@ -765,18 +765,28 @@ function Physics (mcData, world) {
 
   // Player.getSpeed: the movement speed attribute (0.1F if the server synced none) with the sprint modifier as the
   // client's sprint state has it (LivingEntity.setSprinting), as a float
+  // The movement speed as the synced attribute holds it. The sprint modifier is put on and taken off only when sprinting
+  // starts and stops (setSprinting below), and the server's attributes replace all the modifiers, so a player can sprint
+  // without it until it stops and starts again. With no synced movement speed, the sprint modifier follows isSprinting.
   function movementSpeed (entity) {
-    let speed
-    if (entity.attributes && entity.attributes[physics.movementSpeedAttribute]) {
-      speed = entity.attributes[physics.movementSpeedAttribute]
-    } else {
-      speed = attribute.createAttributeValue(physics.playerSpeed)
-    }
-    speed = attribute.deleteAttributeModifier(speed, physics.sprintingUUID)
-    if (entity.isSprinting) {
-      speed = attribute.addAttributeModifier(speed, { uuid: physics.sprintingUUID, amount: physics.sprintSpeed, operation: 2 })
-    }
+    const synced = entity.attributes && entity.attributes[physics.movementSpeedAttribute]
+    if (synced) return Math.fround(attribute.getAttributeValue(synced))
+    const speed = attribute.createAttributeValue(physics.playerSpeed)
+    if (entity.isSprinting) attribute.addAttributeModifier(speed, sprintModifier())
     return Math.fround(attribute.getAttributeValue(speed))
+  }
+
+  function sprintModifier () {
+    return { uuid: physics.sprintingUUID, amount: physics.sprintSpeed, operation: 2 }
+  }
+
+  // LivingEntity.setSprinting: the sprint modifier comes off the synced movement speed and, when sprinting, back on
+  function setSprinting (entity) {
+    const synced = entity.attributes && entity.attributes[physics.movementSpeedAttribute]
+    if (!synced) return
+    const modifiers = synced.modifiers.filter(modifier => modifier.uuid !== physics.sprintingUUID)
+    if (entity.isSprinting) modifiers.push(sprintModifier())
+    entity.attributes = { ...entity.attributes, [physics.movementSpeedAttribute]: { ...synced, modifiers } }
   }
 
   // LivingEntity.travel in water: the drag (0.8F; from 1.13 0.9F while sprinting and 0.96F with Dolphin's Grace) and the
@@ -2148,6 +2158,7 @@ function Physics (mcData, world) {
     const input = movementInput(entity)
     entity.wasSprinting = entity.isSprinting
     updateSprinting(entity, input.impulse)
+    if (entity.isSprinting !== entity.wasSprinting) setSprinting(entity)
     const flightToggled = toggleFlight(entity, world)
     tryToStartFallFlying(entity, world, startVelY, flightToggled)
     entity.wasJumping = entity.control.jump
@@ -2405,6 +2416,7 @@ class PlayerState {
     bot.entity.minorHorizontalCollision = this.minorHorizontalCollision
     bot.entity.isCollidedVertically = this.isCollidedVertically
     bot.entity.isSprinting = this.isSprinting
+    if (this.attributes) bot.entity.attributes = this.attributes
     bot.entity.shiftKeyDown = this.shiftKeyDown
     bot.entity.wasJumping = this.wasJumping
     bot.entity.sprintTriggerTime = this.sprintTriggerTime
