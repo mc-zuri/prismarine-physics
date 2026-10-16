@@ -50,3 +50,45 @@ describe('pose', () => {
     })
   }
 })
+
+// LocalPlayer.aiStep (1.14+): a player crouches, and is slowed to the sneaking speed, where standing does not fit but
+// crouching does, without the sneak key; a crawling player (the swimming pose out of water) is slowed too. One tick
+// walking forward under a ceiling.
+function walkUnder (version, { ceilingAt, pose, slab = false }) {
+  const mcData = require('minecraft-data')(version)
+  const Block = require('prismarine-block')(version)
+  const world = {
+    getBlock: (pos) => {
+      const y = Math.floor(pos.y)
+      const b = y === ceilingAt && slab
+        ? Block.fromProperties('stone_slab', { type: 'top', waterlogged: false }, 0)
+        : new Block(mcData.blocksByName[y < 60 || y === ceilingAt ? 'stone' : 'air'].id, 0, 0)
+      b.position = pos.clone()
+      return b
+    }
+  }
+  const bot = {
+    entity: { position: new Vec3(0.5, 60, 0.5), velocity: new Vec3(0, -0.0784000015258789, 0), onGround: true, isInWater: false, isInLava: false, isInWeb: false, isCollidedHorizontally: false, isCollidedVertically: false, elytraFlying: false, yaw: Math.PI, pitch: 0, effects: {}, pose },
+    jumpTicks: 0,
+    jumpQueued: false,
+    fireworkRocketDuration: 0,
+    version,
+    inventory: { slots: [] }
+  }
+  const controls = { forward: true, back: false, left: false, right: false, jump: false, sprint: false, sneak: false }
+  Physics(mcData, world).simulatePlayer(new PlayerState(bot, controls), world).apply(bot)
+  return Math.abs(bot.entity.velocity.z)
+}
+
+describe('forced crouching and crawling', () => {
+  for (const version of ['1.14.4', '1.16.5', '1.20.4', '1.21.11', '26.1']) {
+    it(`${version}: crouching under a top slab, without the sneak key, is slowed`, () => {
+      const open = walkUnder(version, { ceilingAt: 70, pose: 'standing' })
+      expect(walkUnder(version, { ceilingAt: 61, pose: 'crouching', slab: true })).toBeLessThan(open * 0.5)
+    })
+    it(`${version}: crawling where only crawling fits is slowed`, () => {
+      const open = walkUnder(version, { ceilingAt: 70, pose: 'standing' })
+      expect(walkUnder(version, { ceilingAt: 61, pose: 'swimming' })).toBeLessThan(open * 0.5) // crawling
+    })
+  }
+})

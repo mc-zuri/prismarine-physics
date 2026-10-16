@@ -1267,8 +1267,10 @@ function Physics (mcData, world) {
     const flying = entity.flying
     const undone = flying && flightUndoesSneakSlow && !beforeFlight
     if (sneakSlowsWithKey) return entity.control.sneak && !undone
-    if (sneakSlowsWithKeyOrPose) return (entity.control.sneak || (entity.shiftKeyDown && !flying)) && !(undone && entity.control.sneak)
-    return entity.shiftKeyDown && !flying
+    // crawling: the swimming pose out of water (isVisuallyCrawling)
+    const crawling = entity.pose === 'swimming' && !entity.isInWater
+    if (sneakSlowsWithKeyOrPose) return (entity.control.sneak || entity.crouching || crawling) && !(undone && entity.control.sneak)
+    return entity.crouching || crawling
   }
 
   // The sneaking slowdown: (float)(0.3D) up to 1.18; 0.3F plus 0.15F per Swift Sneak level on 1.19 and 1.20; from 1.21
@@ -1888,6 +1890,12 @@ function Physics (mcData, world) {
     }
     if (Math.abs(vel.y) < negligibleVelocity) vel.y = 0
 
+    // LocalPlayer.aiStep (1.14+): crouching with the tick before's sneak key, or where standing does not fit but crouching
+    // does; never while flying or swimming
+    if (posePoses) {
+      entity.crouching = !entity.flying && !entity.isSwimming && fitsPose(entity, world, 'crouching') &&
+        (!!entity.shiftKeyDown || !fitsPose(entity, world, 'standing'))
+    }
     const input = movementInput(entity)
     entity.wasSprinting = entity.isSprinting
     updateSprinting(entity, input.impulse)
