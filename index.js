@@ -531,8 +531,13 @@ function Physics (mcData, world) {
     if (onPosBelow) checkSupportingBlock(entity, world, positionFromBox ? entity.box : getPlayerBB(pos), new Vec3(dx, movedY, dz))
 
     // Entity.move then checkFallDamage: LivingEntity looks for water again around the moved box when the player was not
-    // in it, before the collided axes stop (not on 1.21.4, where the local player skips checkFallDamage in move)
-    if (waterAfterMove && !entity.isInWater) updateInWater(entity, world, positionFromBox ? entity.box : getPlayerBB(pos))
+    // in it, and from 26.1 for lava too (Entity.updateFluidInteraction), before the collided axes stop (not on 1.21.4,
+    // where the local player skips checkFallDamage in move)
+    if (waterAfterMove && !entity.isInWater) {
+      const movedBox = positionFromBox ? entity.box : getPlayerBB(pos)
+      updateInWater(entity, world, movedBox)
+      if (lavaAfterMove) updateInLava(entity, world, movedBox)
+    }
     if (waterAfterMove) updateFallDistance(entity, movedY)
 
     // the block landed on: Entity.getOnPosLegacy, 0.2F under the position (from 1.20 by the supporting block)
@@ -1491,11 +1496,6 @@ function Physics (mcData, world) {
       if (inWater && waterClimbs && entity.isCollidedHorizontally && isOnLadder(world, pos)) vel.y = 0.2
       if (fluidHeightFromFeet) {
         // LivingEntity.travelInWater / travelInLava (1.13+)
-        if (lavaAfterMove && !inWater) {
-          // From 26.1 LivingEntity.checkFallDamage updates lava too after the move (Entity.updateFluidInteraction), so
-          // the lava regime below sees the moved box; up to 1.21.11 it looks again for water only
-          entity.lavaHeight = scanFluid(world, getPlayerBB(pos).contract(0.001, 0.001, 0.001), (block) => block && lavaIds.includes(block.type)).height
-        }
         // getFluidFallingAdjustedMovement: sink by gravity / 16, except the narrow band the game clamps to -0.003 so a
         // floating player does not creep down; a sprinting player does not sink. 1.13 reads "falling" after the drag.
         const fallingAdjusted = (y, falling) => entity.isSprinting
