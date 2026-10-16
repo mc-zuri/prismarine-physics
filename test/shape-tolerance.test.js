@@ -48,3 +48,19 @@ describe('a wall face just inside the player', () => {
     })
   }
 })
+
+// EntityPlayer.updateSize (1.9 to 1.13) resizes the box from its lower corner when the new box collides with nothing: on
+// 1.13 nothing it overlaps by more than 1.0E-7 (isCollisionBoxesEmpty compares shapes whose sides within 1.0E-7 merge),
+// up to 1.12 nothing it overlaps at all. A sneaking player against a wall whose crouching box would reach 2.4E-8 into
+// it crouches on 1.13 and stays standing up to 1.12.
+describe('a crouch whose box would reach a hair into a wall', () => {
+  const AABB = require('prismarine-physics/lib/aabb')
+  const cases = [['1.9.4', 'standing'], ['1.12.2', 'standing'], ['1.13.2', 'crouching']]
+  for (const [version, pose] of cases) {
+    it(`${version}: leaves the player ${pose}`, () => {
+      const entity = playerAt(0.7, 0)
+      entity.physicsBox = { box: new AABB(0.4, 101, 0.2, 1, 102.8, 0.8), position: entity.position.clone() }
+      expect(tick(version, wallWorld(version), entity, { sneak: true }).pose).toBe(pose)
+    })
+  }
+})

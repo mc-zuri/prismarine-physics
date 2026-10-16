@@ -174,8 +174,11 @@ function Physics (mcData, world) {
       const desired = entity.elytraFlying ? 'fall_flying' : entity.sleeping ? 'sleeping' : (fluidStates && (entity.isSwimming || entity.spinAttack)) ? 'swimming' : sneak ? 'crouching' : 'standing'
       const current = entity.pose ?? 'standing'
       if (POSE_HEIGHT[desired] === POSE_HEIGHT[current]) { entity.pose = desired; return }
+      // the new box must collide with nothing: up to 1.12 overlap nothing (World.collidesWithAnyBlock); on 1.13 overlap
+      // nothing by more than 1.0E-7 (isCollisionBoxesEmpty compares shapes whose sides within 1.0E-7 merge)
       const resized = anchoredBox(entity, desired)
-      if (getSurroundingBBs(world, resized, entity).some(bb => bb.intersects(resized))) return
+      const check = tinyAxisMoveCutoff ? resized.clone().contract(1.0e-7, 1.0e-7, 1.0e-7) : resized
+      if (getSurroundingBBs(world, resized, entity).some(bb => bb.intersects(check))) return
       entity.pose = desired
       entity.box = resized
     }
