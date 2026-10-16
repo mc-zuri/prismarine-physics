@@ -1845,6 +1845,14 @@ function Physics (mcData, world) {
     }
   }
 
+  // From 1.16 lava's height above the feet, and its current's push: 0.0023333333333333335, or 0.007 in an ultrawarm
+  // dimension (the nether; from 26.1 the fast_lava attribute)
+  function updateInLava (entity, world, box) {
+    const lava = updateFluidPush(entity, world, box, 'lava', entity.dimension === 'the_nether' ? 0.007 : 0.0023333333333333335)
+    entity.isInLava = lava.height > 0
+    entity.lavaHeight = lava.height
+  }
+
   function isInWaterApplyCurrent (world, bb, vel, pushed) {
     const acceleration = new Vec3(0, 0, 0)
     const waterBlocks = getWaterInBB(world, bb)
@@ -2064,11 +2072,9 @@ function Physics (mcData, world) {
     }
     // Entity.isInLava: up to 1.13 any lava in the box shrunk by (0.1, 0.4, 0.1), looked up whenever it is asked; on 1.14
     // and 1.15 a flag the move sets when the box (shrunk by 0.001) touches lava, read on the next tick; from 1.16 the
-    // lava's height above the feet, like water's
+    // lava's height above the feet, over 0, found after water's like water's (updateInWaterStateAndDoFluidPushing)
     if (lavaByHeight) {
-      const lava = scanFluid(world, getPlayerBB(pos).contract(0.001, 0.001, 0.001), (block) => block && lavaIds.includes(block.type))
-      entity.isInLava = lava.blocks.length > 0
-      entity.lavaHeight = lava.height
+      updateInLava(entity, world, getPlayerBB(pos))
     } else if (!lavaFlagFromMove) {
       entity.isInLava = isMaterialInBB(world, getPlayerBB(pos).contract(0.1, 0.4, 0.1), lavaIds)
     }
@@ -2281,6 +2287,8 @@ class PlayerState {
     this.flyingSpeed = bot.entity.flyingSpeed ?? 0.05
     // the game mode (survival, creative, adventure, spectator)
     this.gameMode = bot.game?.gameMode
+    // the dimension type (bot.game.dimension), e.g. the_nether, where lava flows faster
+    this.dimension = bot.game?.dimension
     this.attributes = bot.entity.attributes
     this.yaw = bot.entity.yaw
     // the client's yRot in degrees, not wrapped, when the caller keeps it (read only)

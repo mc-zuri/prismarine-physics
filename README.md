@@ -128,6 +128,8 @@ Read only properties:
 - mayFly : (boolean) may the player fly (bot.abilities.mayFly); then hunger does not keep it from sprinting
 - gameMode : (string) the game mode (bot.game.gameMode); a spectator moves through blocks, is never on the ground,
   keeps flying and takes the pose it wants
+- dimension : (string) the dimension type (bot.game.dimension); from 1.16 lava currents push three times as hard in
+  the_nether
 - blindness : (integer) the blindness effect's level; blindness keeps a sprint from starting
 - yaw : (float) the yaw angle, in radians, of the player entity
 - yRot : (number, optional) the yaw in degrees as the client keeps it, not wrapped (bot.entity.yRot). The sine table
