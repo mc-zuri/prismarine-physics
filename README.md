@@ -107,6 +107,11 @@ Read / Write properties:
   server then sends its abilities, after any START_FALL_FLYING command (onUpdateAbilities)
 - jumpTicks : (integer) number of ticks before the player can auto-jump again
 - autoJumpTime : (integer) ticks left of a jump the auto-jump option set up (read from and written to bot.autoJumpTime)
+- riptide : (integer) the riptide level of a trident the player let go of before this tick, used 10 ticks or more in
+  water or rain (bot.riptide; 0 for none, and the tick clears it): from 1.13 it pushes the player along its look by
+  3 * (1 + level) / 4, and on the ground first moves it 1.2 up (TridentItem.releaseUsing)
+- spinAttack : (boolean) whether the server's entity data has the player in a riptide's spin attack
+  (bot.entity.spinAttack), which takes the 0.6 high pose
 - autoJumped : (boolean, set by each tick) did the auto-jump option press jump on this tick? A caller that sends its keys
   (player_input, 1.21.2+) sends jump pressed then (Input.makeJump)
 - jumpQueued : (boolean) true if the jump control state was true between the last tick and the current one

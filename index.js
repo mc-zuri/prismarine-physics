@@ -460,6 +460,29 @@ function Physics (mcData, world) {
   const autoJumpChecksJumpFactor = mcData.version['>=']('1.15')
   const autoJumpFloatInvSqrt = mcData.version['>=']('1.19.4')
   const autoJumpRawInput = mcData.version['>=']('1.21.5')
+  // TridentItem.releaseUsing (1.13+), the use key let go before the tick: a riptide trident used 10 ticks or more in
+  // water or rain (the caller's checks) pushes the player along its look by 3 * (1 + level) / 4 (from 1.21 the
+  // trident_spin_attack_strength effect, the same), in float through the sine table, and on the ground first moves it
+  // 1.1999999F up. The spin attack's flag and pose come from the server's entity data.
+  function riptide (entity, world) {
+    const f = Math.fround
+    const yRotRad = f(yRotOf(entity) * math.DEG_TO_RAD_F)
+    const xRotRad = f(f(-entity.pitch * 180 / Math.PI) * math.DEG_TO_RAD_F)
+    const sin = r => math.mthSin(r, sinTableDoubleIndex)
+    const cos = r => math.mthCos(r, sinTableDoubleIndex)
+    let x = f(-sin(yRotRad) * cos(xRotRad))
+    let y = f(-sin(xRotRad))
+    let z = f(cos(yRotRad) * cos(xRotRad))
+    const length = f(Math.sqrt(f(f(f(x * x) + f(y * y)) + f(z * z))))
+    const strength = f(3 * f(f(1 + entity.riptide) / 4))
+    x = f(x * f(strength / length))
+    y = f(y * f(strength / length))
+    z = f(z * f(strength / length))
+    entity.vel.translate(x, y, z)
+    entity.riptide = 0
+    if (entity.onGround) moveEntity(entity, world, 0, 1.1999999284744263, 0)
+  }
+
   function updateAutoJump (entity, world, moveX, moveZ) {
     if (!physics.autoJump || !autoJumpFeature) return
     if (entity.autoJumpTime > 0 || !entity.onGround || entity.control.sneak) return
@@ -2321,6 +2344,7 @@ function Physics (mcData, world) {
   function simulateTick (entity, world) {
     const vel = entity.vel
     const pos = entity.pos
+    if (entity.riptide > 0) riptide(entity, world)
     const tickStart = pos.clone()
     // Player.tick: a spectator is never on the ground (and moves with noPhysics, moveEntity)
     const spectator = entity.gameMode === 'spectator'
@@ -2560,6 +2584,10 @@ class PlayerState {
     this.fallDistance = bot.entity.fallDistance ?? 0
     this.jumpTicks = bot.jumpTicks
     this.autoJumpTime = bot.autoJumpTime ?? 0
+    // the riptide level of a trident let go of before this tick, used 10 ticks or more in water or rain (0 for none)
+    this.riptide = bot.riptide ?? 0
+    // whether the server's entity data has the player spinning (a riptide's spin attack, its pose)
+    this.spinAttack = !!bot.entity.spinAttack
     this.jumpQueued = bot.jumpQueued
     this.fireworkRocketDuration = bot.fireworkRocketDuration
     // the abilities' flight: the server grants it, and the client ends it itself on landing
@@ -2647,6 +2675,7 @@ class PlayerState {
     bot.jumpTicks = this.jumpTicks
     bot.autoJumpTime = this.autoJumpTime
     bot.entity.outsideBorder = this.outsideBorder
+    bot.riptide = 0
     bot.jumpQueued = this.jumpQueued
     bot.fireworkRocketDuration = this.fireworkRocketDuration
   }
