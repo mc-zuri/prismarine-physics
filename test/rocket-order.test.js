@@ -39,3 +39,24 @@ describe('the tick of a rocket a gliding player rides', () => {
     })
   }
 })
+
+// Each rocket the player rides boosts it on its own tick (FireworkRocketEntity.tick): two rockets boost it twice in one
+// tick. Without a count (bot.fireworkRockets) the engine boosts once.
+describe('rockets a gliding player rides', () => {
+  for (const version of ['1.12.2', '1.16.5', '1.20.4', '1.21.11', '26.1']) {
+    it(`${version}: each boost it`, () => {
+      const mcData = require('minecraft-data')(version)
+      const Block = require('prismarine-block')(version)
+      const world = { getBlock: (pos) => { const block = new Block(mcData.blocksByName.air.id, 0, 0); block.position = pos.floored(); return block } }
+      const glide = (fireworkRockets) => {
+        const entity = { position: new Vec3(0.5, 130, 0.5), velocity: new Vec3(0, -0.3, 0.05), onGround: false, isInWater: false, isInLava: false, isInWeb: false, isCollidedHorizontally: false, isCollidedVertically: false, elytraFlying: true, yaw: Math.PI, pitch: 10 * Math.PI / 180, effects: {} }
+        const bot = { entity, fireworkRockets, jumpTicks: 0, jumpQueued: false, fireworkRocketDuration: 1, version, inventory: { slots: [] } }
+        const controls = { forward: false, back: false, left: false, right: false, jump: false, sprint: false, sneak: false }
+        Physics(mcData, world).simulatePlayer(new PlayerState(bot, controls), world).apply(bot)
+        return entity.velocity.z
+      }
+      expect(glide(2)).toBeGreaterThan(glide(1))
+      expect(glide(undefined)).toBe(glide(1))
+    })
+  }
+})

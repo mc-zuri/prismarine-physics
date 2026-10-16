@@ -2326,9 +2326,12 @@ function Physics (mcData, world) {
       return
     }
     const look = viewVector(entity)
-    vel.x += look.x * 0.1 + (look.x * 1.5 - vel.x) * 0.5
-    vel.y += look.y * 0.1 + (look.y * 1.5 - vel.y) * 0.5
-    vel.z += look.z * 0.1 + (look.z * 1.5 - vel.z) * 0.5
+    // each rocket the player rides boosts it on its own tick (FireworkRocketEntity.tick)
+    for (let rocket = 0; rocket < Math.max(entity.fireworkRockets ?? 1, 1); rocket++) {
+      vel.x += look.x * 0.1 + (look.x * 1.5 - vel.x) * 0.5
+      vel.y += look.y * 0.1 + (look.y * 1.5 - vel.y) * 0.5
+      vel.z += look.z * 0.1 + (look.z * 1.5 - vel.z) * 0.5
+    }
     --entity.fireworkRocketDuration
   }
 
@@ -2710,6 +2713,8 @@ class PlayerState {
     this.spinAttack = !!bot.entity.spinAttack
     this.jumpQueued = bot.jumpQueued
     this.fireworkRocketDuration = bot.fireworkRocketDuration
+    // how many rockets the player rides (bot.fireworkRockets; 1 when not given)
+    this.fireworkRockets = bot.fireworkRockets
     // the abilities' flight: the server grants it, and the client ends it itself on landing
     this.flying = bot.entity.flying ?? false
 

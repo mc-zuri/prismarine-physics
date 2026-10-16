@@ -116,6 +116,8 @@ Read / Write properties:
   (player_input, 1.21.2+) sends jump pressed then (Input.makeJump)
 - jumpQueued : (boolean) true if the jump control state was true between the last tick and the current one
 - fireworkRocketDuration : (number) how many ticks of firework boost are remaining ?
+- fireworkRockets : (integer, optional) how many rockets the gliding player rides (bot.fireworkRockets); each boosts it
+  on its own tick. Without it a running fireworkRocketDuration boosts once
 - box : (AABB or null) up to 1.16, the player's box as the last move left it; the position is read from it. It is kept on
   the entity as `physicsBox` ({ box, position }) and used only while the entity is still at that position, otherwise
   the box is rebuilt from the position
