@@ -169,7 +169,10 @@ function Physics (mcData, world) {
       const desired = desiredSwimFirst
         ? (entity.isSwimming ? 'swimming' : entity.elytraFlying ? 'fall_flying' : entity.spinAttack ? 'spin_attack' : crouch)
         : (entity.elytraFlying ? 'fall_flying' : entity.isSwimming ? 'swimming' : entity.spinAttack ? 'spin_attack' : crouch)
-      const pose = fitsPose(entity, world, desired) ? desired : fitsPose(entity, world, 'crouching') ? 'crouching' : 'swimming'
+      // a spectator takes the pose it wants
+      const pose = entity.gameMode === 'spectator' || fitsPose(entity, world, desired)
+        ? desired
+        : fitsPose(entity, world, 'crouching') ? 'crouching' : 'swimming'
       setPose(entity, pose)
     } else if (legacySize) {
       const desired = entity.elytraFlying ? 'fall_flying' : (fluidStates && (entity.isSwimming || entity.spinAttack)) ? 'swimming' : sneak ? 'crouching' : 'standing'
@@ -199,6 +202,7 @@ function Physics (mcData, world) {
   const stepDownKeepsMove = mcData.version['>=']('1.14') && mcData.version['<']('1.21')
   const largerAxisFirst = mcData.version['>=']('1.14')
   const candidateStepUp = mcData.version['>=']('1.21')
+  const noPhysicsClearsCollisions = mcData.version['>=']('1.21.9')
   const wholeMoveCollides = mcData.version['>=']('1.14')
   function stepHeightOf (entity) {
     const synced = stepHeightResource && entity.attributes && entity.attributes[stepHeightResource]
@@ -333,6 +337,28 @@ function Physics (mcData, world) {
   function moveEntity (entity, world, dx, dy, dz) {
     const vel = entity.vel
     const pos = entity.pos
+
+    // Entity.move with noPhysics (a spectator, Player.tick): the whole move, through blocks, and nothing else of the move
+    // (no stuck block, collision, fall or block effects). From 1.21.9 the collision flags clear; before they stay.
+    if (entity.gameMode === 'spectator') {
+      if (positionFromBox) {
+        const box = (entity.box ? entity.box.clone() : getPlayerBB(pos)).offset(dx, dy, dz)
+        pos.x = (box.minX + box.maxX) / 2
+        pos.y = box.minY
+        pos.z = (box.minZ + box.maxZ) / 2
+        entity.box = box
+      } else {
+        pos.x += dx
+        pos.y += dy
+        pos.z += dz
+      }
+      if (noPhysicsClearsCollisions) {
+        entity.isCollidedHorizontally = false
+        entity.isCollidedVertically = false
+        entity.minorHorizontalCollision = false
+      }
+      return
+    }
 
     // Entity.move: a block the player was stuck in last tick scales this move once and stops the motion
     if (entity.isInWeb) {
@@ -1984,6 +2010,9 @@ function Physics (mcData, world) {
     const vel = entity.vel
     const pos = entity.pos
     const tickStart = pos.clone()
+    // Player.tick: a spectator is never on the ground (and moves with noPhysics, moveEntity)
+    const spectator = entity.gameMode === 'spectator'
+    if (spectator) entity.onGround = false
     entity.movesThisTick = blockEffectsAfterTravel ? [] : null
     // Entity.baseTick: whether powder snow touched the player last tick
     entity.wasInPowderSnow = entity.isInPowderSnow
@@ -2091,7 +2120,8 @@ function Physics (mcData, world) {
     if (!rocketTicksAfterPlayer) boostByRocket(entity)
     moveEntityWithHeading(entity, world, strafe, forward)
     if (!flightEndsFallBeforeTravel && entity.flying) entity.fallDistance = 0 // up to 1.21.1 Player.travel, after the move
-    if (blockEffectsAfterTravel) {
+    // LivingEntity.applyEffectsFromBlocks: not with noPhysics (Entity.isAffectedByBlocks)
+    if (blockEffectsAfterTravel && !spectator) {
       stepOn(entity, world.getBlock(onPos(entity, world, Math.fround(0.2))))
       const moves = entity.movesThisTick.length ? entity.movesThisTick : [{ from: tickStart, to: pos.clone() }]
       applyInsideBlocksAlongMoves(entity, world, moves)

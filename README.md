@@ -121,8 +121,8 @@ Read / Write properties:
 Read only properties:
 - food : (number) the food level (bot.food); 6 or less keeps a sprint from starting
 - mayFly : (boolean) may the player fly (bot.abilities.mayFly); then hunger does not keep it from sprinting
-- gameMode : (string) the game mode (bot.game.gameMode); a spectator keeps flying on the ground and is not pushed out of
-  blocks
+- gameMode : (string) the game mode (bot.game.gameMode); a spectator moves through blocks, is never on the ground,
+  keeps flying and takes the pose it wants
 - blindness : (integer) the blindness effect's level; blindness keeps a sprint from starting
 - yaw : (float) the yaw angle, in radians, of the player entity
 - yRot : (number, optional) the yaw in degrees as the client keeps it, not wrapped (bot.entity.yRot). The sine table
