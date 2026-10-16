@@ -277,6 +277,7 @@ function Physics (mcData, world) {
   // down), so an entity whose slot is above the player's ticks before it. Up to 1.8 only the server pushes
   // (EntityLivingBase.collideWithNearbyEntities runs on the server side).
   const pushRootInFloat = mcData.version['<']('1.17')
+  const boatRiderWetUnderWater = mcData.version['>=']('1.19.3')
   const entitiesInHashOrder = mcData.version['>=']('1.14') && mcData.version['<']('1.17')
   const clientPushes = mcData.version['>=']('1.9')
   // The slot of each entity the client knows (entity.entityIds, the player's among them) in its entity map, filled as
@@ -2349,6 +2350,12 @@ function Physics (mcData, world) {
   // how high (1.13+), and its current's push. Player.isPushedByFluid is false while flying, so currents leave a flying
   // player alone.
   function updateInWater (entity, world, box) {
+    // a boat's rider is out of the water, from 1.19.3 unless the boat is under water
+    if (entity.riding && entity.riding.boat && !(boatRiderWetUnderWater && physics.simulateBoat.isUnderWater(entity.riding.position, world))) {
+      entity.isInWater = false
+      if (fluidStates) entity.waterHeight = 0
+      return
+    }
     if (fluidStates) {
       const water = updateFluidPush(entity, world, box, 'water', 0.014)
       entity.isInWater = water.found
@@ -2861,8 +2868,8 @@ class PlayerState {
     this.pose = bot.entity.pose ?? 'standing'
     // whether the player sleeps in a bed (bot.isSleeping), which keeps it in the sleeping pose
     this.sleeping = !!bot.isSleeping
-    // whether the player rides a vehicle (bot.vehicle), which places it
-    this.riding = !!bot.vehicle
+    // the vehicle the player rides (bot.vehicle: its position, and whether it is a boat), which places it
+    this.riding = bot.vehicle ? { position: bot.vehicle.position?.clone(), boat: !!bot.vehicle.position && /(^|_)(boat|raft)$/i.test(bot.vehicle.name ?? '') } : null
     this.food = bot.food ?? 20
     this.mayFly = bot.abilities?.mayFly ?? false
     this.elytraFlying = bot.entity.elytraFlying

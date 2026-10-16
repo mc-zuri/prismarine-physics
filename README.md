@@ -178,6 +178,9 @@ Read only properties:
   stand or a bat), or a boat the player touches, pushes it away by up to 0.05 (Entity.push); a spectator or a player on
   a climbable block is not pushed. On 1.14 to 1.16 a gliding player's rocket boosts in that order too: the first rocket
   near the player is taken for the one it rides
+- riding : (object or null) the vehicle the player rides (bot.vehicle: its name and position). A passenger ticks from no
+  motion with its own input and stays where it is (its vehicle places it); a boat's rider is out of the water, from
+  1.19.3 unless the boat is under water
 - entityIds : (array or null) the ids of every entity the client knows (bot.entities), which place the others in its
   entity map on 1.14 to 1.16
 - movingPistons : (array or null) the moving piston blocks (bot.movingPistons), each { position (the block's cell),
